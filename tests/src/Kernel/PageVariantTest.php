@@ -1280,7 +1280,10 @@ final class PageVariantTest extends CanvasKernelTestBase {
   public function testDefaultPageVariantSettingValidation(): void {
     $typed_config_manager = $this->container->get(TypedConfigManagerInterface::class);
     $validate = static fn (?string $id): array => self::violationsToArray(
-      $typed_config_manager->createFromNameAndData('canvas.settings', ['default_page_variant' => $id])->validate()
+      $typed_config_manager->createFromNameAndData('canvas.settings', [
+        'default_page_variant' => $id,
+        'prop_forms' => ['native' => FALSE, 'disabled_widgets' => []],
+      ])->validate()
     );
 
     // No default is allowed.

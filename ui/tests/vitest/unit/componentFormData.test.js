@@ -1,4 +1,5 @@
 import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
+import { createComponentFormStateHandler } from '@/components/form/react-hook-form/fields/componentFormHandlers';
 
 describe('componentFormData - getPropsValues propSource fallback', () => {
   const selectedComponent = 'test-uuid';
@@ -98,5 +99,88 @@ describe('componentFormData - getPropsValues propSource fallback', () => {
     );
 
     expect(propsValues.date_time).toBe('2026-01-15T14:30:00.000Z');
+  });
+});
+
+describe('createComponentFormStateHandler - form rendering a subset of props', () => {
+  const selectedComponent = 'test-uuid';
+  const selectedComponentType = 'sdc.test.image-feature';
+
+  // The stored input of a media prop is the media ID. The resolved value the
+  // server echoes back is the evaluated image object.
+  const imageSource = {
+    sourceType: 'static:field_item:entity_reference',
+    expression:
+      'ℹ︎entity_reference␟entity␜␜entity:media:image␝field_media_image',
+    value: 3,
+  };
+  const evaluatedImage = { src: '/files/photo.jpg', alt: 'A photo' };
+  const eyebrowSource = {
+    sourceType: 'static:field_item:string',
+    expression: 'ℹ︎string␟value',
+  };
+
+  const component = {
+    id: selectedComponentType,
+    propSources: {
+      image: {
+        ...imageSource,
+        jsonSchema: { type: 'object' },
+        default_values: { resolved: {}, source: {} },
+      },
+      eyebrow: {
+        ...eyebrowSource,
+        jsonSchema: { type: 'string' },
+        default_values: { resolved: {}, source: {} },
+      },
+    },
+  };
+
+  it('keeps the stored source of props that are not in the form state', () => {
+    const patchComponent = vi.fn();
+    const inputAndUiData = {
+      selectedComponent,
+      selectedComponentType,
+      components: { [selectedComponentType]: component },
+      layout: [],
+      version: '1.0',
+      editorFrameContext: 'entity',
+      model: {
+        [selectedComponent]: {
+          resolved: { image: evaluatedImage, eyebrow: 'Old' },
+          source: { image: imageSource, eyebrow: eyebrowSource },
+        },
+      },
+    };
+    const handler = createComponentFormStateHandler({
+      dispatch: vi.fn(),
+      transforms: { eyebrow: { mainProperty: {} } },
+      selectedComponentType,
+      selectedComponent,
+      propName: 'eyebrow',
+      isScalarProp: false,
+      polledBackgroundUpdate: { current: null },
+      component,
+      patchComponent,
+      editorFrameContext: 'entity',
+      version: '1.0',
+    });
+
+    // An escape-hatch island renders `eyebrow` only: `image` is edited by a
+    // native widget and never enters the form state.
+    handler(
+      {
+        [`canvas_component_props[${selectedComponent}][eyebrow][0][value]`]:
+          'New',
+      },
+      inputAndUiData,
+      {},
+    );
+
+    expect(patchComponent).toHaveBeenCalledTimes(1);
+    const { source, resolved } = patchComponent.mock.calls[0][1];
+    expect(resolved.eyebrow).toBe('New');
+    expect(source.eyebrow.value).toBe('New');
+    expect(source.image).toEqual(imageSource);
   });
 });

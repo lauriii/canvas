@@ -223,15 +223,38 @@ export const isEvaluatedComponentModel = (
   return 'source' in model;
 };
 
+/**
+ * Aligns stored prop sources with the resolved values about to be sent.
+ *
+ * @param sources
+ *   The stored prop sources of the component instance.
+ * @param component
+ *   The component (type) the instance belongs to.
+ * @param resolvedValues
+ *   The resolved values about to be sent.
+ * @param onlyProps
+ *   (optional) The props the caller has input values for. Sources of all other
+ *   props are returned untouched. A server-rendered form must pass the props
+ *   it renders: for every other prop `resolvedValues` holds the evaluated
+ *   value (for example an image URL object), not the stored input (a media
+ *   ID), and copying that into the source loses the stored input.
+ */
 export const syncPropSourcesToResolvedValues = (
   sources: Sources,
   component: CanvasComponent,
   resolvedValues: ResolvedValues,
+  onlyProps?: string[],
 ): Sources => {
   if (!isPropSourceComponent(component)) {
     return sources;
   }
-  const fieldData = component.propSources;
+  const inScope = (propName: string) =>
+    onlyProps === undefined || onlyProps.includes(propName);
+  const fieldData = Object.fromEntries(
+    Object.entries(component.propSources).filter(([propName]) =>
+      inScope(propName),
+    ),
+  );
 
   // We need to include a source entry for any props with a resolved value.
   // We don't store a source entry for empty values, so once the value is no
@@ -254,6 +277,9 @@ export const syncPropSourcesToResolvedValues = (
       [propName]: fieldData[propName],
     }),
     Object.entries(sources).reduce((carry: Sources, [propName, source]) => {
+      if (!inScope(propName)) {
+        return { ...carry, [propName]: source };
+      }
       if (emptyProps.includes(propName)) {
         // Ignore this source as the value is now empty.
         return carry;

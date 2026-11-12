@@ -4,7 +4,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
 
-import { getPropsValues } from './componentFormData';
+import { formStateToObject, getPropsValues } from './componentFormData';
 import { ComponentPreviewUpdateEvent } from './componentPreviewEvents';
 
 import type { PropsValues } from '@drupal-canvas/types';
@@ -49,8 +49,9 @@ export const createComponentFormStateHandler = (
     currFormState: PropsValues,
   ) => {
     // Apply (client-side) transforms for form state.
+    const formState = { ...currFormState, ...newFormState };
     const { propsValues: values, selectedModel } = getPropsValues(
-      { ...currFormState, ...newFormState },
+      formState,
       newInputAndUiData,
       // If transforms are not available (typically because TransformsContext is
       // not available to the input), fall back to the transforms stored in the
@@ -92,6 +93,12 @@ export const createComponentFormStateHandler = (
             selectedModel.source,
             deps.component,
             resolved,
+            // Only the props in the form state. In an escape-hatch island the
+            // other props are edited by native widgets and never enter the
+            // form state.
+            Object.keys(
+              formStateToObject(formState, newInputAndUiData.selectedComponent),
+            ),
           ),
           resolved,
         });

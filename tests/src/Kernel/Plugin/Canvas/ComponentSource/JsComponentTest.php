@@ -1950,7 +1950,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'object',
-              'title' => 'video',
+              'title' => 'Video',
               'required' => ['src'],
               'properties' => [
                 'src' => [
@@ -1992,12 +1992,20 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'poster' => 'https://placehold.co/1080x1920.png?text=Vertical',
               ],
             ],
+            'field_widget' => 'media_library_widget',
           ],
           'displayWidth' => [
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'integer',
               'enum' => [200, 300, 400, 500],
+              'title' => 'Display width',
+              'meta:enum' => [
+                200 => '200',
+                300 => '300',
+                400 => '400',
+                500 => '500',
+              ],
             ],
             'sourceType' => 'static:field_item:list_integer',
             'expression' => 'ℹ︎list_integer␟value',
@@ -2012,11 +2020,13 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 400,
             ],
+            'field_widget' => 'options_select',
           ],
           'caption' => [
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Caption',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2026,9 +2036,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 'A video',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_interactive' => [
         'expected_output_selectors' => [
@@ -2049,6 +2059,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Name',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2058,9 +2069,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 'Count',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_using_drupalsettings_get_site_data' => [
         'expected_output_selectors' => [
@@ -2070,7 +2081,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'source' => 'Code component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_using_drupalsettings_get_theme_assets' => [
         'expected_output_selectors' => [
@@ -2080,7 +2090,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'source' => 'Code component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_using_get_page_data' => [
         'expected_output_selectors' => [
@@ -2090,7 +2099,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'source' => 'Code component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_using_imports' => [
         'expected_output_selectors' => [
@@ -2100,7 +2108,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'source' => 'Code component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_vanilla_image' => [
         'expected_output_selectors' => [
@@ -2149,9 +2156,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 ...self::expectImagePropsInExampleOrderOn113(1200, 900, 'Example image placeholder'),
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_with_array_enums' => [
         'expected_output_selectors' => [
@@ -2174,7 +2181,13 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                   'medium',
                   'large',
                 ],
+                'meta:enum' => [
+                  'small' => 'Small',
+                  'medium' => 'Medium',
+                  'large' => 'Large',
+                ],
               ],
+              'title' => 'Sizes',
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -2191,9 +2204,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => ['small', 'medium'],
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_with_array_props' => [
         'expected_output_selectors' => [
@@ -2211,6 +2224,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'type' => 'string',
               ],
               'minItems' => 1,
+              'title' => 'Tags',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2226,6 +2240,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => ['Tag A', 'Tag B', 'Tag C', 'Tag D'],
             ],
+            'field_widget' => 'string_textfield',
           ],
           'links' => [
             'required' => FALSE,
@@ -2235,6 +2250,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'type' => 'string',
                 'format' => 'uri-reference',
               ],
+              'title' => 'Links',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -2252,6 +2268,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => ['/foo', '/bar'],
             ],
+            'field_widget' => 'link_default',
           ],
           'scores' => [
             'required' => FALSE,
@@ -2261,6 +2278,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'type' => 'integer',
               ],
               'maxItems' => 5,
+              'title' => 'Scores',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -2276,6 +2294,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => [1, 1, 2, 6],
             ],
+            'field_widget' => 'number',
           ],
           'images' => [
             'required' => FALSE,
@@ -2309,6 +2328,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                   ],
                 ],
               ],
+              'title' => 'Images',
             ],
             'sourceType' => 'static:field_item:image',
             'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
@@ -2328,9 +2348,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 ],
               ],
             ],
+            'field_widget' => 'image_image',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_with_enums' => [
         'expected_output_selectors' => [
@@ -2351,6 +2371,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'green',
                 'blue',
               ],
+              'title' => 'Favorite color',
+              'meta:enum' => [
+                'red' => 'Red',
+                'green' => 'Green',
+                'blue' => 'Blue',
+              ],
             ],
             'sourceType' => 'static:field_item:list_string',
             'expression' => 'ℹ︎list_string␟value',
@@ -2367,6 +2393,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 'red',
             ],
+            'field_widget' => 'options_select',
           ],
           'size' => [
             'required' => FALSE,
@@ -2376,6 +2403,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
                 'small',
                 'regular',
                 'large',
+              ],
+              'title' => 'Size',
+              'meta:enum' => [
+                'small' => 'Small',
+                'regular' => 'Regular',
+                'large' => 'Large',
               ],
             ],
             'sourceType' => 'static:field_item:list_string',
@@ -2393,9 +2426,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 'small',
             ],
+            'field_widget' => 'options_select',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_with_link_prop' => [
         'expected_output_selectors' => [
@@ -2409,6 +2442,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Text',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2418,12 +2452,14 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 'This is my link',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'link' => [
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'string',
               'format' => 'uri-reference',
+              'title' => 'Link',
             ],
             'sourceType' => 'static:field_item:link',
             'expression' => 'ℹ︎link␟url',
@@ -2442,9 +2478,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => '/llamas',
             ],
+            'field_widget' => 'link_default',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_with_no_props' => [
         'expected_output_selectors' => [
@@ -2454,7 +2490,6 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'source' => 'Code component',
         'metadata' => ['slots' => []],
         'propSources' => [],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_with_props' => [
         'expected_output_selectors' => [
@@ -2468,6 +2503,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'name',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2477,11 +2513,13 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 'Canvas',
             ],
+            'field_widget' => 'string_textfield',
           ],
           'age' => [
             'required' => FALSE,
             'jsonSchema' => [
               'type' => 'integer',
+              'title' => 'age',
             ],
             'sourceType' => 'static:field_item:integer',
             'expression' => 'ℹ︎integer␟value',
@@ -2491,9 +2529,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 40,
             ],
+            'field_widget' => 'number',
           ],
         ],
-        'transforms' => [],
       ],
       'js.canvas_test_code_components_with_slots' => [
         'expected_output_selectors' => [
@@ -2514,6 +2552,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'required' => TRUE,
             'jsonSchema' => [
               'type' => 'string',
+              'title' => 'Name',
             ],
             'sourceType' => 'static:field_item:string',
             'expression' => 'ℹ︎string␟value',
@@ -2523,9 +2562,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
               ],
               'resolved' => 'Name',
             ],
+            'field_widget' => 'string_textfield',
           ],
         ],
-        'transforms' => [],
       ],
     ];
   }

@@ -2,7 +2,9 @@ name: Canvas CI
 
 on:
   pull_request:
-    branches: [1.x]
+    # `farm/**` is included so stacked PRs (based on another farm/* branch
+    # rather than 1.x) still get CI before their base merges.
+    branches: [1.x, 'farm/**']
   push:
     # `ci/drop-ddev` is included so the workflow runs on this branch before it is
     # merged to 1.x (push events use the workflow from the pushed branch).

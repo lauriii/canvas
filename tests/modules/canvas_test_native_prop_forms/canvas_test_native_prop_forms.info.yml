@@ -1,0 +1,6 @@
+name: 'Canvas test: native prop forms'
+type: module
+description: 'Opts the site in to native (client-side) prop forms, which are off by default.'
+package: Testing
+dependencies:
+  - canvas:canvas

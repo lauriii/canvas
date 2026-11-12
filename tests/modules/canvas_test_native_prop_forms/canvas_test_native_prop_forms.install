@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the native prop forms test module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function canvas_test_native_prop_forms_install(): void {
+  \Drupal::configFactory()->getEditable('canvas.settings')
+    ->set('prop_forms.native', TRUE)
+    ->save();
+}

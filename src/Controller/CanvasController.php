@@ -41,6 +41,7 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\editor\EditorInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class CanvasController {
@@ -118,6 +119,41 @@ HTML;
     // ⚠️ This is highly experimental and *will* be refactored.
     $personalization_extension_available = $this->moduleHandler->moduleExists('canvas_personalization');
     $system_site_config = $this->configFactory->get('system.site');
+    // Native prop form settings: the site-wide opt-in and the per-widget
+    // native disable list. Absent config (a site that has not yet run
+    // canvas_post_update_0031_add_prop_forms_settings()) means server-built
+    // forms, which is what such a site rendered before.
+    // @see docs/adr/0017-client-side-field-widgets.md
+    $canvas_settings = $this->configFactory->get('canvas.settings');
+    $prop_forms_settings = [
+      'native' => $canvas_settings->get('prop_forms.native') ?? FALSE,
+      'disabledWidgets' => \array_values($canvas_settings->get('prop_forms.disabled_widgets') ?? []),
+      'textFormats' => [],
+    ];
+    // Text formats the current user may use, each with its associated editor
+    // plugin id (if any). This lets the client resolve formatted text props
+    // to a native widget or the escape hatch synchronously at render time;
+    // the heavier per-format editor settings and asset libraries are fetched
+    // lazily, once per session.
+    // @see \Drupal\canvas\Controller\ApiTextEditorSettingsController
+    $text_formats_cacheability = (new CacheableMetadata())
+      ->addCacheTags($this->entityTypeManager->getDefinition('filter_format')->getListCacheTags())
+      ->addCacheTags($this->entityTypeManager->getDefinition('editor')->getListCacheTags())
+      ->addCacheContexts(['user.permissions']);
+    $editor_storage = $this->entityTypeManager->getStorage('editor');
+    foreach (\filter_formats($this->currentUser) as $format) {
+      $format_id = (string) $format->id();
+      $editor = $editor_storage->load($format_id);
+      $text_formats_cacheability->addCacheableDependency($format);
+      if ($editor !== NULL) {
+        $text_formats_cacheability->addCacheableDependency($editor);
+      }
+      $prop_forms_settings['textFormats'][] = [
+        'id' => $format_id,
+        'label' => (string) $format->label(),
+        'editor' => $editor instanceof EditorInterface ? $editor->getEditor() : NULL,
+      ];
+    }
     $entity_types_with_keys = [];
     $entity_type_labels = [];
     foreach ($this->entityTypeManager->getDefinitions() as $entity_type_id => $entity_type_definition) {
@@ -197,10 +233,12 @@ HTML;
 
     return (new HtmlResponse($this->buildHtml()))
       ->addCacheableDependency($extensions)
+      ->addCacheableDependency($canvas_settings)
       ->addCacheableDependency($system_site_config)
       ->addCacheableDependency($all_content_entity_create_links)
       ->addCacheableDependency($languages_cacheability)
       ->addCacheableDependency($site_url_cacheability)
+      ->addCacheableDependency($text_formats_cacheability)
       ->setAttachments([
         'library' => [
           'canvas/canvas-ui',
@@ -229,6 +267,7 @@ HTML;
             'contentTranslationEnabled' => $content_translation_enabled,
             'configTranslationEnabled' => $config_translation_enabled,
             'languages' => $languages_data,
+            'propForms' => $prop_forms_settings,
             'extensionsAvailable' => count($extensions) > 0,
             'pageExtensions' => $page_extensions,
             'aiExtensionAvailable' => $ai_extension_available,

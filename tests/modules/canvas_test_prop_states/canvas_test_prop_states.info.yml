@@ -1,0 +1,6 @@
+name: 'Canvas test: x-canvas-states prop vocabulary'
+type: module
+description: 'Provides an SDC whose second prop declares x-canvas-states rules, for testing that the vocabulary is structurally safe.'
+package: Testing
+dependencies:
+  - canvas:canvas
