@@ -3,6 +3,7 @@ import {
   syncPropSourcesToResolvedValues,
 } from '@/features/layout/layoutModelSlice';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
+import { registerClientSidePreviewUpdate } from '@/services/preview';
 
 import { getPropsValues } from './componentFormData';
 import { ComponentPreviewUpdateEvent } from './componentPreviewEvents';
@@ -78,6 +79,9 @@ export const createComponentFormStateHandler = (
         ),
       );
       backgroundPreviewUpdate = PreviewUpdateEvent.getPreviewBackgroundUpdate();
+      if (backgroundPreviewUpdate) {
+        registerClientSidePreviewUpdate();
+      }
     }
 
     if (isEvaluatedComponentModel(selectedModel) && deps.component) {
