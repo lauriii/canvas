@@ -33,7 +33,7 @@ js:
         const {
           label,
           body,
-          path,
+          __url: url,
           owner: { name: authorName, user_picture: authorPicture } = {},
         } = featuredNews ?? {};
 
@@ -42,7 +42,7 @@ js:
             <h2>{heading}</h2>
             <article>
               <h3>
-                <a href={path}>{label}</a>
+                <a href={url}>{label}</a>
               </h3>
               <div className="flex items-center gap-2">
                 {authorPicture?.src_with_alternate_widths && (
@@ -76,7 +76,7 @@ js:
     import { Image, FormattedText } from 'drupal-canvas';
     const NewsListing = ({ heading, featuredNews })=>{
         var _authorPicture_alt;
-        const { label, body, path, owner } = featuredNews !== null && featuredNews !== void 0 ? featuredNews : {};
+        const { label, body, __url: url, owner } = featuredNews !== null && featuredNews !== void 0 ? featuredNews : {};
         const { name: authorName, user_picture: authorPicture } = owner !== null && owner !== void 0 ? owner : {};
         return /*#__PURE__*/ _jsxs("section", {
             children: [
@@ -87,7 +87,7 @@ js:
                     children: [
                         /*#__PURE__*/ _jsx("h3", {
                             children: /*#__PURE__*/ _jsx("a", {
-                                href: path,
+                                href: url,
                                 children: label
                             })
                         }),
@@ -133,6 +133,5 @@ dataDependencies:
   entityFields:
     featuredNews:
       - 'ℹ︎␜entity:node:news_item␝body␞␟processed'
-      - 'ℹ︎␜entity:node:news_item␝path␞␟alias'
       - 'ℹ︎␜entity:node:news_item␝title␞␟value'
       - 'ℹ︎␜entity:node:news_item␝uid␞␟{name↝entity␜␜entity:user␝name␞␟value,user_picture↝entity␜␜entity:user␝user_picture␞␟{alt↠alt,height↠height,src_with_alternate_widths↠src_with_alternate_widths,width↠width}}'

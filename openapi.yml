@@ -3651,6 +3651,7 @@ paths:
                     data:
                       article:
                         __type: article
+                        __url: /node/1
                         label: How to turn model output into product stories people remember
                         path: ''
                         field_image:

@@ -546,6 +546,7 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
         'data' => [
           'article' => [
             '__type' => 'article',
+            '__url' => '/node/' . $node->id(),
             'label' => 'Example article',
             'field_image' => [
               'alt' => 'Example alt text',
@@ -554,6 +555,7 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
             ],
             'owner' => [
               '__type' => 'user',
+              '__url' => '/user/' . $account->id(),
               'name' => $account->getAccountName(),
             ],
           ],

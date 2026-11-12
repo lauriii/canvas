@@ -235,7 +235,15 @@ entity type and bundle. Do not infer the final component prop shape from
 expression names alone. After the component metadata exists locally, run
 `npx canvas agents-context cer-preview <component>` to inspect the resolved prop
 shape that component code should consume. Reference expressions can create
-nested objects and include metadata keys such as `__type`.
+nested objects.
+
+Every resolved entity object, including nested ones, contains two metadata
+keys:
+
+- `__type`: the bundle of the entity.
+- `__url`: the canonical URL of the entity, or `null` when its entity type has
+  no canonical URL. Use it to link to the entity. It does not need an entity
+  field expression.
 
 ## Slot metadata
 
