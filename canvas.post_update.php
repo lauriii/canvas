@@ -10,10 +10,12 @@ use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\Hook\PageHooks;
 use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -815,4 +817,53 @@ function canvas_post_update_0030_page_variant_selection_options(): void {
   // varchar column); only the field type and its settings change.
   $storage_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldStorageDefinitions('canvas_page');
   $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
+}
+
+/**
+ * Moves the canvas_page canonical URL metatag default from field to config.
+ *
+ * Pages stored `canonical_url: [canvas_page:url]` as a field value, which
+ * overrode metatag's front page defaults on the homepage.
+ *
+ * @see \Drupal\canvas\Hook\PageHooks::ensureMetatagDefaults()
+ * @see \Drupal\canvas\Hook\PageHooks::entityBaseFieldInfo()
+ */
+function canvas_post_update_0031_canvas_page_canonical_url_metatag_default(array &$sandbox): void {
+  if (!\Drupal::moduleHandler()->moduleExists('metatag')) {
+    $sandbox['#finished'] = 1;
+    return;
+  }
+  $page_storage = \Drupal::entityTypeManager()->getStorage(Page::ENTITY_TYPE_ID);
+
+  if (!isset($sandbox['ids'])) {
+    PageHooks::ensureMetatagDefaults(\Drupal::moduleHandler(), \Drupal::entityTypeManager());
+    $sandbox['ids'] = \array_values($page_storage->getQuery()->accessCheck(FALSE)->execute());
+    $sandbox['total'] = \count($sandbox['ids']);
+    $sandbox['progress'] = 0;
+  }
+
+  $batch = \array_slice($sandbox['ids'], $sandbox['progress'], (int) Settings::get('entity_update_batch_size', 50));
+  foreach ($page_storage->loadMultiple($batch) as $page) {
+    \assert($page instanceof Page);
+    $changed = FALSE;
+    foreach ($page->getTranslationLanguages() as $langcode => $language) {
+      $translation = $page->getTranslation($langcode);
+      $tags = metatag_data_decode($translation->get('metatags')->value ?? '');
+      // Only remove the untouched default: a customized value is intentional.
+      if (($tags['canonical_url'] ?? NULL) === '[canvas_page:url]') {
+        unset($tags['canonical_url']);
+        $translation->set('metatags', Json::encode($tags));
+        $changed = TRUE;
+      }
+    }
+    if ($changed) {
+      // Rewrite in place: no new revision, no `changed` timestamp bump.
+      $page->setNewRevision(FALSE);
+      $page->setSyncing(TRUE);
+      $page->save();
+    }
+  }
+
+  $sandbox['progress'] += \count($batch);
+  $sandbox['#finished'] = $sandbox['total'] == 0 ? 1 : ($sandbox['progress'] / $sandbox['total']);
 }

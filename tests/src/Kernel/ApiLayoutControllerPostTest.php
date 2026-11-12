@@ -1043,21 +1043,19 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     );
 
     // Lastly, the no-module-churn path into that same empty-storage state: a
-    // site admin configures metatag defaults for canvas_page with the same
-    // tokens as Canvas's field-level defaults (the natural choice at
+    // site admin edits Canvas's metatag defaults for canvas_page to also hold
+    // Canvas's field-level default tokens (the natural choice at
     // /admin/config/search/metatag). MetatagFieldItem::preSave() then strips
     // every stored tag on the next real save, so the page persists `{}` while
     // the widget keeps prefilling the tokens.
     // @see \Drupal\canvas\Hook\PageHooks::entityBaseFieldInfo()
-    MetatagDefaults::create([
-      'id' => Page::ENTITY_TYPE_ID,
-      'label' => 'Canvas page',
-      'tags' => [
-        'title' => '[canvas_page:title] | [site:name]',
-        'description' => '[canvas_page:description]',
-        'canonical_url' => '[canvas_page:url]',
-        'image_src' => '[canvas_page:image:entity:field_media_image:entity:url]',
-      ],
+    $canvas_page_defaults = MetatagDefaults::load(Page::ENTITY_TYPE_ID);
+    \assert($canvas_page_defaults instanceof MetatagDefaults);
+    $canvas_page_defaults->set('tags', [
+      'title' => '[canvas_page:title] | [site:name]',
+      'description' => '[canvas_page:description]',
+      'canonical_url' => '[canvas_page:url]',
+      'image_src' => '[canvas_page:image:entity:field_media_image:entity:url]',
     ])->save();
 
     $stripped_page = Page::create([
@@ -1065,7 +1063,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       'components' => [],
     ]);
     $stripped_page->save();
-    // preSave() stripped all four field-default tags as config-default
+    // preSave() stripped all three field-default tags as config-default
     // matches.
     self::assertSame('[]', $stripped_page->get('metatags')->getValue()[0]['value'] ?? NULL);
     self::assertTrue($autoSave->getAutoSaveEntity($stripped_page)->isEmpty());
@@ -1102,12 +1100,10 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     // A bundle-level metatag default distinct from Canvas's own field
     // default for the same tag.
     // @see \Drupal\canvas\Hook\PageHooks::entityBaseFieldInfo()
-    MetatagDefaults::create([
-      'id' => Page::ENTITY_TYPE_ID,
-      'label' => 'Canvas page',
-      'tags' => [
-        'description' => 'Global default description, not a Canvas token',
-      ],
+    $canvas_page_defaults = MetatagDefaults::load(Page::ENTITY_TYPE_ID);
+    \assert($canvas_page_defaults instanceof MetatagDefaults);
+    $canvas_page_defaults->set('tags', [
+      'description' => 'Global default description, not a Canvas token',
     ])->save();
 
     $page = Page::create([
