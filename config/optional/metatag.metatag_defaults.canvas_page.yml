@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas
+id: canvas_page
+label: 'Canvas page'
+tags:
+  canonical_url: '[canvas_page:url]'

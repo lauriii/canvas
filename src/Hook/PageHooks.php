@@ -68,7 +68,9 @@ final class PageHooks {
           ->setDefaultValue(Json::encode([
             'title' => '[canvas_page:title] | [site:name]',
             'description' => '[canvas_page:description]',
-            'canonical_url' => '[canvas_page:url]',
+            // The canonical URL is a config default instead, so metatag's
+            // front page defaults can override it for the homepage.
+            // @see config/optional/metatag.metatag_defaults.canvas_page.yml
             // @see https://stackoverflow.com/a/19274942
             'image_src' => '[canvas_page:image:entity:field_media_image:entity:url]',
           ]))

@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\EntityFormController;
 use Drupal\canvas\Entity\Page;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -92,6 +93,10 @@ final class PageMetatagIntegrationTest extends CanvasKernelTestBase {
       'image' => $media_image->id(),
     ]);
     self::assertSaveWithoutViolations($sut);
+    // The canonical URL comes from config, not the field: a stored value would
+    // override metatag's front page defaults.
+    // @see https://www.drupal.org/i/3558305
+    self::assertArrayNotHasKey('canonical_url', Json::decode($sut->get('metatags')->value));
 
     self::assertMetatags($sut, [
       [
