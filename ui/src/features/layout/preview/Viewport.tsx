@@ -36,6 +36,7 @@ export interface ViewportProps {
 const Viewport: React.FC<ViewportProps> = (props) => {
   const { frameSrcDoc, isFetching } = props;
   const [isReloading, setIsReloading] = useState(true);
+  const [inPlaceUpdates, setInPlaceUpdates] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
@@ -63,11 +64,13 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     effectiveMinHeight,
   );
 
+  // An in-place update completes without changing either loading flag, so it
+  // re-runs this effect through its own counter.
   useEffect(() => {
     if (!isFetching && !isReloading) {
       dispatch(unsetUpdatingComponent());
     }
-  }, [dispatch, isFetching, isReloading]);
+  }, [dispatch, isFetching, isReloading, inPlaceUpdates]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -96,6 +99,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         srcDocument={frameSrcDoc}
         headStyles={brandKitColorStyles}
         setIsReloading={setIsReloading}
+        setInPlaceUpdates={setInPlaceUpdates}
         interactive={editorFrameMode === EditorFrameMode.INTERACTIVE}
       />
       {editorFrameMode === EditorFrameMode.EDIT && (
