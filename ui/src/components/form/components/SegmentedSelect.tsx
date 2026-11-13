@@ -5,7 +5,7 @@ import { SegmentedControl } from '@radix-ui/themes';
 import Select from '@/components/form/components/Select';
 import { useFieldContext } from '@/components/form/contexts/FieldContext';
 
-import type { ComponentType } from 'react';
+import type { ComponentType, SVGProps } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 
 type Option = {
@@ -22,6 +22,17 @@ const MAX_TOTAL_LABEL_LENGTH = 32;
 // An icon takes about as much room as two characters.
 const ICON_LABEL_LENGTH = 2;
 
+type OptionIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+// The icons are drawn for 15px with hairline strokes. Next to the 12px medium
+// labels of the other segments they need to be larger and heavier.
+const ICON_PROPS: SVGProps<SVGSVGElement> = {
+  width: 17,
+  height: 17,
+  stroke: 'currentColor',
+  strokeWidth: 0.3,
+};
+
 /**
  * The icons of a select's options, by option value.
  *
@@ -34,21 +45,21 @@ const ICON_LABEL_LENGTH = 2;
  */
 export const optionIcons = (
   attributes: Attributes,
-): Record<string, ComponentType> => {
+): Record<string, OptionIcon> => {
   let names: Record<string, string> = {};
   try {
     names = JSON.parse(`${attributes['data-canvas-option-icons'] ?? '{}'}`);
   } catch {
     // Not JSON: no icons.
   }
-  const icons: Record<string, ComponentType> = {};
+  const icons: Record<string, OptionIcon> = {};
   Object.entries(names).forEach(([value, name]) => {
     // `text-align-left` is exported as `TextAlignLeftIcon`.
     const exportName = `${`${name}`.replace(/(^|-)(\w)/g, (_match, _dash, letter) => letter.toUpperCase())}Icon`;
     // @todo Load the icon set on demand: looking icons up by name bundles all of them.
     const icon = (radixIcons as Record<string, unknown>)[exportName];
     if (icon) {
-      icons[value] = icon as ComponentType;
+      icons[value] = icon as OptionIcon;
     }
   });
   return icons;
@@ -157,7 +168,7 @@ const SegmentedSelect = ({
               title={Icon && label}
               aria-label={Icon && label}
             >
-              {Icon ? <Icon /> : label}
+              {Icon ? <Icon {...ICON_PROPS} /> : label}
             </SegmentedControl.Item>
           );
         })}
