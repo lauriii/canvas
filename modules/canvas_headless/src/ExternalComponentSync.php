@@ -224,6 +224,20 @@ final class ExternalComponentSync {
         }
       }
     }
+    // The application's build finds the strings its implementation passes to
+    // `t()` and `formatPlural()`. They replace the stored strings, also those
+    // of a retained implementation. Payloads without them keep the stored
+    // strings.
+    if (\array_key_exists('translatableStrings', $definition)) {
+      $strings = $definition['translatableStrings'];
+      if ($strings !== NULL && !JavaScriptComponent::isListOfStringMaps($strings)) {
+        throw new \UnexpectedValueException("The component '{$definition['machineName']}' has invalid translatableStrings metadata.");
+      }
+      $values['translatableStrings'] = $strings === NULL ? NULL : JavaScriptComponent::normalizeTranslatableStrings($strings);
+    }
+    elseif ($component instanceof JavaScriptComponent) {
+      $values['translatableStrings'] = $component->get('translatableStrings');
+    }
     $candidate = $storage->create($values);
     \assert($candidate instanceof JavaScriptComponent);
     $violations = $candidate->getTypedData()->validate();
@@ -373,6 +387,7 @@ final class ExternalComponentSync {
     return $stored_canvas_component->getActiveVersion() === $candidate_version
       && $stored_code_component->getComponentType() === $candidate->getComponentType()
       && $stored_metadata === $candidate_metadata
+      && $stored_code_component->get('translatableStrings') === $candidate->get('translatableStrings')
       && $stored_code_component->label() === $candidate->label()
       && $stored_code_component->status() === $candidate->status()
       && $stored_canvas_component->label() === $candidate->label()

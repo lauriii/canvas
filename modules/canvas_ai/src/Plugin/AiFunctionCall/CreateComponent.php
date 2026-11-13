@@ -190,7 +190,9 @@ final class CreateComponent extends FunctionCallBase implements ExecutableFuncti
       ];
       // Invalid slots are left out of $transformed_slots, so the rest of the
       // structure can still be validated and reported in the same response.
-      $violations = JavaScriptComponent::createFromClientSide($output)->getTypedData()->validate();
+      // The UI finds the translatable strings when it saves the component.
+      // @see packages/translatable-strings/src/extract.ts
+      $violations = JavaScriptComponent::createFromClientSide($output + ['translatableStrings' => []])->getTypedData()->validate();
       if ($violations->count() > 0) {
         // Translate constraint property paths to match YAML input structure
         $translatedViolations = $this->translateConstraintPropertyPathsAndRoot(

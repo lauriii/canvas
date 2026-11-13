@@ -38,6 +38,7 @@ import type {
   PreviewFrameError,
   PreviewFrameReady,
   PreviewFrameRendered,
+  PreviewInterfaceTranslation,
   PreviewManifest,
   PreviewRenderRequest,
   PreviewShellSync,
@@ -57,6 +58,7 @@ interface RenderableState {
   type: 'component' | 'page' | 'page-template';
   renderId: string;
   node: ReactNode;
+  interfaceTranslation?: PreviewInterfaceTranslation;
 }
 
 function PageContentMarkerPlaceholder() {
@@ -133,13 +135,25 @@ class FrameRenderBoundary extends Component<
  * Workbench page defaults and the site data the Vite integration loaded once.
  * The provider stays mounted across preview targets and hot updates.
  */
-function WorkbenchProviders({ children }: { children: ReactNode }) {
+function WorkbenchProviders({
+  children,
+  interfaceTranslation,
+}: {
+  children: ReactNode;
+  interfaceTranslation?: PreviewInterfaceTranslation;
+}) {
   // The same inputs the legacy settings are built from (the site data the
   // Vite integration injected, then the preview origin; see main.tsx), so
-  // the hooks and `getSiteData()` agree without reading the global.
+  // the hooks and `getSiteData()` agree without reading the global. The
+  // interface language and its translations come with each render request.
   const context = useMemo(
-    () => createWorkbenchContext(siteData, window.location.origin),
-    [],
+    () =>
+      createWorkbenchContext(
+        siteData,
+        window.location.origin,
+        interfaceTranslation,
+      ),
+    [interfaceTranslation],
   );
   const client = useMemo(() => {
     const config = createWorkbenchJsonApiConfig(
@@ -221,8 +235,13 @@ export function PreviewFrameApp() {
     }
   }, [activeRender]);
 
+  // Each render request, so that one that loads its modules after a later one
+  // does not replace it.
+  const latestRenderRequestRef = useRef(0);
   const handleRenderRequest = useCallback(
     async (request: PreviewRenderRequest): Promise<void> => {
+      const renderRequest = ++latestRenderRequestRef.current;
+      const isLatest = () => renderRequest === latestRenderRequestRef.current;
       if (request.payload.shellPath) {
         navigate(request.payload.shellPath, { replace: true });
       }
@@ -247,6 +266,9 @@ export function PreviewFrameApp() {
             jsEntryPath: source.jsEntryUrl,
           })),
         );
+        if (!isLatest()) {
+          return;
+        }
 
         let node: ReactNode;
         if (
@@ -269,8 +291,12 @@ export function PreviewFrameApp() {
           type: renderType,
           renderId: request.payload.renderId,
           node,
+          interfaceTranslation: request.payload.interfaceTranslation,
         });
       } catch (error) {
+        if (!isLatest()) {
+          return;
+        }
         const message =
           error instanceof Error
             ? `${error.message}${error.stack ? `\n${error.stack}` : ''}`
@@ -442,7 +468,9 @@ export function PreviewFrameApp() {
         }}
       >
         {activeRender ? (
-          <WorkbenchProviders>
+          <WorkbenchProviders
+            interfaceTranslation={activeRender.interfaceTranslation}
+          >
             <RenderSignal
               renderId={activeRender.renderId}
               type={activeRender.type}

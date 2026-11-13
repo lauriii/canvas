@@ -7,7 +7,15 @@ scenarios.
 
 Integration graph for the shared build service. It combines component imports,
 shared local code, third-party dependencies, built-in Canvas imports, component
-CSS, global CSS, static assets, and backend metadata extraction.
+CSS, global CSS, static assets, and backend metadata extraction, including
+translatable strings.
+
+## `build-invalid-translatable-strings`
+
+Negative fixture for translatable string extraction. Its component passes a
+context that Drupal cannot store, so the build fails with the literal's file,
+line, and column. The empty string of the local module it imports is not
+scanned.
 
 ## `build-custom-roots`
 

@@ -9,7 +9,13 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Render\Component\Exception\InvalidComponentException;
+use Drupal\Core\Theme\Component\ComponentValidator;
+use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\Core\TypedData\Validation\RecursiveValidator;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\FieldStorageConfigInterface;
@@ -20,6 +26,7 @@ use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Tests validation of JavaScriptComponent entities.
@@ -70,7 +77,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   /**
    * {@inheritdoc}
    */
-  protected static array $propertiesWithOptionalValues = ['type'];
+  protected static array $propertiesWithOptionalValues = ['type', 'translatableStrings'];
 
   /**
    * {@inheritdoc}
@@ -676,6 +683,23 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         'props.array_prop_name.items' => "'\$ref' is a required key because props.array_prop_name.items.type is object (see config schema type canvas.json_schema.prop_shape.object).",
       ],
     ];
+
+    // A list of references uses the existing content-entity-reference shape as
+    // its `items`. Config schema accepts it, and the content-entity-reference
+    // rules apply to `items`. No `dataDependencies.entityFields` entry exists
+    // here, so `toSdcDefinition()` cannot inject `x-allowed-entity-type-id`.
+    // @see \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
+    yield 'Invalid: content-entity-reference array prop without entityFields' => [
+      [
+        'type' => 'array',
+        'title' => 'Related articles',
+        'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        'maxItems' => 3,
+      ],
+      [
+        '' => 'Missing "x-allowed-entity-type-id" for content entity reference prop "array_prop_name".',
+      ],
+    ];
   }
 
   /**
@@ -785,6 +809,213 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
       ],
     ], $this->entity->getContentEntityReferenceProps());
+  }
+
+  /**
+   * Tests a list of references: a `type: array` content-entity-reference prop.
+   *
+   * This test does not validate the config entity. It calls the methods that
+   * project and check the prop definitions directly.
+   *
+   * @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
+   * @see \Drupal\canvas\Entity\JavaScriptComponent::toSdcDefinition()
+   * @see \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
+   */
+  public function testContentEntityReferenceListProp(): void {
+    $js_component = $this->entity;
+    \assert($js_component instanceof JavaScriptComponent);
+    $js_component->set('props', [
+      'article' => [
+        'title' => 'Interesting article',
+        ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      ],
+      'related_articles' => [
+        'title' => 'Related articles',
+        'type' => 'array',
+        'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        'maxItems' => 3,
+      ],
+      // Same as for a single reference: `x-allowed-*` keys in the prop
+      // definition exclude the prop.
+      'employees' => [
+        'title' => 'Employees',
+        'type' => 'array',
+        'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray() + [
+          'x-allowed-entity-type-id' => 'user',
+        ],
+      ],
+    ]);
+    $js_component->set('dataDependencies', [
+      'entityFields' => [
+        'article' => ['ℹ︎␜entity:node:article␝title␞␟value'],
+        'related_articles' => ['ℹ︎␜entity:node:article␝title␞␟value'],
+      ],
+    ]);
+
+    self::assertSame(['article', 'related_articles'], \array_keys($js_component->getContentEntityReferenceProps()));
+    self::assertFalse($js_component->isContentEntityReferenceObjectListProp('article'));
+    self::assertTrue($js_component->isContentEntityReferenceObjectListProp('related_articles'));
+    self::assertFalse($js_component->isContentEntityReferenceObjectListProp('employees'));
+
+    // A single reference gets the `x-allowed-*` keys on the prop. A list of
+    // references gets them on its `items`.
+    $sdc_props = $js_component->toSdcDefinition()['props']['properties'];
+    self::assertSame([
+      'title' => 'Interesting article',
+      ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      'x-allowed-entity-type-id' => 'node',
+      'x-allowed-bundle' => 'article',
+    ], $sdc_props['article']);
+    self::assertSame([
+      'title' => 'Related articles',
+      'type' => 'array',
+      'items' => [
+        ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        'x-allowed-entity-type-id' => 'node',
+        'x-allowed-bundle' => 'article',
+      ],
+      'maxItems' => 3,
+    ], $sdc_props['related_articles']);
+
+    // Prop VALUES are validated against the projected definition by core's
+    // ComponentValidator, with the JSON Schema validator Canvas configures for
+    // it. Each item of the list is validated against the `items` schema.
+    // @see \Drupal\canvas\CanvasServiceProvider::alter()
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
+    $component_validator = $this->container->get(ComponentValidator::class);
+    \assert($component_validator instanceof ComponentValidator);
+    $sdc_plugin = JsComponentDiscovery::buildEphemeralSdcPluginInstance($js_component);
+    $validate_values = function (array $values) use ($component_validator, $sdc_plugin): array {
+      try {
+        $component_validator->validateProps(['related_articles' => $values], $sdc_plugin);
+        return [];
+      }
+      catch (InvalidComponentException $e) {
+        return \explode("\n", $e->getMessage());
+      }
+    };
+    $article_payload = ['__type' => 'article', '__url' => '/node/1', 'title' => 'An article'];
+    self::assertSame([], $validate_values([]));
+    self::assertSame([], $validate_values([$article_payload, $article_payload]));
+    // An item that is not a reference is invalid, wherever it is in the list.
+    self::assertSame(
+      ['[canvas:test/related_articles[1]] String value found, but an object is required.'],
+      $validate_values([$article_payload, 'not a reference']),
+    );
+    self::assertSame(
+      ['[canvas:test/related_articles] There must be a maximum of 3 items in the array, 4 found.'],
+      $validate_values([$article_payload, $article_payload, $article_payload, $article_payload]),
+    );
+  }
+
+  /**
+   * Tests the validation of a list of references prop definition.
+   *
+   * @param array<string, mixed> $prop
+   *   The definition of the `array_prop_name` prop.
+   * @param array<string, string|string[]> $expected_errors
+   *   The expected validation errors.
+   * @param array<string, mixed> $entity_values
+   *   Values to set on the entity besides the prop, keyed by property name.
+   */
+  #[DataProvider('providerContentEntityReferenceListPropDefinition')]
+  public function testContentEntityReferenceListPropDefinition(array $prop, array $expected_errors, array $entity_values): void {
+    $this->entity->set('props', ['array_prop_name' => $prop]);
+    foreach ($entity_values as $property => $value) {
+      $this->entity->set($property, $value);
+    }
+    $this->assertValidationErrors($expected_errors);
+  }
+
+  /**
+   * Data provider for testContentEntityReferenceListPropDefinition().
+   */
+  public static function providerContentEntityReferenceListPropDefinition(): \Generator {
+    // A list of references: `type: array` with a content-entity-reference as
+    // `items`. The reference itself is resolved from
+    // `dataDependencies.entityFields`.
+    $reference_list = [
+      'type' => 'array',
+      'title' => 'Related articles',
+      'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+    ];
+    $article_title = ['ℹ︎␜entity:node:article␝title␞␟value'];
+    $with_article_title = ['dataDependencies' => ['entityFields' => ['array_prop_name' => $article_title]]];
+    yield 'Valid: content-entity-reference array' => [
+      $reference_list,
+      [],
+      $with_article_title,
+    ];
+    yield 'Valid: content-entity-reference array with maxItems 2' => [
+      $reference_list + ['maxItems' => 2],
+      [],
+      $with_article_title,
+    ];
+    yield 'Invalid: content-entity-reference array with maxItems <2' => [
+      $reference_list + ['maxItems' => 1],
+      [
+        '' => 'The "maxItems" restriction on arrays (if set) must be at least 2, but got 1 on prop "array_prop_name". Use a non-array type for single-value props.',
+        'props.array_prop_name.maxItems' => 'This value should be <em class="placeholder">2</em> or more.',
+      ],
+      $with_article_title,
+    ];
+    // A required list of references with examples fails the array rule (it
+    // would need `minItems: 1`) and both reference rules (references must be
+    // optional, and must not have examples).
+    yield 'Invalid: required content-entity-reference array with examples' => [
+      $reference_list + ['examples' => [[]]],
+      [
+        '' => [
+          'Prop "array_prop_name" is a content-entity-reference prop and must not have examples.',
+          'Multiple-cardinality prop "array_prop_name" is required, but does not specify `minItems: 1`.',
+          'Prop "array_prop_name" is required, but content-entity-reference props must be optional.',
+        ],
+      ],
+      $with_article_title + ['required' => ['array_prop_name']],
+    ];
+    // `minItems` is only allowed on required props, and content-entity-
+    // reference props must be optional: so a list of references can never have
+    // `minItems`. There is no rule specific to lists of references.
+    yield 'Invalid: content-entity-reference array with minItems' => [
+      $reference_list + ['minItems' => 1],
+      [
+        '' => 'Multiple-cardinality prop "array_prop_name" specifies `minItems`, but is not required. Only required multiple-cardinality props can specify `minItems`.',
+      ],
+      $with_article_title,
+    ];
+    yield 'Invalid: content-entity-reference array and required with minItems' => [
+      $reference_list + ['minItems' => 1],
+      [
+        '' => 'Prop "array_prop_name" is required, but content-entity-reference props must be optional.',
+      ],
+      $with_article_title + ['required' => ['array_prop_name']],
+    ];
+    // The `x-allowed-*` keys are computed from `dataDependencies.entityFields`
+    // and projected into `items`: they must not be in the prop definition, and
+    // their projected values are validated.
+    yield 'Invalid: content-entity-reference array with x-allowed-* in items' => [
+      [...$reference_list, 'items' => $reference_list['items'] + ['x-allowed-entity-type-id' => 'user']],
+      [
+        'props.array_prop_name.items.x-allowed-entity-type-id' => "'x-allowed-entity-type-id' is not a supported key.",
+      ],
+      $with_article_title,
+    ];
+    yield 'Invalid: content-entity-reference array targeting a non-existent bundle' => [
+      $reference_list,
+      [
+        '' => 'Invalid value "nonsense" for "x-allowed-bundle": not a known bundle of entity type "node".',
+        'dataDependencies.entityFields.array_prop_name.0' => "The entity type 'node' does not have a 'nonsense' bundle.",
+      ],
+      ['dataDependencies' => ['entityFields' => ['array_prop_name' => ['ℹ︎␜entity:node:nonsense␝title␞␟value']]]],
+    ];
+    yield 'Invalid: content-entity-reference array targeting a non-existent entity type' => [
+      $reference_list,
+      [
+        '' => 'Missing "x-allowed-entity-type-id" for content entity reference prop "array_prop_name".',
+        'dataDependencies.entityFields.array_prop_name.0' => "The entity type 'nonsense' does not exist.",
+      ],
+      ['dataDependencies' => ['entityFields' => ['array_prop_name' => ['ℹ︎␜entity:nonsense␝title␞␟value']]]],
+    ];
   }
 
   /**
@@ -1445,38 +1676,230 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   }
 
   /**
-   * @testWith [{}, []]
-   *           [{"something": []}, {"dataDependencies.something": "'something' is not a supported key."}]
-   *           [{"drupalSettings": []}, {"dataDependencies.drupalSettings": "This value should not be blank."}]
-   *           [{"drupalSettings": ["v0.pageTitle", "foo"]}, {"dataDependencies.drupalSettings.1": "The value you selected is not a valid choice."}]
-   *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"]}, []]
-   *           [{"drupalSettings": ["v0.langcode"]}, []]
-   *           [{"urls": []}, {"dataDependencies.urls": "This value should not be blank."}]
-   *           [{"urls": ["https://www.drupal.org/jsonapi"]}, []]
-   *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"], "urls": ["https://www.drupal.org/jsonapi"], "entityFields": {"my_reference": ["ℹ︎␜entity:user␝name␞␟value"]}}, []]
-   *           [{"drupalSettings": ["foo"], "entityFields": {"nonexistent_prop": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.drupalSettings.0": "The value you selected is not a valid choice.", "dataDependencies.entityFields.nonexistent_prop": "'nonexistent_prop' is not a supported key."}]
-   *           [{"entityFields": {"text": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.entityFields.text": "'text' is not a supported key."}]
+   * @testWith [{}, [], []]
+   *           [{"something": []}, {"dataDependencies.something": "'something' is not a supported key."}, []]
+   *           [{"drupalSettings": []}, {"dataDependencies.drupalSettings": "This value should not be blank."}, []]
+   *           [{"drupalSettings": ["v0.pageTitle", "foo"]}, {"dataDependencies.drupalSettings.1": "The value you selected is not a valid choice."}, []]
+   *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"]}, [], []]
+   *           [{"drupalSettings": ["v0.langcode"]}, [], []]
+   *           [{"urls": []}, {"dataDependencies.urls": "This value should not be blank."}, []]
+   *           [{"urls": ["https://www.drupal.org/jsonapi"]}, [], []]
+   *           [{"drupalSettings": ["v0.pageTitle", "v0.branding"], "urls": ["https://www.drupal.org/jsonapi"], "entityFields": {"my_reference": ["ℹ︎␜entity:user␝name␞␟value"]}}, [], []]
+   *           [{"drupalSettings": ["foo"], "entityFields": {"nonexistent_prop": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.drupalSettings.0": "The value you selected is not a valid choice.", "dataDependencies.entityFields.nonexistent_prop": "'nonexistent_prop' is not a supported key."}, []]
+   *           [{"entityFields": {"text": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.entityFields.text": "'text' is not a supported key."}, []]
+   *           [{"entityFields": {"my_reference_list": ["ℹ︎␜entity:user␝name␞␟value"]}}, [], []]
+   *           [{"entityFields": {"my_reference": ["ℹ︎␜entity:user␝name␞␟value"], "my_reference_list": ["ℹ︎␜entity:user␝name␞␟value"]}}, [], []]
+   *           [{"entityFields": {"my_string_list": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.entityFields.my_string_list": "'my_string_list' is not a supported key."}, []]
+   *           [{"entityFields": {"my_image_list": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"dataDependencies.entityFields.my_image_list": "'my_image_list' is not a supported key."}, []]
+   *           [{"entityFields": {"my_reference": ["ℹ︎␜entity:user␝name␞␟value"]}}, {"": "Missing \"x-allowed-entity-type-id\" for content entity reference prop \"my_reference_list\".", "dataDependencies.entityFields": "'my_reference_list' is a required key."}, ["my_reference_list"]]
+   *
+   * @param array<string, mixed> $test
+   *   The `dataDependencies` to set.
+   * @param array<string, string|string[]> $expected_errors
+   *   The expected validation errors.
+   * @param string[] $additional_props
+   *   Names of synthetic props to inject, besides the ones keyed in
+   *   `entityFields`.
    */
-  public function testDataDependencies(array $test, array $expected_errors): void {
-    // Auto-inject a synthetic `my_reference` content-entity-reference prop
-    // whenever the test data targets it via `entityFields.my_reference`. This
-    // exercises the `SequenceKeysMustMatch` `conditions` scoping — only
-    // content-entity-reference props are valid keys. Negative rows targeting a
-    // non-content-entity-reference prop key (e.g. `text`) intentionally skip
-    // injection so that the constraint sees zero content-entity-reference
-    // props and flags the key as unsupported.
-    if (\array_key_exists('entityFields', $test) && \array_key_exists('my_reference', $test['entityFields'])) {
-      self::assertInstanceOf(JavaScriptComponent::class, $this->entity);
-      $props = $this->entity->getProps();
-      $props['my_reference'] = [
+  public function testDataDependencies(array $test, array $expected_errors, array $additional_props): void {
+    // Auto-inject synthetic props whenever the test data targets them via
+    // `entityFields`. This exercises the `SequenceKeysMustMatch` `conditions`
+    // scoping — only content-entity-reference props (single or list) are valid
+    // keys:
+    // - `my_reference`: a single content-entity-reference prop.
+    // - `my_reference_list`: a list of content-entity-references prop.
+    // - `my_string_list`: a list of strings prop. Its `items` mapping has no
+    //   `$ref` key.
+    // - `my_image_list`: a list of images prop. Its `items` mapping has a
+    //   `$ref` key, but not the content-entity-reference one.
+    // Negative rows targeting a non-content-entity-reference prop key (e.g.
+    // `text`, which has no `items` mapping at all) intentionally skip
+    // injection of a content-entity-reference prop so that the constraint sees
+    // zero content-entity-reference props and flags the key as unsupported.
+    $synthetic_props = [
+      'my_reference' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      'my_reference_list' => [
+        'type' => 'array',
+        'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      ],
+      'my_string_list' => [
+        'type' => 'array',
+        'items' => ['type' => 'string'],
+      ],
+      'my_image_list' => [
+        'type' => 'array',
+        'items' => JsonSchemaObjectRef::Image->asPropShapeArray(),
+      ],
+    ];
+    self::assertInstanceOf(JavaScriptComponent::class, $this->entity);
+    $props = $this->entity->getProps() ?? [];
+    $injected_prop_names = \array_merge(\array_keys($test['entityFields'] ?? []), $additional_props);
+    foreach (\array_intersect_key($synthetic_props, \array_flip($injected_prop_names)) as $prop_name => $prop_schema) {
+      $props[$prop_name] = [
         'title' => $this->randomString(),
-        ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        ...$prop_schema,
       ];
-      $this->entity->setProps($props);
     }
+    $this->entity->setProps($props);
 
     $this->entity->set('dataDependencies', $test);
     $this->assertValidationErrors($expected_errors);
+  }
+
+  /**
+   * Tests the condition forms accepted by the SequenceKeysMustMatch constraint.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\SequenceKeysMustMatchConstraint::$conditions
+   */
+  public function testSequenceKeysMustMatchConditions(): void {
+    self::assertInstanceOf(JavaScriptComponent::class, $this->entity);
+    $content_entity_reference = JsonSchemaObjectRef::ContentEntityReference;
+    $this->entity->setProps([
+      'single' => ['title' => 'Single', ...$content_entity_reference->asPropShapeArray()],
+      'list' => ['title' => 'List', 'type' => 'array', 'items' => $content_entity_reference->asPropShapeArray()],
+      'strings' => ['title' => 'Strings', 'type' => 'array', 'items' => ['type' => 'string']],
+      'text' => ['title' => 'Text', 'type' => 'string'],
+    ]);
+    $this->entity->set('dataDependencies', [
+      'entityFields' => ['text' => ['ℹ︎␜entity:user␝name␞␟value']],
+    ]);
+    $typed_config = $this->entity->getTypedData();
+    $entity_fields = $typed_config->get('dataDependencies.entityFields');
+    $single_set = ['type' => 'object', '$ref' => $content_entity_reference->value];
+    $list_set = [
+      'type' => 'array',
+      'items.type' => 'object',
+      'items.$ref' => $content_entity_reference->value,
+    ];
+
+    // Cases: the conditions, and the props that match them. The validated
+    // sequence has only the key `text`, which never matches. So every case
+    // reports `text` as invalid, and the matching props as missing.
+    $expected_keys_per_case = [
+      // A single set (not a list of sets) selects the elements matching all of
+      // its conditions.
+      'single set' => [$single_set, ['single']],
+      // A dotted key targets a key of a nested mapping. `strings` has an
+      // `items` mapping, but without `$ref`: no match.
+      'nested key' => [$list_set, ['list']],
+      // The nested parent `items` is absent for `single` and `text`. That is
+      // no match instead of an error.
+      'nested parent missing' => [['items.$ref' => $content_entity_reference->value], ['list']],
+      // A list of sets selects the elements matching at least one set.
+      'any of two sets' => [[$single_set, $list_set], ['single', 'list']],
+    ];
+    foreach ($expected_keys_per_case as $case => [$conditions, $expected_keys]) {
+      $violations = $this->validateEntityFields($typed_config, $entity_fields, $conditions);
+      $messages = [];
+      foreach ($violations as $violation) {
+        $messages[] = (string) $violation->getMessage();
+      }
+      \sort($messages);
+
+      $expected_messages = \array_map(fn (string $key): string => \sprintf("'%s' is a required key.", $key), $expected_keys);
+      $expected_messages[] = "'text' is not a supported key.";
+      \sort($expected_messages);
+      self::assertSame($expected_messages, $messages, $case);
+    }
+
+    // An unknown top-level key is an error in the condition itself.
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('Condition key "nonexistent" is not a valid key of the target sequence item.');
+    $this->validateEntityFields($typed_config, $entity_fields, ['nonexistent' => 'object']);
+  }
+
+  /**
+   * Validates `entityFields` against a SequenceKeysMustMatch constraint.
+   *
+   * @param \Drupal\Core\TypedData\TypedDataInterface $typed_config
+   *   The typed config of the entire JavaScriptComponent.
+   * @param \Drupal\Core\TypedData\TypedDataInterface $entity_fields
+   *   The `dataDependencies.entityFields` element of the typed config.
+   * @param array<int|string, mixed> $conditions
+   *   The `conditions` option of the constraint.
+   */
+  private function validateEntityFields(TypedDataInterface $typed_config, TypedDataInterface $entity_fields, array $conditions): ConstraintViolationListInterface {
+    $constraint = $this->container->get('validation.constraint')->create('SequenceKeysMustMatch', [
+      'propertyPathToSequence' => 'props',
+      'conditions' => $conditions,
+    ]);
+    $validator = $this->container->get(TypedDataManagerInterface::class)->getValidator();
+    \assert($validator instanceof RecursiveValidator);
+    return $validator->startContext($typed_config)
+      ->validate($entity_fields, [$constraint])
+      ->getViolations();
+  }
+
+  /**
+   * Tests validation of the translatable strings.
+   *
+   * @param list<array<string, string>> $translatable_strings
+   *   The translatable strings to validate.
+   * @param array<string, string|list<string>> $expected_errors
+   *   The expected validation errors, keyed by property path.
+   */
+  #[DataProvider('providerTranslatableStrings')]
+  public function testTranslatableStrings(array $translatable_strings, array $expected_errors): void {
+    $this->entity->set('translatableStrings', $translatable_strings);
+    $this->assertValidationErrors($expected_errors);
+  }
+
+  public static function providerTranslatableStrings(): \Generator {
+    yield 'valid' => [
+      [
+        ['source' => 'Hello @name'],
+        ['source' => '1 file', 'plural' => '@count files'],
+        ['source' => 'May', 'context' => \str_repeat('a', 255)],
+      ],
+      [],
+    ];
+    yield 'none' => [[], []];
+    yield 'empty source' => [
+      [['source' => '']],
+      ['translatableStrings.0.source' => 'This value should not be blank.'],
+    ];
+    yield 'missing source' => [
+      [['plural' => '@count files']],
+      ['translatableStrings.0' => "'source' is a required key."],
+    ];
+    yield 'empty plural' => [
+      [['source' => '1 file', 'plural' => '']],
+      ['translatableStrings.0.plural' => 'This value should not be blank.'],
+    ];
+    yield 'empty context' => [
+      [['source' => 'May', 'context' => '']],
+      ['translatableStrings.0.context' => 'This value should not be blank.'],
+    ];
+    yield 'plural delimiter' => [
+      [['source' => "1 file\x03", 'plural' => "\x03@count files"]],
+      [
+        'translatableStrings.0.source' => 'A translatable string must not contain the U+0003 character, which separates plural forms.',
+        'translatableStrings.0.plural' => 'A translatable string must not contain the U+0003 character, which separates plural forms.',
+      ],
+    ];
+    yield 'non-ASCII context' => [
+      [['source' => 'May', 'context' => 'Month – long']],
+      ['translatableStrings.0.context' => 'A translation context must contain only ASCII characters.'],
+    ];
+    yield 'long context' => [
+      [['source' => 'May', 'context' => \str_repeat('a', 256)]],
+      ['translatableStrings.0.context' => 'A translation context must not be longer than 255 characters.'],
+    ];
+    yield 'unknown key' => [
+      [['source' => 'May', 'locale' => 'pl']],
+      ['translatableStrings.0.locale' => "'locale' is not a supported key."],
+    ];
+  }
+
+  /**
+   * Tests that translatable strings may be unknown, whatever the source code.
+   */
+  public function testTranslatableStringsUnknown(): void {
+    $this->entity->set('js', ['original' => "import { useTranslation } from 'drupal-canvas/react';", 'compiled' => '']);
+    $this->entity->set('translatableStrings', NULL);
+    $this->assertValidationErrors([]);
+    $this->entity->set('translatableStrings', []);
+    $this->assertValidationErrors([]);
   }
 
   /**
@@ -1580,8 +2003,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       'label' => 'Link',
     ])->save();
 
-    // A multi-valued reference field — for the case asserting multi-valued
-    // fields cannot be referenced.
+    // A multi-valued reference field — for the cases asserting multi-valued
+    // fields can be referenced.
     FieldStorageConfig::create([
       'field_name' => 'field_related',
       'entity_type' => 'entity_test',
@@ -1655,8 +2078,8 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     ])->save();
 
     // A multi-valued field on BOTH media bundles — for the case asserting a
-    // multi-valued field leaf *inside a branch* is still rejected. Both branches
-    // must have the same leaf cardinality, so the field exists on image + video.
+    // multi-valued field leaf *inside a branch* is accepted. Both branches must
+    // have the same leaf cardinality, so the field exists on image + video.
     FieldStorageConfig::create([
       'field_name' => 'field_media_tags',
       'entity_type' => 'media',
@@ -1967,11 +2390,11 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
 
     // (b) A multi-valued field leaf inside one branch: `field_media_tags` is
     // unlimited-cardinality. Both branches target it (matching leaf cardinality
-    // is required within a branch), so the multi-valued guard still fires.
-    // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiValuedFieldNotSupportedConstraint
-    yield 'entityFields multi-valued field leaf inside a branch is rejected' => [
+    // is required within a branch). Multi-valued leaves are accepted: they
+    // resolve to a list of values.
+    yield 'entityFields multi-valued field leaf inside a branch is accepted' => [
       ['entityFields' => ['my_reference' => ['ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝field_media_tags␞␟value][␜entity:media:video␝field_media_tags␞␟value]']]],
-      ['dataDependencies.entityFields.my_reference.0' => "The field 'entity:media:image.field_media_tags' is multi-valued, which is not yet supported."],
+      [],
       [],
     ];
 
@@ -2102,12 +2525,12 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [],
     ];
 
-    // The picker does not offer multi-valued fields (their delta-less
-    // expressions resolve to a delta-keyed array, unsupported at render time),
-    // so storing such an expression is rejected — whether it descends through
-    // the reference, picks a leaf property, or specifies an explicit delta.
-    // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiValuedFieldNotSupportedConstraint
-    // @todo https://git.drupalcode.org/project/canvas/-/work_items/3589536
+    // Multi-valued fields are accepted, whether the expression descends through
+    // the reference, picks a leaf property, or specifies an explicit delta. A
+    // delta-less expression resolves to a list. Only the coalescing rule still
+    // applies: a delta-less reference and a leaf on the same field must be
+    // coalesced into a single FieldObjectPropsExpression.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsSameFieldMustBeCoalescedConstraint
     yield 'entityFields on a multi-valued field' => [
       [
         'entityFields' => [
@@ -2119,17 +2542,36 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         ],
       ],
       [
-        // The delta-less reference and leaf on the same field are additionally
-        // flagged as needing coalescing.
         'dataDependencies.entityFields.my_reference' => "Multiple expressions on the same field 'entity:entity_test.field_related' must be coalesced into a single FieldObjectPropsExpression.",
-        'dataDependencies.entityFields.my_reference.0' => "The field 'entity:entity_test.field_related' is multi-valued, which is not yet supported.",
-        'dataDependencies.entityFields.my_reference.1' => "The field 'entity:entity_test.field_related' is multi-valued, which is not yet supported.",
-        'dataDependencies.entityFields.my_reference.2' => "The field 'entity:entity_test.field_related' is multi-valued, which is not yet supported.",
       ],
       [],
     ];
 
-    yield 'entityFields on a supported multi-valued list field' => [
+    yield 'entityFields on a multi-valued reference field' => [
+      [
+        'entityFields' => [
+          'my_reference' => [
+            'ℹ︎␜entity:entity_test:entity_test␝field_related␞␟entity␜␜entity:user␝name␞␟value',
+          ],
+        ],
+      ],
+      [],
+      [],
+    ];
+
+    yield 'entityFields on a multi-valued field leaf' => [
+      [
+        'entityFields' => [
+          'my_reference' => [
+            'ℹ︎␜entity:entity_test:entity_test␝field_related␞␟target_id',
+          ],
+        ],
+      ],
+      [],
+      [],
+    ];
+
+    yield 'entityFields on a multi-valued list field' => [
       [
         'entityFields' => [
           'my_reference' => [
@@ -2141,7 +2583,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [],
     ];
 
-    yield 'entityFields on a supported multi-valued integer list field' => [
+    yield 'entityFields on a multi-valued integer list field' => [
       [
         'entityFields' => [
           'my_reference' => [
@@ -2153,7 +2595,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       [],
     ];
 
-    yield 'entityFields on a supported multi-valued float list field' => [
+    yield 'entityFields on a multi-valued float list field' => [
       [
         'entityFields' => [
           'my_reference' => [

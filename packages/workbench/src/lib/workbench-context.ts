@@ -11,6 +11,7 @@
 
 import type { CanvasSiteData } from '@drupal-canvas/vite-plugin';
 import type { CanvasContext, JsonApiRuntimeConfig } from 'drupal-canvas';
+import type { PreviewInterfaceTranslation } from './preview-contract';
 
 /** The page context of every Workbench preview. */
 export const WORKBENCH_PAGE_CONTEXT: NonNullable<CanvasContext['page']> = {
@@ -31,12 +32,20 @@ const EMPTY_THEME_ASSETS = {
  *   The site data, or `null` when none is configured.
  * @param fallbackBaseUrl
  *   The base URL used when the site data carries none (the preview origin).
+ * @param interfaceTranslation
+ *   The interface language of the preview and its translations, which
+ *   replace the language of the site data.
  */
 export function createWorkbenchContext(
   siteData: CanvasSiteData | null | undefined,
   fallbackBaseUrl: string,
+  interfaceTranslation?: PreviewInterfaceTranslation,
 ): CanvasContext {
+  const langcode = interfaceTranslation?.langcode ?? siteData?.langcode;
   return {
+    ...(interfaceTranslation && {
+      translations: interfaceTranslation.translations,
+    }),
     page: { ...WORKBENCH_PAGE_CONTEXT },
     site: {
       branding: siteData?.branding ?? {
@@ -46,7 +55,7 @@ export function createWorkbenchContext(
       },
       baseUrl: siteData?.baseUrl || fallbackBaseUrl,
       themeAssets: siteData?.themeAssets ?? EMPTY_THEME_ASSETS,
-      ...(siteData?.langcode && { langcode: siteData.langcode }),
+      ...(langcode && { langcode }),
     },
   };
 }

@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import { setCodeComponentProperty } from '@/features/code-editor/codeEditorSlice';
 import getStarterComponentTemplate from '@/features/code-editor/starterComponentTemplate';
+import { getTranslatableStringsPayload } from '@/features/code-editor/utils/utils';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import {
   closeAllDialogs,
@@ -34,18 +35,20 @@ const AddCodeComponentDialog = () => {
       return;
     }
 
+    const sourceCodeJs = getStarterComponentTemplate(componentName);
     await createCodeComponent({
       name: componentName,
       machineName: componentName.toLowerCase().replace(/\s+/g, '_'),
       // Mark this code component as "internal": do not make it available to Content Creators yet.
       // @see docs/config-management.md, section 3.2.1
       status: false,
-      sourceCodeJs: getStarterComponentTemplate(componentName),
+      sourceCodeJs,
       sourceCodeCss: '',
       compiledJs: '',
       compiledCss: '',
       importedJsComponents: [],
       dataDependencies: {},
+      ...getTranslatableStringsPayload(sourceCodeJs),
     });
     dispatch(setActivePanel('code'));
   };

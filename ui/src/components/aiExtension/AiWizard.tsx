@@ -16,6 +16,7 @@ import {
 import {
   deserializeProps,
   deserializeSlots,
+  getTranslatableStringsPayload,
   serializeRequired,
 } from '@/features/code-editor/utils/utils';
 import { FORM_TYPES } from '@/features/form/constants';
@@ -144,7 +145,10 @@ const componentStructureHandler = {
     navigate: any;
   }) => {
     const component = message.component_structure;
-    await createCodeComponent(component).unwrap();
+    await createCodeComponent({
+      ...component,
+      ...getTranslatableStringsPayload(component.sourceCodeJs ?? ''),
+    }).unwrap();
     navigate(`/code-editor/component/${component.machineName}`);
   },
 };

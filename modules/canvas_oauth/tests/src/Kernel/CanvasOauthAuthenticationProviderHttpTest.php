@@ -8,9 +8,11 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\File\FileSystemInterface;
@@ -33,6 +35,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 /**
  * Tests API endpoints where the Canvas OAuth authentication provider is applied.
@@ -361,6 +364,101 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     self::assertSame([
       'message' => 'Global regions were replaced by page templates. Upgrade @drupal-canvas/cli, or use --no-regions to continue without region synchronization.',
     ], json_decode((string) $response->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR));
+  }
+
+  /**
+   * Data provider for the routes of interface translation lookups.
+   *
+   * @return array<string, array{
+   *   0: string,
+   *   1: array<string, mixed>,
+   *   2: string,
+   *   3: array<string, mixed>
+   *   }> Array of test cases where:
+   *   - Index 0: Route name
+   *   - Index 1: Route parameters
+   *   - Index 2: HTTP method
+   *   - Index 3: Request body data for POST
+   */
+  public static function dataProviderInterfaceTranslationRoutes(): array {
+    return [
+      'GET languages' => ['canvas.api.interface_translation.languages', [], 'GET', []],
+      'POST lookup' => [
+        'canvas.api.interface_translation.lookup',
+        ['langcode' => 'en'],
+        'POST',
+        ['strings' => [['source' => 'Hello']]],
+      ],
+    ];
+  }
+
+  /**
+   * Data provider for the permissions that allow interface translation lookups.
+   *
+   * @return array<string, array{0: string}>
+   */
+  public static function dataProviderInterfaceTranslationPermissions(): array {
+    return [
+      'code components' => [JavaScriptComponent::ADMIN_PERMISSION],
+      'content templates' => [ContentTemplate::ADMIN_PERMISSION],
+      'page templates' => [PageVariant::ADMIN_PERMISSION],
+    ];
+  }
+
+  /**
+   * Tests that Canvas Workbench can look up interface translations with OAuth.
+   */
+  #[DataProvider('dataProviderInterfaceTranslationPermissions')]
+  public function testInterfaceTranslationWithOauth(string $permission): void {
+    $this->setSetting('locale_custom_strings_en', ['' => ['Hello' => 'Hi']]);
+    // The client acts as a user other than user 1, so that only the scopes of
+    // its access token grant permissions.
+    $this->user = $this->createUser();
+    $access_token = $this->requestAccessToken([$permission]);
+
+    $request = $this->createRequest('canvas.api.interface_translation.languages', [], 'GET', []);
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertSame('en', json_decode((string) $response->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR)['defaultLangcode']);
+
+    $request = $this->createRequest('canvas.api.interface_translation.lookup', ['langcode' => 'en'], 'POST', [
+      'strings' => [['source' => 'Hello'], ['source' => 'Goodbye']],
+    ]);
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertSame(
+      ['strings' => ['' => ['Hello' => 'Hi']]],
+      json_decode((string) $response->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR),
+    );
+  }
+
+  /**
+   * Tests interface translation lookups with OAuth without the permissions.
+   */
+  #[DataProvider('dataProviderInterfaceTranslationRoutes')]
+  public function testInterfaceTranslationWithOauthWithoutPermissions(string $route_name, array $parameters, string $method, array $data): void {
+    // The client acts as a user other than user 1, so that only the scopes of
+    // its access token grant permissions.
+    $this->user = $this->createUser();
+    $access_token = $this->requestAccessToken([Page::CREATE_PERMISSION]);
+    $request = $this->createRequest($route_name, $parameters, $method, $data);
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->expectExceptionMessage("The following permissions are required: 'administer code components' OR 'administer content templates' OR 'administer page template'.");
+    $this->request($request);
+  }
+
+  /**
+   * Tests interface translation lookups without authentication.
+   */
+  #[DataProvider('dataProviderInterfaceTranslationRoutes')]
+  public function testInterfaceTranslationAnonymous(string $route_name, array $parameters, string $method, array $data): void {
+    $request = $this->createRequest($route_name, $parameters, $method, $data);
+    $this->expectException(UnauthorizedHttpException::class);
+    $this->expectExceptionMessage('You must be logged in to access this resource.');
+    $this->request($request);
   }
 
   /**

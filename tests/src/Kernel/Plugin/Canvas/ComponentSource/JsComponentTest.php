@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
+// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk fichier fichiers
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
@@ -38,6 +39,7 @@ use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\StorageCacheInterface;
@@ -49,10 +51,14 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
+use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\StringTranslation\TranslationManager;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -61,6 +67,8 @@ use Drupal\filter\Entity\FilterFormat;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\link\LinkItemInterface;
 use Drupal\link\LinkTitleVisibility;
+use Drupal\locale\PluralFormulaInterface;
+use Drupal\locale\StringStorageInterface;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -1017,6 +1025,196 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     else {
       self::assertNotContains('filter/caption', $island['#attached']['library'] ?? []);
     }
+  }
+
+  /**
+   * Strings passed to `t()` and `formatPlural()` reach `useTranslation()`.
+   *
+   * @legacy-covers ::renderComponent
+   * @legacy-covers \Drupal\canvas\Entity\JavaScriptComponent::getTranslatableStrings
+   * @legacy-covers \Drupal\canvas\Hook\LocaleHooks
+   */
+  public function testRenderComponentAttachesTranslations(): void {
+    // The strings as the code editor and the Canvas CLI find them.
+    $greeting_strings = [
+      ['source' => '1 file', 'plural' => '@count files'],
+      ['source' => 'Hello @name'],
+      ['source' => 'Untranslated'],
+      ['source' => '1 day', 'plural' => '@count days', 'context' => 'Age'],
+      ['source' => "It's @count", 'context' => 'Counter'],
+    ];
+    $create = static fn(string $id, ?array $strings, array $imports = []) => JavaScriptComponent::create([
+      'machineName' => $id,
+      'name' => $id,
+      'status' => TRUE,
+      'props' => [],
+      'required' => [],
+      'js' => ['original' => $strings ? "import { useTranslation } from 'drupal-canvas/react';" : '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'translatableStrings' => $strings,
+      'dataDependencies' => [],
+      // How the code editor records `@/components/*` imports.
+      'dependencies' => ['enforced' => ['config' => $imports]],
+    ]);
+    // An indirect import without strings, yet.
+    $icon = $create('icon', []);
+    $icon->save();
+    $button = $create('button', [['source' => 'Read more']], [$icon->getConfigDependencyName()]);
+    $button->save();
+    $greeting = $create('greeting', $greeting_strings, [$button->getConfigDependencyName()]);
+    $greeting->save();
+
+    self::assertSame([
+      ['source' => "1 file\x03@count files", 'context' => ''],
+      ['source' => 'Hello @name', 'context' => ''],
+      ['source' => 'Untranslated', 'context' => ''],
+      ['source' => "1 day\x03@count days", 'context' => 'Age'],
+      ['source' => "It's @count", 'context' => 'Counter'],
+    ], $greeting->getTranslatableStrings());
+
+    $this->setSetting('locale_custom_strings_fr', [
+      '' => [
+        'Hello @name' => 'Bonjour @name',
+        'Read more' => 'Lire la suite',
+        "1 file\x03@count files" => "1 fichier\x03@count fichiers",
+      ],
+      'Counter' => ["It's @count" => "C'est @count"],
+    ]);
+    $translation_manager = $this->container->get(TranslationInterface::class);
+    \assert($translation_manager instanceof TranslationManager);
+    $translation_manager->setDefaultLangcode('fr');
+    $render = function (): array {
+      $component = Component::load(JsComponent::componentIdFromJavascriptComponentId('greeting'));
+      self::assertInstanceOf(ComponentInterface::class, $component);
+      $source_plugin = $component->getComponentSource();
+      self::assertInstanceOf(JsComponent::class, $source_plugin);
+      return $source_plugin->renderComponent(['props' => []], [], 'some-uuid');
+    };
+    $expected_strings = [
+      '' => [
+        "1 file\x03@count files" => "1 fichier\x03@count fichiers",
+        'Hello @name' => 'Bonjour @name',
+        'Read more' => 'Lire la suite',
+      ],
+      'Counter' => ["It's @count" => "C'est @count"],
+    ];
+
+    // Without the Locale module there is no plural formula.
+    $island = $render();
+    self::assertSame(['strings' => $expected_strings], $island['#attached']['drupalSettings']['canvasData']['v0']['translations']);
+    self::assertContains('languages:language_interface', $island['#cache']['contexts']);
+    self::assertContains('locale', $island['#cache']['tags']);
+    // Changing the strings of an indirect import changes the translations.
+    self::assertContains('config:' . $icon->getConfigDependencyName(), $island['#cache']['tags']);
+
+    // External code components attach the translations of the strings their
+    // external application's build found, whether Drupal renders them as
+    // nothing or renders their fallback implementation.
+    $external_strings = [['source' => 'Hello @name'], ['source' => 'Untranslated']];
+    foreach (['external_greeting' => NULL, 'external_fallback_greeting' => 'export default function Greeting() {}'] as $id => $js) {
+      $external = $create($id, $external_strings);
+      $external->set('type', 'external');
+      $external->set('js', $js === NULL ? NULL : ['original' => $js, 'compiled' => $js]);
+      $external->set('css', $js === NULL ? NULL : ['original' => '', 'compiled' => '']);
+      $external->save();
+      $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($id));
+      self::assertInstanceOf(ComponentInterface::class, $component);
+      $external_build = $component->getComponentSource()->renderComponent(['props' => []], [], 'external-uuid', FALSE);
+      self::assertSame($js === NULL, isset($external_build[JsComponent::EXTERNAL_RENDER_METADATA]));
+      self::assertSame(['strings' => ['' => ['Hello @name' => 'Bonjour @name']]], $external_build['#attached']['drupalSettings']['canvasData']['v0']['translations']);
+      self::assertContains('languages:language_interface', $external_build['#cache']['contexts']);
+      self::assertContains('locale', $external_build['#cache']['tags']);
+      self::assertContains('config:' . $external->getConfigDependencyName(), $external_build['#cache']['tags']);
+    }
+
+    // With it, the interface language's plural formula is attached.
+    $this->enableModules(['language', 'locale']);
+    $this->installSchema('locale', ['locales_source', 'locales_target', 'locales_location']);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('system.site')->set('default_langcode', 'fr')->save();
+    $this->container->get(LanguageManagerInterface::class)->reset();
+    $translation_manager = $this->container->get(TranslationInterface::class);
+    \assert($translation_manager instanceof TranslationManager);
+    $translation_manager->setDefaultLangcode('fr');
+    $this->container->get(PluralFormulaInterface::class)->setPluralFormula('fr', 2, [0 => 0, 1 => 0, 'default' => 1]);
+    $island = $render();
+    self::assertSame([
+      'strings' => $expected_strings,
+      'pluralFormula' => [0 => 0, 1 => 0, 'default' => 1],
+    ], $island['#attached']['drupalSettings']['canvasData']['v0']['translations']);
+
+    // Saving a code component registers its strings with Locale, so they are
+    // translatable before any page renders it.
+    $string_storage = $this->container->get(StringStorageInterface::class);
+    \assert($string_storage instanceof StringStorageInterface);
+    self::assertNull($string_storage->findString(['source' => 'Hello @name', 'context' => '']));
+    $greeting = JavaScriptComponent::load('greeting');
+    \assert($greeting instanceof JavaScriptComponent);
+    $greeting->save();
+    $button = JavaScriptComponent::load('button');
+    \assert($button instanceof JavaScriptComponent);
+    $button->save();
+    $locations = static function (string $source, string $context = '') use ($string_storage): ?array {
+      $string = $string_storage->findString(['source' => $source, 'context' => $context]);
+      return $string ? \array_map(\array_keys(...), $string->getLocations()) : NULL;
+    };
+    self::assertSame(['js_component' => ['greeting']], $locations('Hello @name'));
+    self::assertSame(['js_component' => ['greeting']], $locations("1 file\x03@count files"));
+    self::assertSame(['js_component' => ['greeting']], $locations("It's @count", 'Counter'));
+    self::assertSame(['js_component' => ['button']], $locations('Read more'));
+
+    // Strings a code component no longer uses are removed, unless they are
+    // translated or something else still uses them.
+    $string_id = static fn (string $source, string $context = '') => $string_storage->findString(['source' => $source, 'context' => $context])?->getId();
+    // Imported from a .po file.
+    $string_storage->createTranslation(['lid' => $string_id('Hello @name'), 'language' => 'fr', 'translation' => 'Bonjour @name', 'customized' => LOCALE_NOT_CUSTOMIZED])->save();
+    // Entered in the UI.
+    $string_storage->createTranslation(['lid' => $string_id("1 file\x03@count files"), 'language' => 'fr', 'translation' => "1 fichier\x03@count fichiers", 'customized' => LOCALE_CUSTOMIZED])->save();
+    // Also used outside code components.
+    $string_storage->findString(['source' => "It's @count", 'context' => 'Counter'])?->addLocation('path', '/elsewhere')->save();
+    $greeting->set('translatableStrings', $button->get('translatableStrings'));
+    $greeting->save();
+    self::assertSame(['js_component' => ['button', 'greeting']], $locations('Read more'));
+    self::assertSame([], $locations('Hello @name'));
+    self::assertSame(['path' => ['/elsewhere']], $locations("It's @count", 'Counter'));
+    // Other code may translate the same string without adding a location.
+    self::assertSame([], $locations("1 file\x03@count files"));
+    self::assertEqualsCanonicalizing(['Bonjour @name', "1 fichier\x03@count fichiers"], \array_column($string_storage->getTranslations(['language' => 'fr', 'translated' => TRUE]), 'translation'));
+
+    // Locale also caches lookups of untranslated strings, so deleting a string
+    // invalidates them: code that still translates it registers it again.
+    $cache = $this->container->get('cache.default');
+    \assert($cache instanceof CacheBackendInterface);
+    $only_here = $create('only_here', [['source' => 'Only here']]);
+    $only_here->save();
+    $cache->set('locale_lookup_stand_in', TRUE, tags: ['locale']);
+    $only_here->save();
+    self::assertNotFalse($cache->get('locale_lookup_stand_in'));
+    $only_here->set('translatableStrings', []);
+    $only_here->save();
+    self::assertNull($locations('Only here'));
+    self::assertFalse($cache->get('locale_lookup_stand_in'));
+
+    // Unknown strings, such as of source code saved by an older Canvas CLI,
+    // change nothing in Locale, but cannot be translated.
+    $button->set('translatableStrings', NULL);
+    $button->save();
+    self::assertSame(['js_component' => ['button', 'greeting']], $locations('Read more'));
+    $greeting->set('translatableStrings', NULL);
+    $greeting->save();
+    self::assertSame(['js_component' => ['button', 'greeting']], $locations('Read more'));
+    self::assertArrayNotHasKey('translations', $render()['#attached']['drupalSettings']['canvasData']['v0'] ?? []);
+    $greeting->set('translatableStrings', $button_strings = [['source' => 'Read more']]);
+    $greeting->save();
+    $button->set('translatableStrings', $button_strings);
+    $button->save();
+
+    // Deleting a code component removes the strings only it used.
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $greeting->delete();
+    self::assertSame(['js_component' => ['button']], $locations('Read more'));
+    $button->delete();
+    self::assertNull($locations('Read more'));
   }
 
   public function testRenderJsComponentPreloadsGlobalFonts(): void {
@@ -3099,14 +3297,18 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     int $expected_cache_max_age,
   ): void {
     $fixtures = $this->setUpContentEntityReferenceFixtures();
+    $fixtures += self::setUpListedNewsFixtures($fixtures['host_news']);
 
-    foreach ($value_fixtures as $prop_name => $fixture_key) {
-      $value_entity = match ($fixture_key) {
-        'referenced_news' => $fixtures['referenced_news'],
-        'referenced_user' => $fixtures['referenced_user'],
-        default => throw new \UnexpectedValueException("Unknown value_fixture: $fixture_key"),
-      };
-      $inputs[$prop_name]['value'] = $value_entity->id();
+    // A fixture key gives one picked entity. A list of fixture keys gives a
+    // list of picked entities, in that order.
+    $get_fixture_id = fn (string $fixture_key): int|string|null => match ($fixture_key) {
+      'referenced_news', 'referenced_user', 'news_a', 'news_b', 'news_c' => $fixtures[$fixture_key]->id(),
+      default => throw new \UnexpectedValueException("Unknown value_fixture: $fixture_key"),
+    };
+    foreach ($value_fixtures as $prop_name => $fixture_keys) {
+      $inputs[$prop_name]['value'] = \is_array($fixture_keys)
+        ? \array_map($get_fixture_id, $fixture_keys)
+        : $get_fixture_id($fixture_keys);
     }
 
     // User IDs depend on the database driver (e.g. MySQL and SQLite allocate
@@ -3133,7 +3335,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     // `PropSource::parse(...)->toArray()` — e.g. wrapped to `['target_id'
     // => ...]` for entity references — so we don't compare the full array.)
     $populated_props = \array_keys($inputs);
-    self::assertSame($populated_props, \array_keys($result['source']), 'source must contain only the populated props, no extras');
+    // The parent gives an empty list to a list prop that has no input. Thus,
+    // the list prop is also present when it is not populated.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
+    $empty_list_props = \array_values(\array_diff(['news_item_references'], $populated_props));
+    $expected_props = [...$populated_props, ...$empty_list_props];
+    self::assertSame($expected_props, \array_keys($result['source']), 'source must contain only the populated props and the empty list props, no extras');
     foreach ($populated_props as $prop) {
       self::assertSame($inputs[$prop]['sourceType'], $result['source'][$prop]['sourceType']);
       self::assertSame($inputs[$prop]['expression'], $result['source'][$prop]['expression']);
@@ -3142,12 +3349,16 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     // The resolved entry: for content-entity-reference props, a label-keyed map
     // carrying the referenced content entity's cacheability; for any other
     // prop, the parent's resolved value passed through untouched.
-    self::assertSame($populated_props, \array_keys($result['resolved']), 'resolved must contain only the populated props, no extras');
+    self::assertSame($expected_props, \array_keys($result['resolved']), 'resolved must contain only the populated props and the empty list props, no extras');
     $cacheability = new CacheableMetadata();
     foreach ($populated_props as $prop) {
       self::assertInstanceOf(EvaluationResult::class, $result['resolved'][$prop]);
       self::assertSame($expected_resolved[$prop], $result['resolved'][$prop]->value);
       $cacheability->addCacheableDependency($result['resolved'][$prop]);
+    }
+    foreach ($empty_list_props as $prop) {
+      self::assertInstanceOf(EvaluationResult::class, $result['resolved'][$prop]);
+      self::assertSame([], $result['resolved'][$prop]->value);
     }
 
     $expected_tags = [];
@@ -3157,6 +3368,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'host_news' => 'node:' . $fixtures['host_news']->id(),
         'referenced_user' => 'user:' . $fixtures['referenced_user']->id(),
         'host_news_owner' => 'user:' . $fixtures['host_news']->getOwnerId(),
+        'news_a', 'news_b', 'news_c' => 'node:' . $fixtures[$key]->id(),
         default => throw new \UnexpectedValueException("Unknown cache tag fixture: $key"),
       };
     }
@@ -3169,8 +3381,63 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   public static function providerContentEntityReferencePropResolves(): array {
-    // @todo Add a case for a multi-valued content-entity-reference prop: https://www.drupal.org/project/canvas/issues/3589536
     return [
+      // A static source for a list prop has a multi-valued field. The prop gets
+      // one payload object per picked entity, in the order of the picks.
+      // @see \Drupal\canvas\PropShape\StorablePropShape::$cardinality
+      'StaticPropSource list of bundled (node:news_item) → labels in pick order' => [
+        'inputs' => [
+          'news_item_references' => [
+            'sourceType' => 'static:field_item:entity_reference',
+            'expression' => 'ℹ︎entity_reference␟entity',
+            'sourceTypeSettings' => [
+              'cardinality' => 3,
+              'storage' => ['target_type' => 'node'],
+              'instance' => [
+                'handler' => 'default:node',
+                'handler_settings' => [
+                  'target_bundles' => ['news_item' => 'news_item'],
+                ],
+              ],
+            ],
+          ],
+        ],
+        'value_fixtures' => ['news_item_references' => ['news_b', 'news_a']],
+        'pass_host' => FALSE,
+        'expected_resolved' => [
+          'news_item_references' => [
+            ['__type' => 'news_item', '__url' => '/node/4', 'label' => 'News item B'],
+            ['__type' => 'news_item', '__url' => '/node/3', 'label' => 'News item A'],
+          ],
+        ],
+        'expected_cache_tag_fixtures' => ['news_b', 'news_a'],
+        'expected_cache_contexts' => ['user.permissions'],
+        'expected_cache_max_age' => Cache::PERMANENT,
+      ],
+      // A list prop gets one payload object per referenced entity, in field
+      // item order. The cacheability includes each referenced entity, so the
+      // deletion of one of them invalidates the result.
+      // @see ::testContentEntityReferenceListPropOmitsDeletedEntities()
+      'EntityFieldPropSource list from an unlimited field (node:news_item) → labels in field item order' => [
+        'inputs' => [
+          'news_item_references' => [
+            'sourceType' => PropSource::EntityField->value,
+            'expression' => 'ℹ︎␜entity:node:news_item␝field_related_news_list␞␟entity',
+          ],
+        ],
+        'value_fixtures' => [],
+        'pass_host' => TRUE,
+        'expected_resolved' => [
+          'news_item_references' => [
+            ['__type' => 'news_item', '__url' => '/node/5', 'label' => 'News item C'],
+            ['__type' => 'news_item', '__url' => '/node/3', 'label' => 'News item A'],
+            ['__type' => 'news_item', '__url' => '/node/4', 'label' => 'News item B'],
+          ],
+        ],
+        'expected_cache_tag_fixtures' => ['news_c', 'news_a', 'news_b', 'host_news'],
+        'expected_cache_contexts' => ['user.permissions'],
+        'expected_cache_max_age' => Cache::PERMANENT,
+      ],
       'StaticPropSource bundled (node:news_item) → label' => [
         'inputs' => [
           'news_item_reference' => [
@@ -3247,7 +3514,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'expected_cache_contexts' => ['user.permissions'],
         'expected_cache_max_age' => Cache::PERMANENT,
       ],
-      'two EntityFieldPropSource content-entity-reference props populated together' => [
+      'two EntityFieldPropSource content-entity-reference props and a non-content-entity-reference prop populated together' => [
         'inputs' => [
           'news_item_reference' => [
             'sourceType' => PropSource::EntityField->value,
@@ -3257,12 +3524,18 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
             'sourceType' => PropSource::EntityField->value,
             'expression' => 'ℹ︎␜entity:node:news_item␝uid␞␟entity',
           ],
+          'headline' => [
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'value' => 'Big news today',
+          ],
         ],
         'value_fixtures' => [],
         'pass_host' => TRUE,
         'expected_resolved' => [
           'news_item_reference' => ['__type' => 'news_item', '__url' => '/node/1', 'label' => 'The referenced news item'],
           'user_reference' => ['__type' => 'user', '__url' => '/user/::host_news_owner::', 'name' => 'Owner Of Host Node'],
+          'headline' => 'Big news today',
         ],
         'expected_cache_tag_fixtures' => ['referenced_news', 'host_news', 'host_news_owner'],
         'expected_cache_contexts' => ['user.permissions'],
@@ -3286,6 +3559,79 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'expected_cache_max_age' => Cache::PERMANENT,
       ],
     ];
+  }
+
+  /**
+   * A list of content-entity-references prop omits inaccessible entities.
+   *
+   * The current user has `access content` only, so an unpublished news item is
+   * inaccessible. Like a deleted entity, it must be left out of the list,
+   * with the cacheability of the access check kept.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+   */
+  public function testContentEntityReferenceListPropOmitsInaccessibleEntities(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures();
+    $listed_news = self::setUpListedNewsFixtures($fixtures['host_news']);
+    $listed_news['news_a']->setUnpublished()->save();
+
+    try {
+      $resolved = $this->resolveNewsItemReference($fixtures, 'news_item_references', 'field_related_news_list');
+    }
+    catch (CacheableAccessDeniedHttpException) {
+      // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3592326
+      $this->markTestSkipped('An inaccessible entity in the list throws instead of being omitted. See https://git.drupalcode.org/project/canvas/-/work_items/3592326');
+    }
+    self::assertSame(
+      [
+        ['__type' => 'news_item', '__url' => '/node/5', 'label' => 'News item C'],
+        ['__type' => 'news_item', '__url' => '/node/4', 'label' => 'News item B'],
+      ],
+      $resolved->value,
+    );
+    self::assertContains('user.permissions', $resolved->getCacheContexts());
+  }
+
+  /**
+   * A list of content-entity-references prop omits deleted entities.
+   *
+   * The host keeps the field item of a deleted entity, but that item resolves
+   * to NULL. The list prop omits it. The list keys have no gaps, so the list
+   * stays a JSON array, not a JSON object.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getExplicitInput()
+   */
+  public function testContentEntityReferenceListPropOmitsDeletedEntities(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures();
+    $listed_news = self::setUpListedNewsFixtures($fixtures['host_news']);
+
+    $resolved = $this->resolveNewsItemReference($fixtures, 'news_item_references', 'field_related_news_list');
+    self::assertSame(
+      [
+        ['__type' => 'news_item', '__url' => '/node/5', 'label' => 'News item C'],
+        ['__type' => 'news_item', '__url' => '/node/3', 'label' => 'News item A'],
+        ['__type' => 'news_item', '__url' => '/node/4', 'label' => 'News item B'],
+      ],
+      $resolved->value,
+    );
+    // The deletion of `news_a` invalidates its cache tag.
+    self::assertContains('node:' . $listed_news['news_a']->id(), $resolved->getCacheTags());
+
+    // `news_a` is the second field item. After its deletion, the list has two
+    // entries, with the keys 0 and 1.
+    $listed_news['news_a']->delete();
+    $resolved = $this->resolveNewsItemReference($fixtures, 'news_item_references', 'field_related_news_list');
+    self::assertSame(
+      [
+        ['__type' => 'news_item', '__url' => '/node/5', 'label' => 'News item C'],
+        ['__type' => 'news_item', '__url' => '/node/4', 'label' => 'News item B'],
+      ],
+      $resolved->value,
+    );
+    self::assertSame(
+      '[{"__type":"news_item","__url":"\/node\/5","label":"News item C"},{"__type":"news_item","__url":"\/node\/4","label":"News item B"}]',
+      Json::encode($resolved->value),
+    );
   }
 
   /**
@@ -3652,6 +3998,194 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       $result['resolved']['news_item_reference']->value,
     );
+  }
+
+  /**
+   * Multi-valued fields of a referenced entity resolve to lists in a payload.
+   *
+   * One pick on a multi-valued field resolves to a list of values, or to a
+   * list of nested objects (each with its own `__type`) for a reference. Two
+   * or more picks on one multi-valued field resolve to one object per field
+   * item, with the picks as its keys and no `__type`. Lists keep the field
+   * item order.
+   *
+   * Every case uses the same fixtures: the referenced news item gets a
+   * multi-valued string field with 2 values, a multi-valued image field with
+   * 2 images, a reference field that targets 3 bundles, and the 3 listed news
+   * items, each with a summary.
+   *
+   * @param list<string> $expressions
+   *   The `entityFields` expressions for the news item reference prop.
+   * @param array<string, mixed> $expected
+   *   The expected payload, without `__type`, `__url` and `label`. `::A::`,
+   *   `::B::`, `::C::` and `::PAGE::` stand for the IDs of the listed news
+   *   items and of the page.
+   * @param list<'news_a'|'news_b'|'news_c'> $expected_cache_tag_fixtures
+   *   The listed news items whose cache tag the payload must have.
+   * @param bool $delete_news_a
+   *   Whether to delete listed news item A before resolving.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   */
+  #[DataProvider('providerContentEntityReferencePayloadResolvesMultiValuedFields')]
+  public function testContentEntityReferencePayloadResolvesMultiValuedFields(array $expressions, array $expected, array $expected_cache_tag_fixtures, bool $delete_news_a): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures();
+    NodeType::create(['type' => 'blog_post', 'name' => 'Blog post'])->save();
+    NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
+    foreach ([
+      ['field_name' => 'field_keywords', 'type' => 'string', 'settings' => [], 'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED],
+      ['field_name' => 'field_images', 'type' => 'image', 'settings' => [], 'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED],
+      ['field_name' => 'field_summary', 'type' => 'string', 'settings' => [], 'cardinality' => 1],
+      ['field_name' => 'field_mixed_refs', 'type' => 'entity_reference', 'settings' => ['target_type' => 'node'], 'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED],
+    ] as $storage) {
+      FieldStorageConfig::create($storage + ['entity_type' => 'node'])->save();
+    }
+    FieldConfig::create(['field_name' => 'field_keywords', 'entity_type' => 'node', 'bundle' => 'news_item', 'label' => 'Keywords'])->save();
+    FieldConfig::create(['field_name' => 'field_images', 'entity_type' => 'node', 'bundle' => 'news_item', 'label' => 'Images'])->save();
+    FieldConfig::create(['field_name' => 'field_summary', 'entity_type' => 'node', 'bundle' => 'news_item', 'label' => 'Summary'])->save();
+    FieldConfig::create([
+      'field_name' => 'field_mixed_refs',
+      'entity_type' => 'node',
+      'bundle' => 'news_item',
+      'label' => 'Mixed references',
+      'settings' => ['handler' => 'default:node', 'handler_settings' => ['target_bundles' => ['news_item' => 'news_item', 'blog_post' => 'blog_post', 'page' => 'page']]],
+    ])->save();
+    $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
+
+    // Reload the referenced news item, so that it has the new fields.
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    $node_storage->resetCache();
+    $referenced_news_id = $fixtures['referenced_news']->id();
+    self::assertNotNull($referenced_news_id);
+    $referenced_news = $node_storage->load($referenced_news_id);
+    self::assertInstanceOf(NodeInterface::class, $referenced_news);
+
+    // The referenced news item (not the host) lists the three news items.
+    $listed_news = self::setUpListedNewsFixtures($referenced_news);
+    foreach ($listed_news as $news) {
+      $news->set('field_summary', 'Summary of ' . $news->label())->save();
+    }
+    $page = Node::create(['type' => 'page', 'title' => 'A page', 'status' => 1]);
+    $page->save();
+    $file_ids = [];
+    foreach (['dog.png', 'cat.png'] as $filename) {
+      $file = File::create(['uri' => 'public://' . $filename, 'filename' => $filename, 'status' => 1]);
+      $file->save();
+      $file_ids[] = $file->id();
+    }
+    $referenced_news->set('field_keywords', ['local', 'breaking']);
+    $referenced_news->set('field_images', [
+      ['target_id' => $file_ids[0], 'alt' => 'dog', 'width' => 10, 'height' => 10],
+      ['target_id' => $file_ids[1], 'alt' => 'cat', 'width' => 20, 'height' => 20],
+    ]);
+    $referenced_news->set('field_mixed_refs', [$listed_news['news_a']->id(), $page->id()]);
+    self::assertEntityIsValid($referenced_news);
+    $referenced_news->save();
+
+    $js_component = JavaScriptComponent::load('content_entity_reference_test_component');
+    self::assertInstanceOf(JavaScriptComponent::class, $js_component);
+    $data_dependencies = $js_component->get('dataDependencies');
+    $data_dependencies['entityFields']['news_item_reference'] = $expressions;
+    $js_component->updateFromClientSide(['dataDependencies' => $data_dependencies]);
+    self::assertEntityIsValid($js_component);
+    $js_component->save();
+
+    if ($delete_news_a) {
+      $listed_news['news_a']->delete();
+    }
+
+    $ids = ['::A::' => (int) $listed_news['news_a']->id(), '::B::' => (int) $listed_news['news_b']->id(), '::C::' => (int) $listed_news['news_c']->id(), '::PAGE::' => (int) $page->id()];
+    \array_walk_recursive($expected, function (mixed &$value) use ($ids): void {
+      $value = $ids[$value] ?? $value;
+    });
+    $resolved = $this->resolveNewsItemReference($fixtures);
+    self::assertIsArray($resolved->value);
+    $actual = $resolved->value;
+    unset($actual['__type'], $actual['__url'], $actual['label']);
+    self::assertEquals($expected, $actual);
+
+    // Each entity in a nested list is a cacheable dependency.
+    foreach ($expected_cache_tag_fixtures as $key) {
+      self::assertContains('node:' . $listed_news[$key]->id(), $resolved->getCacheTags(), $key);
+    }
+  }
+
+  /**
+   * @return iterable<string, array{list<string>, array<string, mixed>, list<string>, bool}>
+   */
+  public static function providerContentEntityReferencePayloadResolvesMultiValuedFields(): iterable {
+    yield '0. one pick on a string field, and one through a reference field' => [
+      [
+        'ℹ︎␜entity:node:news_item␝field_keywords␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related_news_list␞␟entity␜␜entity:node:news_item␝title␞␟value',
+      ],
+      [
+        'field_keywords' => ['local', 'breaking'],
+        'field_related_news_list' => [
+          ['__type' => 'news_item', '__url' => '/node/5', 'label' => 'News item C'],
+          ['__type' => 'news_item', '__url' => '/node/3', 'label' => 'News item A'],
+          ['__type' => 'news_item', '__url' => '/node/4', 'label' => 'News item B'],
+        ],
+      ],
+      ['news_c', 'news_a', 'news_b'],
+      FALSE,
+    ];
+    yield '1. alt + width on an image field' => [
+      ['ℹ︎␜entity:node:news_item␝field_images␞␟{alt↠alt,width↠width}'],
+      ['field_images' => [['alt' => 'dog', 'width' => 10], ['alt' => 'cat', 'width' => 20]]],
+      [],
+      FALSE,
+    ];
+    yield '2. target_id + title on a reference field' => [
+      ['ℹ︎␜entity:node:news_item␝field_related_news_list␞␟{label↝entity␜␜entity:node:news_item␝title␞␟value,target_id↠target_id}'],
+      [
+        'field_related_news_list' => [
+          ['label' => 'News item C', 'target_id' => '::C::'],
+          ['label' => 'News item A', 'target_id' => '::A::'],
+          ['label' => 'News item B', 'target_id' => '::B::'],
+        ],
+      ],
+      ['news_c', 'news_a', 'news_b'],
+      FALSE,
+    ];
+    yield '3. case 2 with one referenced entity deleted' => [
+      ['ℹ︎␜entity:node:news_item␝field_related_news_list␞␟{label↝entity␜␜entity:node:news_item␝title␞␟value,target_id↠target_id}'],
+      [
+        'field_related_news_list' => [
+          ['label' => 'News item C', 'target_id' => '::C::'],
+          ['target_id' => '::A::'],
+          ['label' => 'News item B', 'target_id' => '::B::'],
+        ],
+      ],
+      ['news_c', 'news_a', 'news_b'],
+      TRUE,
+    ];
+    yield '4. case 2 on a field that references three bundles, with picks for two' => [
+      ['ℹ︎␜entity:node:news_item␝field_mixed_refs␞␟{label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value],target_id↠target_id}'],
+      [
+        'field_mixed_refs' => [
+          ['label' => 'News item A', 'target_id' => '::A::'],
+          ['target_id' => '::PAGE::'],
+        ],
+      ],
+      ['news_a'],
+      FALSE,
+    ];
+    yield '5. title + summary through a reference field: only referenced data' => [
+      [
+        'ℹ︎␜entity:node:news_item␝field_related_news_list␞␟entity␜␜entity:node:news_item␝title␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related_news_list␞␟entity␜␜entity:node:news_item␝field_summary␞␟value',
+      ],
+      [
+        'field_related_news_list' => [
+          ['__type' => 'news_item', '__url' => '/node/5', 'label' => 'News item C', 'field_summary' => 'Summary of News item C'],
+          ['__type' => 'news_item', '__url' => '/node/3', 'label' => 'News item A', 'field_summary' => 'Summary of News item A'],
+          ['__type' => 'news_item', '__url' => '/node/4', 'label' => 'News item B', 'field_summary' => 'Summary of News item B'],
+        ],
+      ],
+      ['news_c', 'news_a', 'news_b'],
+      FALSE,
+    ];
   }
 
   /**
@@ -4146,7 +4680,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   /**
-   * Resolves the `news_item_reference` prop against a freshly-loaded host.
+   * Resolves a news item reference prop against a freshly-loaded host.
    *
    * The node static cache is reset and the host reloaded so entity-reference
    * field items don't return a statically-cached target from an earlier
@@ -4154,11 +4688,15 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
    *
    * @param array{host_news: \Drupal\node\NodeInterface, component_id: string, source: \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent} $fixtures
    *   The fixtures from ::setUpContentEntityReferenceFixtures().
+   * @param 'news_item_reference'|'news_item_references' $prop_name
+   *   The prop to resolve: the single prop or the list prop.
+   * @param 'field_related_news'|'field_related_news_list' $field_name
+   *   The host reference field that the prop source reads.
    *
    * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
-   *   The resolved `news_item_reference` payload.
+   *   The resolved payload of $prop_name.
    */
-  private function resolveNewsItemReference(array $fixtures): EvaluationResult {
+  private function resolveNewsItemReference(array $fixtures, string $prop_name = 'news_item_reference', string $field_name = 'field_related_news'): EvaluationResult {
     $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
     $node_storage->resetCache();
     $host_id = $fixtures['host_news']->id();
@@ -4168,9 +4706,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $rooted_item = $this->buildComponentTreeItem(
       $fixtures['component_id'],
       [
-        'news_item_reference' => [
+        $prop_name => [
           'sourceType' => PropSource::EntityField->value,
-          'expression' => 'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity',
+          'expression' => 'ℹ︎␜entity:node:news_item␝' . $field_name . '␞␟entity',
         ],
       ],
       $host,
@@ -4179,7 +4717,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       $this->container->get('uuid')->generate(),
       $rooted_item,
     );
-    $resolved = $result['resolved']['news_item_reference'];
+    $resolved = $result['resolved'][$prop_name];
     self::assertInstanceOf(EvaluationResult::class, $resolved);
     return $resolved;
   }
@@ -4188,10 +4726,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
    * Sets up shared fixtures for the testContentEntityReferenceProp* tests.
    *
    * Installs the node entity schema, creates a `news_item` node type with a
-   * self-referencing `field_related_news`, two news_item nodes (one host, one
-   * referenced), an owner user assigned to the host, a separate referenced
+   * self-referencing `field_related_news`, an unlimited-cardinality
+   * self-referencing `field_related_news_list`, two news_item nodes (one host,
+   * one referenced), an owner user assigned to the host, a separate referenced
    * user, and a JavaScriptComponent with one bundled (node:news_item) and one
-   * bundleless (user) content-entity-reference prop.
+   * bundleless (user) content-entity-reference prop, plus one list of bundled
+   * (node:news_item) content-entity-references prop.
    *
    * @return array{
    *   referenced_news: \Drupal\node\NodeInterface,
@@ -4239,6 +4779,24 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       'entity_type' => 'node',
       'bundle' => 'news_item',
       'label' => 'Related news',
+      'settings' => [
+        'handler' => 'default:node',
+        'handler_settings' => ['target_bundles' => ['news_item' => 'news_item']],
+      ],
+    ])->save();
+    // The multi-valued counterpart of `field_related_news`.
+    FieldStorageConfig::create([
+      'field_name' => 'field_related_news_list',
+      'type' => 'entity_reference',
+      'entity_type' => 'node',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      'settings' => ['target_type' => 'node'],
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_related_news_list',
+      'entity_type' => 'node',
+      'bundle' => 'news_item',
+      'label' => 'Related news list',
       'settings' => [
         'handler' => 'default:node',
         'handler_settings' => ['target_bundles' => ['news_item' => 'news_item']],
@@ -4296,6 +4854,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
           'title' => 'Featured fan',
           ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
         ],
+        // A list of content-entity-references prop, with no maximum count.
+        'news_item_references' => [
+          'title' => 'Listed news items',
+          'type' => 'array',
+          'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        ],
         // A non content-entity-reference prop.
         'headline' => [
           'title' => 'Headline',
@@ -4309,6 +4873,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'entityFields' => [
           'news_item_reference' => ['ℹ︎␜entity:node:news_item␝title␞␟value'],
           'user_reference' => ['ℹ︎␜entity:user␝name␞␟value'],
+          'news_item_references' => ['ℹ︎␜entity:node:news_item␝title␞␟value'],
         ],
       ],
     ]);
@@ -4327,6 +4892,47 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       'component_id' => $component_id,
       'source' => $source,
     ];
+  }
+
+  /**
+   * Sets up three news items, listed on a `field_related_news_list`.
+   *
+   * The news items are created in the order A, B, C. $listing_news lists them
+   * in the order C, A, B. Thus, the field item order is different from the
+   * creation order and from the entity ID order.
+   *
+   * @param \Drupal\node\NodeInterface $listing_news
+   *   A news item from ::setUpContentEntityReferenceFixtures(), which gets the
+   *   three news items in its `field_related_news_list`.
+   *
+   * @return array{
+   *   news_a: \Drupal\node\NodeInterface,
+   *   news_b: \Drupal\node\NodeInterface,
+   *   news_c: \Drupal\node\NodeInterface,
+   *   }
+   */
+  private static function setUpListedNewsFixtures(NodeInterface $listing_news): array {
+    $listed_news = [];
+    foreach (['a', 'b', 'c'] as $suffix) {
+      $news = Node::create([
+        'type' => 'news_item',
+        'title' => 'News item ' . \strtoupper($suffix),
+        'status' => 1,
+      ]);
+      self::assertEntityIsValid($news);
+      $news->save();
+      $listed_news['news_' . $suffix] = $news;
+    }
+
+    $listing_news->set('field_related_news_list', [
+      $listed_news['news_c']->id(),
+      $listed_news['news_a']->id(),
+      $listed_news['news_b']->id(),
+    ]);
+    self::assertEntityIsValid($listing_news);
+    $listing_news->save();
+
+    return $listed_news;
   }
 
 }

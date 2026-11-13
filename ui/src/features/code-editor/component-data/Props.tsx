@@ -91,6 +91,15 @@ export const DEFAULT_ENUM_OPTIONS: Record<
 export const REQUIRED_EXAMPLE_ERROR_MESSAGE =
   'A required prop must have an example value.';
 
+// Prop types with object values. For a multi-value prop of one of these
+// types, the example array contains only objects, never strings.
+const OBJECT_DERIVED_TYPES = [
+  'video',
+  'image',
+  'document',
+  'contentEntityReference',
+];
+
 export default function Props() {
   const dispatch = useAppDispatch();
   const props = useAppSelector(selectCodeComponentProperty('props'));
@@ -130,10 +139,9 @@ export default function Props() {
     defaultValue: string | number = '',
     derivedType?: string | null,
   ) => {
-    // For complex object types (video, image, document), we need to preserve
-    // existing objects or use an empty array.
+    // For object types, keep the existing objects or use an empty array.
     let newExample;
-    if (['video', 'image', 'document'].includes(derivedType ?? '')) {
+    if (OBJECT_DERIVED_TYPES.includes(derivedType ?? '')) {
       const exampleArray = Array.isArray(currentExample) ? currentExample : [];
       newExample = exampleArray.slice(0, newCount);
     } else {
@@ -460,6 +468,7 @@ export default function Props() {
           'date',
           'listText',
           'listInteger',
+          'contentEntityReference',
         ].includes(prop.derivedType ?? '') && (
           <Flex direction="column" gap="2" mt="3">
             <Flex align="center" gap="2" mt="3">
@@ -512,7 +521,8 @@ export default function Props() {
                       updates.valueMode = VALUE_MODE_UNLIMITED;
                       updates.limitedCount = 1;
                     } else if (prop.type === 'object') {
-                      // Convert to array type - for object types (image/video/document).
+                      // Convert to array type - for object types
+                      // (image/video/document/content entity reference).
                       updates.type = 'array';
                       updates.items = {
                         type: 'object',
@@ -621,13 +631,10 @@ export default function Props() {
                       const count = Math.max(2, prop.limitedCount ?? 2);
                       updates.limitedCount = count;
 
-                      // For complex object types (video, image, document),
-                      // we need to preserve existing objects or use an empty
-                      // array.
+                      // For object types, keep the existing objects or use an
+                      // empty array.
                       if (
-                        ['video', 'image', 'document'].includes(
-                          prop.derivedType ?? '',
-                        )
+                        OBJECT_DERIVED_TYPES.includes(prop.derivedType ?? '')
                       ) {
                         const exampleArray = Array.isArray(prop.example)
                           ? prop.example
@@ -720,6 +727,7 @@ export default function Props() {
                                 prop.example,
                                 newCount,
                                 '',
+                                prop.derivedType,
                               );
                             }}
                             disabled={
@@ -764,6 +772,7 @@ export default function Props() {
                                 prop.example,
                                 newCount,
                                 '',
+                                prop.derivedType,
                               );
                             }}
                             disabled={(() => {

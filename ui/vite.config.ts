@@ -12,6 +12,14 @@ export default defineConfig(({ command, mode }) => {
   return {
     define: {
       __APP_ENV__: JSON.stringify(env.APP_ENV),
+      // The browser-side translation extractor imports @babel/traverse, which
+      // loads @babel/types and @babel/code-frame. Treat their environment flags
+      // as unset in Vite dev/Cypress; client production builds also replace
+      // process.env. Some flags are already compiled out of published Babel.
+      'process.env.BABEL_8_BREAKING': 'undefined',
+      'process.env.BABEL_TYPES_8_BREAKING': 'undefined',
+      'process.env.FORCE_COLOR': 'undefined',
+      'process.env.IS_PUBLISH': 'undefined',
     },
     plugins: [
       react(),

@@ -29,6 +29,15 @@ Page exports write:
 - `page-default.html`
 - `manifest.json`
 
+## Interface translation
+
+Previews that use `useTranslation()` are translated as in Workbench: into the
+language that the Drupal site negotiates, or the one that `--langcode` requests,
+such as `--langcode fr`. Without a Drupal site, credentials, or translations
+into that language, they show source strings, and the command output reports a
+warning. It also warns about the components whose strings Workbench cannot
+find.
+
 ## Path constraints
 
 `--component-path` must point to a component metadata file discovered inside the

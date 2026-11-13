@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Unit\JsonSchemaInterpreter;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Yaml\Yaml;
 
@@ -36,6 +37,75 @@ final class JsonSchemaObjectRefTest extends UnitTestCase {
       $choices,
       'The literal `$ref` URIs in canvas.json_schema.yml must be kept in sync with JsonSchemaObjectRef enum cases.',
     );
+  }
+
+  /**
+   * Tests both cardinalities of content-entity-reference prop schemas.
+   *
+   * @param array $prop_schema
+   *   The JSON schema for a component prop.
+   * @param bool $expected_object
+   *   The expected result of ::isContentEntityReferenceObject().
+   * @param bool $expected_object_list
+   *   The expected result of ::isContentEntityReferenceObjectList().
+   */
+  #[DataProvider('providerContentEntityReferenceCardinality')]
+  public function testContentEntityReferenceCardinality(array $prop_schema, bool $expected_object, bool $expected_object_list): void {
+    self::assertSame($expected_object, JsonSchemaObjectRef::isContentEntityReferenceObject($prop_schema));
+    self::assertSame($expected_object_list, JsonSchemaObjectRef::isContentEntityReferenceObjectList($prop_schema));
+    self::assertSame($expected_object || $expected_object_list, JsonSchemaObjectRef::isContentEntityReference($prop_schema));
+  }
+
+  /**
+   * Data provider for ::testContentEntityReferenceCardinality().
+   */
+  public static function providerContentEntityReferenceCardinality(): \Generator {
+    yield 'single reference' => [
+      ['title' => 'Article', ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray()],
+      TRUE,
+      FALSE,
+    ];
+    yield 'list of references' => [
+      [
+        'title' => 'Articles',
+        'type' => 'array',
+        'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+      ],
+      FALSE,
+      TRUE,
+    ];
+    yield 'list of references, with maxItems and x-allowed-* on items' => [
+      [
+        'type' => 'array',
+        'items' => JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray() + [
+          'x-allowed-entity-type-id' => 'node',
+          'x-allowed-bundle' => 'article',
+        ],
+        'maxItems' => 3,
+      ],
+      FALSE,
+      TRUE,
+    ];
+    yield 'list of images' => [
+      ['type' => 'array', 'items' => JsonSchemaObjectRef::Image->asPropShapeArray()],
+      FALSE,
+      FALSE,
+    ];
+    yield 'list without items' => [
+      ['type' => 'array'],
+      FALSE,
+      FALSE,
+    ];
+    yield 'list with items without type' => [
+      ['type' => 'array', 'items' => ['$ref' => JsonSchemaObjectRef::ContentEntityReference->value]],
+      FALSE,
+      FALSE,
+    ];
+    yield 'list with one schema per item' => [
+      ['type' => 'array', 'items' => [JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray()]],
+      FALSE,
+      FALSE,
+    ];
   }
 
 }

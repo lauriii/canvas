@@ -246,10 +246,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // EvaluationResults instead of re-parsing and re-evaluating here.
     foreach ($populated_content_entity_reference_props as $prop_name) {
       \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
-      $referenced_entity = $explicit_input['resolved'][$prop_name] ?? NULL;
+      $evaluation_result = $explicit_input['resolved'][$prop_name] ?? NULL;
 
       // Evaluate every entity field expression declared for this prop against
-      // the resolved entity, and assemble a nested payload that mirrors the
+      // each resolved entity, and assemble a nested payload that mirrors the
       // reference structure of the expressions.
       $expression_strings = $js_component->getEntityFieldExpressions($prop_name);
       if (empty($expression_strings)) {
@@ -270,9 +270,14 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       // buildReferencePayload() returns an EvaluationResult whose cacheability
       // is composed (by EvaluationResult) from every entity it traverses into.
       // Add the prop source's cacheability: the host entity and reference field
-      // that resolved $referenced_entity.
+      // that resolved $evaluation_result.
+      // A list of references prop gets a list of payload objects. A single
+      // reference prop gets one payload object.
+      // @see \Drupal\canvas\Entity\JavaScriptComponent::isContentEntityReferenceObjectListProp()
       \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
-      $explicit_input['resolved'][$prop_name] = self::buildReferencePayload($referenced_entity, $expressions, $language);
+      $explicit_input['resolved'][$prop_name] = $js_component->isContentEntityReferenceObjectListProp($prop_name)
+        ? self::buildReferenceListPayload($evaluation_result, $expressions, $language)
+        : self::buildReferencePayload($evaluation_result, $expressions, $language);
     }
 
     return $explicit_input;
@@ -287,6 +292,8 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    * - scalar leaves, and mixed objects (a directly-picked `↠` leaf alongside
    *   any follow-reference entries), become a key on the current entity object
    *   (keyed by the field/entity-key name, e.g. `label` or `title`);
+   *   a leaf on a multi-valued field, with no `delta` in its expression, has an
+   *   array of values;
    * - reference expressions — and reference-only objects, the coalesced form of
    *   several references through one field — descend into the referenced
    *   entity, producing a nested object (those sharing a referencer merge);
@@ -296,6 +303,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    *   the resolved entity's entity-type + bundle, which is only known at
    *   runtime — a resolved entity whose bundle has no matching branch (nor
    *   matching single-bundle target) yields a `__type`-only nested object;
+   * - a referencer on a multi-valued field, with no `delta` in its expression,
+   *   resolves to several entities: this produces a nested list of objects, in
+   *   field item order, with target selection for each entity (see
+   *   ::buildReferenceGroupPayload());
    * - every entity object carries a `__type` set to the resolved entity's
    *   bundle, so code components can branch on it (including for
    *   multi-target-bundle references, where the bundle is only known at
@@ -303,6 +314,9 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    * - every entity object carries a `__url` set to the resolved entity's
    *   `canonical` URL (NULL when its entity type has no `canonical` link
    *   template), so code components can link to it without a pick.
+   *
+   * A list of references prop gets one such payload object per resolved entity
+   * (see ::buildReferenceListPayload()).
    *
    * @param \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult $resolved_entity
    *   The resolved entity to evaluate the expressions against, wrapped in an
@@ -320,6 +334,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    *   traversed entity (and of every generated `__url`).
    *
    * @see ::getExplicitInput()
+   * @see ::buildReferenceListPayload()
    * @see \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
    * @internal
    */
@@ -411,42 +426,123 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
         is_required: FALSE,
         language: $language,
       );
-      $resolved_targets = [];
-      if ($referenced->value instanceof FieldableEntityInterface) {
-        $referenced_entity = $referenced->value;
-        foreach ($group['targets'] as $target) {
-          if ($target instanceof ReferencedBundleSpecificBranches) {
-            // Select the branch matching the resolved entity, if any; the value
-            // object owns the entity-type + bundle key format, mirroring
-            // ReferenceFieldPropExpression::getTargetExpression().
-            $branch = $target->getBranchForEntityOrNull($referenced_entity);
-            if ($branch !== NULL) {
-              $resolved_targets[] = $branch;
-            }
-            continue;
-          }
-          // A plain single-bundle target reached through a multi-bundle
-          // referencer (un-coalesced cross-bundle picks) contributes only when
-          // its host entity-type + bundle matches the resolved entity; a
-          // bundle-less host definition matches on entity type alone. This
-          // never evaluates a bundle-A expression against a bundle-B entity.
-          // Through a single-bundle referencer targets match by construction.
-          $host_definition = $target->getHostEntityDataDefinition();
-          $host_bundles = $host_definition->getBundles();
-          if ($host_definition->getEntityTypeId() === $referenced_entity->getEntityTypeId()
-            && ($host_bundles === NULL || \in_array($referenced_entity->bundle(), $host_bundles, TRUE))) {
-            $resolved_targets[] = $target;
-          }
-        }
-      }
-      // An empty resolved target list is the unmatched-bundle case: the
-      // recursion returns a `__type`-only payload with the correct
-      // cacheability. A NULL resolved entity likewise yields a NULL payload
-      // (the target list is unused).
-      $payload[$key] = self::buildReferencePayload($referenced, $resolved_targets, $language);
+      $payload[$key] = self::buildReferenceGroupPayload($referenced, $group['targets'], $language);
     }
 
     return new EvaluationResult($payload, $payload_cacheability);
+  }
+
+  /**
+   * Builds the nested payload for the entities that a referencer resolved to.
+   *
+   * The referencer of a reference group resolves to one entity, to NULL, or to
+   * an array of entities. The array occurs for a multi-valued reference field,
+   * when the referencer expression has no `delta`.
+   * - One entity: a nested payload object, from the targets that match the
+   *   entity.
+   * - NULL (the field is empty, or the referenced entity was deleted): a NULL
+   *   payload.
+   * - An array of entities: a nested list of payload objects, in field item
+   *   order. A deleted entity is NULL in that array, and is omitted.
+   *   Each entity can have a different bundle. Thus, the target selection
+   *   occurs for each entity.
+   *
+   * @param \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult $referenced
+   *   The evaluated referencer of the reference group.
+   * @param array<\Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface|\Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches> $targets
+   *   The targets of the references in the reference group, before target
+   *   selection.
+   * @param \Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage $language
+   *   The language to resolve the referenced entities in.
+   *
+   * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
+   *   The nested payload object, NULL, or the nested list of payload objects,
+   *   wrapped in an EvaluationResult that carries the cacheability of every
+   *   traversed entity.
+   *
+   * @see ::buildReferencePayload()
+   */
+  private static function buildReferenceGroupPayload(EvaluationResult $referenced, array $targets, NegotiatedLanguage $language): EvaluationResult {
+    if (\is_array($referenced->value)) {
+      // A deleted entity is NULL in the array: omit it, and reindex so that the
+      // list is a JSON array, not a JSON object.
+      $payloads = \array_map(
+        fn (mixed $referenced_entity): EvaluationResult => self::buildReferenceGroupPayload(new EvaluationResult($referenced_entity), $targets, $language),
+        \array_values(\array_filter($referenced->value)),
+      );
+      return new EvaluationResult($payloads, $referenced);
+    }
+
+    $resolved_targets = [];
+    if ($referenced->value instanceof FieldableEntityInterface) {
+      $referenced_entity = $referenced->value;
+      foreach ($targets as $target) {
+        if ($target instanceof ReferencedBundleSpecificBranches) {
+          // Select the branch matching the resolved entity, if any; the value
+          // object owns the entity-type + bundle key format, mirroring
+          // ReferenceFieldPropExpression::getTargetExpression().
+          $branch = $target->getBranchForEntityOrNull($referenced_entity);
+          if ($branch !== NULL) {
+            $resolved_targets[] = $branch;
+          }
+          continue;
+        }
+        // A plain single-bundle target reached through a multi-bundle
+        // referencer (un-coalesced cross-bundle picks) contributes only when
+        // its host entity-type + bundle matches the resolved entity; a
+        // bundle-less host definition matches on entity type alone. This
+        // never evaluates a bundle-A expression against a bundle-B entity.
+        // Through a single-bundle referencer targets match by construction.
+        $host_definition = $target->getHostEntityDataDefinition();
+        $host_bundles = $host_definition->getBundles();
+        if ($host_definition->getEntityTypeId() === $referenced_entity->getEntityTypeId()
+          && ($host_bundles === NULL || \in_array($referenced_entity->bundle(), $host_bundles, TRUE))) {
+          $resolved_targets[] = $target;
+        }
+      }
+    }
+    // An empty resolved target list is the unmatched-bundle case: the
+    // recursion returns a `__type`-only payload with the correct
+    // cacheability. A NULL resolved entity likewise yields a NULL payload
+    // (the target list is unused).
+    return self::buildReferencePayload($referenced, $resolved_targets, $language);
+  }
+
+  /**
+   * Builds the developer-facing payload list for a list of references prop.
+   *
+   * A list of references prop (`type: array`) gets one payload object per
+   * resolved entity. ::buildReferencePayload() builds each payload object, so
+   * each list item has the same `__type` contract as a single reference prop.
+   * The list keeps the order of the field items. It omits deleted entities.
+   * When no entity resolves, the list is empty.
+   *
+   * @param \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult $resolved_entities
+   *   The resolved entities, wrapped in an EvaluationResult to carry the
+   *   cacheability describing how these entities were loaded: an array with
+   *   one entity per field item.
+   * @param array<\Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpressionInterface> $expressions
+   *   The expressions, relative to each resolved entity.
+   * @param \Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage $language
+   *   The language to resolve the referenced entities (and any entities they
+   *   reference in turn) and read their field values in.
+   *
+   * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
+   *   The list of payload objects, wrapped in an EvaluationResult that carries
+   *   the cacheability of every traversed entity.
+   *
+   * @see ::getExplicitInput()
+   * @see ::buildReferencePayload()
+   */
+  private static function buildReferenceListPayload(EvaluationResult $resolved_entities, array $expressions, NegotiatedLanguage $language): EvaluationResult {
+    \assert(\is_array($resolved_entities->value));
+    // A deleted entity is NULL in the array: omit it, and reindex so that the
+    // list is a JSON array, not a JSON object.
+    $payloads = \array_map(
+      fn (mixed $resolved_entity): EvaluationResult => self::buildReferencePayload(new EvaluationResult($resolved_entity), $expressions, $language),
+      \array_values(\array_filter($resolved_entities->value)),
+    );
+    return new EvaluationResult($payloads, $resolved_entities);
   }
 
   /**
@@ -488,10 +584,17 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
             'props' => $props,
           ],
         ];
-        CacheableMetadata::createFromObject($component)
+        $cacheability = CacheableMetadata::createFromObject($component)
           ->addCacheableDependency($headless_settings)
-          ->addCacheableDependency($props_bubbleable_metadata)
-          ->applyTo($build);
+          ->addCacheableDependency($props_bubbleable_metadata);
+        // The external application reads the translations of the strings its
+        // implementation passes to `t()` and `formatPlural()` from the page's
+        // Canvas context, like Drupal-rendered code components.
+        $translations = $this->codeComponentDataProvider->getCanvasDataTranslationsV0([$component], $cacheability);
+        if ($translations !== []) {
+          $build['#attached']['drupalSettings'][CodeComponentDataProvider::CANVAS_DATA_KEY] = $translations;
+        }
+        $cacheability->applyTo($build);
         return $build;
       }
     }
@@ -526,7 +629,11 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     $scoped_map = $this->getScopedDependencies($component, $autoSave, $isPreview);
     $import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS] = \array_merge($import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS], $scoped_map);
 
-    $build['#attached']['library'] = \array_merge($build['#attached']['library'], $this->getDependencyLibraries($component, $autoSave, $isPreview));
+    $dependencies = $this->getDependencyComponents($component, $autoSave, $isPreview);
+    $build['#attached']['library'] = \array_merge($build['#attached']['library'], \array_values(\array_map(
+      static fn(JavaScriptComponent $dependency): string => $dependency->getAssetLibrary($isPreview),
+      $dependencies,
+    )));
 
     if (\count($build['#attached']['library']) === 0) {
       unset($build['#attached']['library']);
@@ -597,6 +704,21 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       ->merge($props_bubbleable_metadata);
     if ($headless_settings !== NULL) {
       $bubbleable_metadata->addCacheableDependency($headless_settings);
+    }
+    // `useTranslation()` reads the translations of the strings this component
+    // and the components it imports pass to `t()` and `formatPlural()`.
+    // @see packages/drupal-canvas/src/drupal-settings.ts
+    $translatables = [$component];
+    foreach ($dependencies as $dependency) {
+      $translatable = $isPreview ? ($this->loadAutoSaveEntity($dependency, TRUE)->entity ?? $dependency) : $dependency;
+      \assert($translatable instanceof JavaScriptComponent);
+      $translatables[] = $translatable;
+      // Including indirect imports, which this component's cache tags miss.
+      $bubbleable_metadata->addCacheableDependency($translatable);
+    }
+    $translations = $this->codeComponentDataProvider->getCanvasDataTranslationsV0($translatables, $bubbleable_metadata);
+    if ($translations !== []) {
+      $bubbleable_metadata->addAttachments(['drupalSettings' => [CodeComponentDataProvider::CANVAS_DATA_KEY => $translations]]);
     }
     // When this component reads `canvasData.v0.mainEntity`, its data embeds the
     // per-language translation list, derived from the enabled-language list and
@@ -785,8 +907,14 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     return $scoped_dependencies;
   }
 
-  private function getDependencyLibraries(JavaScriptComponent $component, AutoSaveEntity $autoSave, bool $isPreview, array $seen = []): array {
-    $libraries = [];
+  /**
+   * The code components a component imports, directly or indirectly.
+   *
+   * @return array<string, \Drupal\canvas\Entity\JavaScriptComponent>
+   *   The published components, keyed by ID.
+   */
+  private function getDependencyComponents(JavaScriptComponent $component, AutoSaveEntity $autoSave, bool $isPreview, array $seen = []): array {
+    $dependencies = [];
     foreach ($component->getComponentDependencies($autoSave, $isPreview) as $js_component_dependency_name => $js_component_dependency) {
       if (\in_array($js_component_dependency_name, $seen, TRUE)) {
         // Recursion or already processed by another dependency.
@@ -795,10 +923,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       $seen[] = $js_component_dependency_name;
       \assert($js_component_dependency instanceof JavaScriptComponent);
       $dependencyAutoSave = $this->loadAutoSaveEntity($js_component_dependency, $isPreview);
-      $libraries[] = $js_component_dependency->getAssetLibrary($isPreview);
-      $libraries = array_merge($libraries, $this->getDependencyLibraries($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));
+      $dependencies[$js_component_dependency_name] = $js_component_dependency;
+      $dependencies += $this->getDependencyComponents($js_component_dependency, $dependencyAutoSave, $isPreview, $seen);
     }
-    return $libraries;
+    return $dependencies;
   }
 
   public function setJavaScriptComponent(?JavaScriptComponent $jsComponent): static {

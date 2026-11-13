@@ -24,6 +24,8 @@
   },
   "type": "module",
   "dependencies": {
+    "@babel/parser": "^7.26.9",
+    "@babel/traverse": "^7.29.7",
     "@base-ui/react": "^1.2.0",
     "@fontsource-variable/geist": "^5.2.8",
     "@fontsource-variable/geist-mono": "^5.2.7",
@@ -46,6 +48,7 @@
   "devDependencies": {
     "@drupal-canvas/auth": "*",
     "@drupal-canvas/discovery": "*",
+    "@drupal-canvas/translatable-strings": "*",
     "@drupal-canvas/vite-compat": "*",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",

@@ -123,6 +123,8 @@ class HostEntityPropSourceMatcherTest extends PropSourceMatcherTestBase {
       ],
     ];
     // News listing's `featuredNews` content-entity-reference targets `node:news_item` — matches.
+    // News list's `newsItems` list of content-entity-references targets `node:news_item` too, but
+    // the host entity is never a source for a list prop — no match.
     yield 'host=node/news_item (matches News listing)' => [
       'node',
       'news_item',
@@ -163,6 +165,35 @@ class HostEntityPropSourceMatcherTest extends PropSourceMatcherTestBase {
       [(new HostEntityPropSource())->toArray()],
       \array_map(fn (HostEntityPropSource $s): array => $s->toArray(), $result),
     );
+  }
+
+  /**
+   * The host entity is one entity, so it is never a source for a list prop.
+   *
+   * The list prop has `x-allowed-entity-type-id` in `items`, not at the top
+   * level. Thus, the matcher does not match it.
+   *
+   * @see \Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher::match()
+   */
+  public function testListOfReferencesReturnsEmpty(): void {
+    $item_schema = JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray()
+      + ['x-allowed-entity-type-id' => 'node', 'x-allowed-bundle' => 'article'];
+
+    $single_shape = PropShape::normalize($item_schema);
+    self::assertCount(1, HostEntityPropSourceMatcher::match(FALSE, $single_shape, 'node', 'article'));
+
+    $unlimited_list_shape = PropShape::normalize([
+      'type' => 'array',
+      'items' => $item_schema,
+    ]);
+    self::assertSame([], HostEntityPropSourceMatcher::match(FALSE, $unlimited_list_shape, 'node', 'article'));
+
+    $limited_list_shape = PropShape::normalize([
+      'type' => 'array',
+      'items' => $item_schema,
+      'maxItems' => 5,
+    ]);
+    self::assertSame([], HostEntityPropSourceMatcher::match(FALSE, $limited_list_shape, 'node', 'article'));
   }
 
   public function testBundleMismatchReturnsEmpty(): void {

@@ -161,6 +161,13 @@ hooks and interactivity run. `context={page.context}` lets components read the
 page and site data through `usePageContext()` and `useSiteContext()`; an
 explicit `jsonApi` prop replaces the configuration `CanvasRuntime` supplies.
 
+`page.context` also carries the translations of the components' interface
+strings. To use the application's own dictionary instead, render
+`TranslationsProvider` from `@drupal-canvas/headless-next` above the tree, and
+around your component-preview page with a dictionary for the language you want
+previews to show. See
+[Interface translation](https://project.pages.drupalcode.org/canvas/headless/interface-translation).
+
 ### Server rendering and SWR
 
 > **Required for SWR data in the initial HTML:** Server rendering a component

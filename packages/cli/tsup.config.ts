@@ -15,6 +15,7 @@ export default defineConfig({
     '@drupal-canvas/auth',
     '@drupal-canvas/discovery',
     '@drupal-canvas/json-schema-validation',
+    '@drupal-canvas/translatable-strings',
     '@drupal-canvas/vite-compat',
   ],
   // The bundled CommonJS validators from ajv-formats-draft2019 load punycode

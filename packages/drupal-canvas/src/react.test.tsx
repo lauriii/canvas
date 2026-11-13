@@ -10,17 +10,20 @@ import * as react from './react';
 import type {
   CanvasContextProviderProps,
   JsonApiClientProviderProps,
+  TranslationsProviderProps,
 } from './react';
 
 const names = [
   'CanvasContextProvider',
   'JsonApiClientProvider',
+  'TranslationsProvider',
   'useDateFormatter',
   'useHasCanvasContext',
   'useHasJsonApiClient',
   'useJsonApiClient',
   'usePageContext',
   'useSiteContext',
+  'useTranslation',
 ];
 
 describe('React entry point', () => {
@@ -58,6 +61,9 @@ describe('React entry point', () => {
     const clientProps: JsonApiClientProviderProps = {
       client: root.createJsonApiClient({ baseUrl: 'https://example.test' }),
     };
+    const translationsProps: TranslationsProviderProps = {
+      translations: { strings: { '': { 'React entry': 'Entrée React' } } },
+    };
     function Probe() {
       expect(react.usePageContext()).toBe(context.usePageContext());
       expect(react.useJsonApiClient()).toBe(clientProps.client);
@@ -65,16 +71,18 @@ describe('React entry point', () => {
       expect(react.useHasCanvasContext()).toBe(true);
       expect(react.useHasJsonApiClient()).toBe(true);
       expect(react.useSiteContext()).toBeNull();
-      return <h1>{react.usePageContext()?.pageTitle}</h1>;
+      return <h1>{react.useTranslation().t('React entry')}</h1>;
     }
     expect(
       renderToStaticMarkup(
         <react.CanvasContextProvider {...props}>
-          <react.JsonApiClientProvider {...clientProps}>
-            <Probe />
-          </react.JsonApiClientProvider>
+          <react.TranslationsProvider {...translationsProps}>
+            <react.JsonApiClientProvider {...clientProps}>
+              <Probe />
+            </react.JsonApiClientProvider>
+          </react.TranslationsProvider>
         </react.CanvasContextProvider>,
       ),
-    ).toBe('<h1>React entry</h1>');
+    ).toBe('<h1>Entrée React</h1>');
   });
 });

@@ -129,6 +129,57 @@ describe.runIf(isConfigured)('api service integration', () => {
     );
   });
 
+  it('should store translatable strings with their source code', async () => {
+    const apiService = await createApiService();
+    const machineName = 'canvas_test_code_components_translated';
+    const code = {
+      sourceCodeJs:
+        "import { useTranslation } from 'drupal-canvas/react';\nexport default function Translated() { const { t } = useTranslation(); return <p>{t('Hello')}</p>; }",
+      compiledJs: '',
+      importedJsComponents: [],
+    };
+    const created = await apiService.createComponent({
+      ...code,
+      compiledCss: '',
+      dataDependencies: {},
+      props: {},
+      required: [],
+      slots: {},
+      sourceCodeCss: '',
+      status: false,
+      machineName,
+      name: 'Translated Component',
+      translatableStrings: [
+        { source: 'Hello', context: 'Greeting' },
+        { source: '1 file', plural: '@count files' },
+        { source: 'Hello' },
+      ],
+    });
+    // Drupal sorts them like the extractor.
+    expect(created.translatableStrings).toEqual([
+      { source: '1 file', plural: '@count files' },
+      { source: 'Hello' },
+      { source: 'Hello', context: 'Greeting' },
+    ]);
+
+    await apiService.updateComponent(machineName, {
+      ...code,
+      translatableStrings: [{ source: 'Hello' }],
+    });
+    expect(
+      (await apiService.getComponent(machineName)).translatableStrings,
+    ).toEqual([{ source: 'Hello' }]);
+
+    // Source code sent without its strings, as by older versions of the CLI,
+    // makes them unknown.
+    await apiService.updateComponent(machineName, code);
+    expect(
+      (await apiService.getComponent(machineName)).translatableStrings,
+    ).toBeNull();
+
+    await apiService.deleteComponent(machineName);
+  });
+
   it('should signal push start', async () => {
     const apiService = await createApiService();
     // @ts-expect-error allow accessing client directly in the test.

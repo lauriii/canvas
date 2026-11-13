@@ -147,8 +147,9 @@ final class CanvasContentController {
       }
     }
     $managed_by_canvas = $build !== NULL;
+    $translations = [];
     if ($build !== NULL) {
-      $custom_element = $this->canvasRenderConverter->convertRenderArray($build);
+      [$custom_element, $translations] = $this->canvasRenderConverter->convertRenderArrayWithTranslations($build);
       $cacheability->addCacheableDependency($custom_element);
       $content = $this->customElementNormalizer->normalize(
         $custom_element,
@@ -180,6 +181,12 @@ final class CanvasContentController {
       $cacheability,
       $rendered_entity instanceof ContentEntityInterface ? $rendered_entity : NULL,
     );
+    // `useTranslation()` reads the translations of the strings the rendered
+    // code components pass to `t()` and `formatPlural()`. Their cacheability
+    // was added with the components'.
+    if ($translations !== []) {
+      $context['translations'] = $translations;
+    }
 
     $language_context = $this->translationLinks->build($rendered_entity, $request, $cacheability);
     $response = new CacheableJsonResponse([

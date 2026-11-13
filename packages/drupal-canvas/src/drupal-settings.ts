@@ -10,7 +10,7 @@
  * empty value is valid data.
  */
 
-import type { CanvasContext } from './context.js';
+import type { CanvasContext, Translations } from './context.js';
 import type { JsonApiRuntimeConfig } from './jsonapi-client.js';
 
 /** The subset of `drupalSettings.canvasData.v0` the context API reads. */
@@ -27,6 +27,7 @@ export interface CanvasDataV0 {
   langcode?: string | null;
   themeAssets?: NonNullable<CanvasContext['site']>['themeAssets'] | null;
   jsonapiSettings?: { apiPrefix?: string } | null;
+  translations?: Translations | null;
 }
 
 interface DrupalSettingsLike {
@@ -86,6 +87,8 @@ export function drupalSettingsToCanvasContext(
           ...(v0.langcode && { langcode: v0.langcode }),
         }
       : null,
+    // Each rendered Code Component attaches the translations of its strings.
+    ...(v0.translations && { translations: v0.translations }),
   };
 }
 

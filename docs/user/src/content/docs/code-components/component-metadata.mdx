@@ -243,7 +243,9 @@ keys:
 - `__type`: the bundle of the entity.
 - `__url`: the canonical URL of the entity, or `null` when its entity type has
   no canonical URL. Use it to link to the entity. It does not need an entity
-  field expression.
+  field expression. The URL is relative to the domain root: a path that starts
+  with `/`, such as `/node/1`. When Drupal is served from a subdirectory, the
+  path includes that subdirectory, such as `/drupal/node/1`.
 
 ## Slot metadata
 

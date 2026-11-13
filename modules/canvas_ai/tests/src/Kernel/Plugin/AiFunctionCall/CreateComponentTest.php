@@ -91,7 +91,8 @@ final class CreateComponentTest extends CanvasKernelTestBase {
     $this->assertInstanceOf(CreateComponent::class, $tool);
 
     $component_name = 'Test Component';
-    $javascript = 'console.log("Hello World");';
+    // The UI finds the translatable strings when it saves the component.
+    $javascript = "import { useTranslation } from 'drupal-canvas/react';\nconsole.log(useTranslation().t('Hello World'));";
     $css = '.test { color: red; }';
     $props_metadata = Json::encode([
       [
@@ -127,6 +128,7 @@ final class CreateComponentTest extends CanvasKernelTestBase {
     $this->assertEquals('', $component_structure['compiledCss']);
     $this->assertEquals([], $component_structure['importedJsComponents']);
     $this->assertEquals([], $component_structure['dataDependencies']);
+    $this->assertArrayNotHasKey('translatableStrings', $component_structure);
 
     $expected_props = [
       'title' => [

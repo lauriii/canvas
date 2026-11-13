@@ -7,6 +7,7 @@ import {
   useJsonApiClient,
   usePageContext,
   useSiteContext,
+  useTranslation,
 } from 'drupal-canvas/react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router';
@@ -280,6 +281,108 @@ describe('PreviewFrameApp', () => {
     });
     expect(seen.at(-1)?.client?.baseUrl).toBe('https://drupal.example');
     expect(seen.at(-1)?.client?.apiPrefix).toBe('jsonapi');
+  });
+
+  it('translates previewed components into the requested interface language', async () => {
+    const seen: Array<{ text: string; langcode: string | undefined }> = [];
+    function Probe() {
+      const { t } = useTranslation();
+      seen.push({ text: t('Hello'), langcode: useSiteContext()?.langcode });
+      return null;
+    }
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <MemoryRouter>
+          <PreviewFrameApp />
+        </MemoryRouter>,
+      );
+    });
+    const request = makeRequest('page-a', 'page');
+
+    renderSpecMock.mockReturnValueOnce(<Probe />);
+    await dispatchRenderRequest(
+      {
+        ...request,
+        payload: {
+          ...request.payload,
+          interfaceTranslation: {
+            langcode: 'fr',
+            translations: { strings: { '': { Hello: 'Bonjour' } } },
+          },
+        },
+      },
+      renderSpecMock,
+    );
+    expect(seen.at(-1)).toEqual({ text: 'Bonjour', langcode: 'fr' });
+
+    // Without translations, the source strings in the requested language.
+    renderSpecMock.mockReturnValueOnce(<Probe />);
+    await dispatchRenderRequest(
+      {
+        ...request,
+        payload: {
+          ...request.payload,
+          interfaceTranslation: { langcode: 'de', translations: null },
+        },
+      },
+      renderSpecMock,
+    );
+    expect(seen.at(-1)).toEqual({ text: 'Hello', langcode: 'de' });
+  });
+
+  it('does not replace a later render with an earlier one that loads later', async () => {
+    let releaseFirst = () => {};
+    vi.mocked(defineComponentRegistry).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseFirst = () => resolve({});
+        }),
+    );
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <MemoryRouter>
+          <PreviewFrameApp />
+        </MemoryRouter>,
+      );
+    });
+    const french = makeRequest('card', 'component');
+    french.payload.interfaceTranslation = {
+      langcode: 'fr',
+      translations: null,
+    };
+    const english = makeRequest('card', 'component');
+    english.payload.interfaceTranslation = {
+      langcode: 'en',
+      translations: null,
+    };
+    function Probe({ label }: { label: string }) {
+      return <p data-testid="probe">{label}</p>;
+    }
+
+    renderSpecMock.mockReturnValueOnce(<Probe label="en" />);
+    await act(async () => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'http://localhost',
+          data: french,
+        }),
+      );
+    });
+    await dispatchRenderRequest(english, renderSpecMock);
+    expect(container.textContent).toContain('en');
+
+    // The earlier request finishes loading its modules, and renders nothing.
+    const renderCalls = renderSpecMock.mock.calls.length;
+    await act(async () => {
+      releaseFirst();
+      for (let i = 0; i < 10; i++) {
+        await Promise.resolve();
+      }
+    });
+    expect(renderSpecMock.mock.calls.length).toBe(renderCalls);
+    expect(container.textContent).toContain('en');
   });
 
   it('re-renders the same target in place with fresh props, keeping component state', async () => {

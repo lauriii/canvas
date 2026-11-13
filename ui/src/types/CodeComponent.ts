@@ -1,3 +1,4 @@
+import type { TranslatableString } from '@drupal-canvas/translatable-strings';
 import type derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 
 export interface DataFetch {
@@ -55,6 +56,9 @@ export interface CodeComponentSerialized extends Omit<
   compiledJs?: string;
   compiledCss?: string;
   importedJsComponents?: string[];
+  // Derived from `sourceCodeJs` whenever it is sent; `null` when unknown.
+  // @see getTranslatableStringsPayload()
+  translatableStrings?: TranslatableString[] | null;
   links?: Record<string, string>;
 }
 
@@ -209,7 +213,8 @@ export type CodeComponentPropPreviewValue =
   | CodeComponentPropVideoExample[]
   | CodeComponentPropDocumentExample[]
   | ResolvedColorProp
-  | null;
+  | null
+  | undefined;
 
 export interface AssetLibrary {
   id: string;

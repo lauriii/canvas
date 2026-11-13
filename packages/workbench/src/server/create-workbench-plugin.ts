@@ -35,6 +35,10 @@ import {
   toPreviewManifestComponentMocks,
   toPreviewPageSpec,
 } from '../lib/spec-discovery';
+import {
+  analyzeComponentTranslations,
+  createComponentTranslationTracker,
+} from './translation-metadata';
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type {
@@ -50,6 +54,7 @@ import type {
   PreviewWarning,
 } from '../lib/preview-contract';
 import type { WorkbenchPaths } from './paths';
+import type { ComponentTranslationAnalysis } from './translation-metadata';
 
 function isPreviewSourcePath(filePath: string): boolean {
   const normalizedPath = filePath.replaceAll('\\', '/');
@@ -78,6 +83,12 @@ function shouldServeWorkbenchIndexHtml(requestUrl: string): boolean {
   }
 
   if (pathname.startsWith('/canvas/') && !pathname.endsWith('.html')) {
+    return false;
+  }
+
+  // The CSRF token of the Drupal session, which the dev-server proxy fetches
+  // from the Drupal site.
+  if (pathname === '/session/token') {
     return false;
   }
 
@@ -501,6 +512,9 @@ async function loadWorkbenchHtmlTemplate(
 
 export async function buildWorkbenchPreviewManifest(
   discoveryResult: DiscoveryResult,
+  translations: ComponentTranslationAnalysis[] = analyzeComponentTranslations(
+    discoveryResult,
+  ),
 ): Promise<PreviewManifest> {
   const manifest = buildPreviewManifest(discoveryResult);
   const discoveredComponentNames = manifest.components.map(
@@ -559,6 +573,7 @@ export async function buildWorkbenchPreviewManifest(
           props: metadata.props.properties ?? {},
           dataDependencies: metadata.dataDependencies ?? {},
           mocks,
+          translation: translations[index]?.translation,
         },
         warnings,
       };
@@ -584,6 +599,11 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
   const virtualBrandKitCssId = 'virtual:canvas-brand-kit.css';
   const resolvedVirtualBrandKitCssId = '\0virtual:canvas-brand-kit.css';
   const brandKitCssVirtualUrl = '/@id/virtual:canvas-brand-kit.css';
+  // The interface translation metadata of the components, and the component
+  // files it depends on.
+  const translations = createComponentTranslationTracker(() =>
+    analyzeComponentTranslations(cachedResult!),
+  );
 
   const refresh = async () => {
     if (refreshTask) {
@@ -752,13 +772,21 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         void (async () => {
           await refresh();
 
-          const manifest = await buildWorkbenchPreviewManifest(cachedResult!);
+          const { analyses } = translations.update();
+          // The files that resolving the imports of components checked, which
+          // can be outside the watched directories.
+          server.watcher.add(translations.watchPaths);
+          const manifest = await buildWorkbenchPreviewManifest(
+            cachedResult!,
+            analyses,
+          );
 
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
           res.end(
             JSON.stringify({
               ...manifest,
+              translationRevision: translations.revision,
               globalCssUrl: hostGlobalCssPath
                 ? getWorkbenchHostGlobalCssVirtualUrl()
                 : null,
@@ -966,13 +994,22 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
           isTopLevelContentTemplateSpecPath(filePath);
         const pageTemplateChanged = isTopLevelPageTemplateSpecPath(filePath);
         const mockChanged = isMockSpecPath(filePath);
+        // A component, a component that it imports, or a file that resolving
+        // its imports checked can change its interface translation, such as
+        // its strings.
+        let translationChanged = false;
+        if (cachedResult !== null && translations.dependsOn(filePath)) {
+          translationChanged = translations.update().changed;
+          server.watcher.add(translations.watchPaths);
+        }
         if (
           !metadataChanged &&
           !sourceChanged &&
           !pageChanged &&
           !contentTemplateChanged &&
           !pageTemplateChanged &&
-          !mockChanged
+          !mockChanged &&
+          !translationChanged
         ) {
           return;
         }
@@ -983,7 +1020,8 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
           pageChanged ||
           contentTemplateChanged ||
           pageTemplateChanged ||
-          (sourceChanged && event !== 'change');
+          (sourceChanged && event !== 'change') ||
+          translationChanged;
         if (!requiresManifestRefresh) {
           server.ws.send({
             type: 'custom',

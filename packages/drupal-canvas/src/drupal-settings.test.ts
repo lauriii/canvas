@@ -85,6 +85,18 @@ describe('drupalSettings to context', () => {
     ).not.toHaveProperty('langcode');
   });
 
+  it('carries the translations attached by Code Components', () => {
+    const translations = { strings: { '': { Hello: 'Bonjour' } } };
+    expect(drupalSettingsToCanvasContext({ translations })).toEqual({
+      page: null,
+      site: null,
+      translations,
+    });
+    expect(drupalSettingsToCanvasContext({ pageTitle: '' })).not.toHaveProperty(
+      'translations',
+    );
+  });
+
   it('builds the JSON:API runtime configuration', () => {
     expect(drupalSettingsToJsonApiRuntimeConfig(null)).toBeNull();
     expect(drupalSettingsToJsonApiRuntimeConfig({ branding: null })).toBeNull();

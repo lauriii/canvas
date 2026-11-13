@@ -43,6 +43,7 @@
     "@drupal-canvas/headless-host": "*",
     "@drupal-canvas/height-reader": "*",
     "@drupal-canvas/preview-geometry": "*",
+    "@drupal-canvas/translatable-strings": "*",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@microlink/react-json-view": "^1.26.1",
     "@radix-ui/react-accordion": "^1.2.20",
@@ -90,6 +91,7 @@
     "woff2-encoder": "^2.0.0"
   },
   "devDependencies": {
+    "@babel/types": "^7.29.7",
     "@chromatic-com/storybook": "^5.4.0",
     "@cypress/skip-test": "^2.6.1",
     "@drupal-canvas/json-schema-validation": "*",

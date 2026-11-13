@@ -67,6 +67,8 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'canvas.api.code_component.validate',
       'canvas.api.config.page_region.gone.collection',
       'canvas.api.config.page_region.gone.item',
+      'canvas.api.interface_translation.languages',
+      'canvas.api.interface_translation.lookup',
       'canvas.api.settings.default_page_variant.get',
       'canvas.api.settings.default_page_variant.set',
       'canvas.api.push.complete',

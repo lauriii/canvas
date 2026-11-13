@@ -1,5 +1,6 @@
 import { readValidatedComponentMetadata } from './component-metadata';
 
+import type { TranslatableString } from '@drupal-canvas/translatable-strings';
 import type { Component, DataDependencies } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
 
@@ -43,6 +44,8 @@ type ComponentPayloadCode = {
   sourceCodeCss: string;
   compiledCss: string;
   importedJsComponents: string[];
+  // Derived from `sourceCodeJs`; omitted when unknown.
+  translatableStrings?: TranslatableString[];
 };
 
 type CreateComponentPayloadParams =
@@ -107,12 +110,16 @@ export function createComponentPayload(
       sourceCodeCss,
       compiledCss,
       importedJsComponents,
+      translatableStrings,
     } = params.code;
     payload.sourceCodeJs = sourceCodeJs;
     payload.compiledJs = compiledJs;
     payload.sourceCodeCss = sourceCodeCss;
     payload.compiledCss = compiledCss;
     payload.importedJsComponents = importedJsComponents;
+    if (translatableStrings) {
+      payload.translatableStrings = translatableStrings;
+    }
   }
 
   return payload;

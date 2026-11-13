@@ -74,6 +74,8 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
+    "@babel/parser": "^7.26.9",
+    "@babel/traverse": "^7.29.7",
     "@drupal-api-client/json-api-client": "^1.4.1",
     "drupal-canvas": "^0.7.1"
   },
@@ -81,6 +83,7 @@
     "@drupal-canvas/discovery": "*",
     "@drupal-canvas/height-reader": "*",
     "@drupal-canvas/preview-geometry": "*",
+    "@drupal-canvas/translatable-strings": "*",
     "@types/node": "^24.10.1",
     "drupal-canvas": "*",
     "jsdom": "^26.1.0",

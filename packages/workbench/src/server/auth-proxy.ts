@@ -31,7 +31,8 @@ async function tryRefresh(
 }
 
 /**
- * Manages a Bearer token for the workbench dev-server proxy.
+ * Manages a Bearer token for the requests that Workbench makes to the Drupal
+ * site: through the dev-server proxy, or with `createAuthenticatedFetch()`.
  *
  * Tokens come from one of three sources (resolution order in `start()`):
  *   1. `CANVAS_ACCESS_TOKEN` — used as a static Bearer (no refresh).
@@ -210,6 +211,14 @@ class TokenManager {
   }
 }
 
+/**
+ * Creates the dev-server proxy options that authenticate the requests of
+ * interactive Workbench to the Drupal site.
+ *
+ * The Workbench UI and its previews run in the browser, and request
+ * `/canvas/api/` from the Workbench origin. The proxy forwards those requests
+ * with the Bearer token, so the token never reaches the browser.
+ */
 export async function createAuthProxy(
   siteUrl: string,
   env: Record<string, string>,
@@ -228,4 +237,33 @@ export async function createAuthProxy(
       });
     },
   });
+}
+
+/**
+ * Creates a `fetch()` for the Drupal site that authenticates as the
+ * dev-server proxy does, for requests that Workbench makes itself on the
+ * server, such as when `preview-build` generates previews without a dev
+ * server and its proxy.
+ *
+ * It gets and refreshes the token with the same `TokenManager` as the proxy,
+ * from the same sources. Relative URLs are resolved against the site URL.
+ */
+export async function createAuthenticatedFetch(
+  siteUrl: string,
+  env: Record<string, string>,
+): Promise<typeof fetch> {
+  const tokenManager = new TokenManager();
+  await tokenManager.start(siteUrl, env);
+  return (input, init) => {
+    const headers = new Headers(init?.headers);
+    const header = tokenManager.getHeader();
+    if (header) {
+      headers.set('Authorization', header);
+    }
+    const url =
+      typeof input === 'string' || input instanceof URL
+        ? new URL(input, siteUrl)
+        : input;
+    return fetch(url, { ...init, headers });
+  };
 }

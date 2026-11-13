@@ -293,7 +293,7 @@ final class EntityFieldPropSourceMatcher {
    *   A list of object matches, which are either:
    *   - a FieldPropExpression with `propName: 'entity'`, if this is a
    *     content-entity-reference shape and a host-entity reference field
-   *     targets the allowed entity type + bundle
+   *     targets the allowed entity type + bundle, with a matching cardinality
    *   - a FieldObjectPropsExpression, if the data is available directly in a
    *     field of the given entity type + bundle
    *   - a ReferenceFieldPropExpression that points to a
@@ -459,7 +459,7 @@ final class EntityFieldPropSourceMatcher {
     return [
       ...$matches_references,
       ...$matches,
-      ...self::matchContentEntityReferenceShape($entity_data_definition, $schema),
+      ...self::matchContentEntityReferenceShape($entity_data_definition, $schema, $cardinality_in_json_schema),
       ...$this->matchDocumentShapeToMediaTypes($entity_data_definition, $levels_to_recurse, $is_required_in_json_schema, $schema, $cardinality_in_json_schema),
     ];
   }
@@ -725,24 +725,8 @@ final class EntityFieldPropSourceMatcher {
         TRUE => $field_definition->getCardinality(),
         FALSE => $field_definition->getFieldStorageDefinition()->getCardinality(),
       };
-      if ($cardinality_in_json_schema !== $field_cardinality) {
-        // For finite cardinalities, we can still allow a lower cardinality (>1)
-        // field instance to be matched with a higher cardinality JSON schema.
-        // For example: a `maxItems: 20` component prop could be populated by a
-        // field instance with cardinality 5. But a single-cardinality field
-        // would not make sense, because it's no longer an array.
-        // All other cases would result in problematic UX.
-        // @todo consider allowing/supporting (but needs UX to be designed first to disambiguate the cardinality mismatch) in https://www.drupal.org/i/3522718:
-        // 1. JSON schema cardinality `unlimited`, field cardinality 1–N =>
-        //    would mean only partially populating an array;
-        // 2. JSON schema cardinality `1-N`, field cardinality `unlimited` =>
-        //    would mean some structured data values would not be visible; the
-        //    content author would need to either be informed only the first N
-        //    would be visible, or they'd need to be able to pick specific
-        //    values.
-        if (!($field_cardinality > 1 && $cardinality_in_json_schema > $field_cardinality)) {
-          continue;
-        }
+      if (!self::fieldCardinalityMatchesJsonSchemaCardinality($field_cardinality, $cardinality_in_json_schema)) {
+        continue;
       }
       $properties = $this->recurseDataDefinitionInterface($field_definition);
       foreach ($properties as $property_name => $property_definition) {
@@ -1049,14 +1033,32 @@ final class EntityFieldPropSourceMatcher {
    * defined by that schema definition and is preserved by `PropShape` through
    * resolution, so its presence is a sufficient identifier.
    *
+   * The cardinality must match strictly, with the same rule as for scalar
+   * props:
+   * - A single reference matches only single-cardinality reference fields.
+   * - A list of references matches only multiple-cardinality reference fields
+   *   that fit in the list. A field with cardinality N fits a list with
+   *   `maxItems` N or more. An unlimited field fits only a list without
+   *   `maxItems`.
+   * Thus, the prop can always show all values of a matched field.
+   *
+   * PropSourceSuggester gives these matches to the page builder UI as
+   * suggestions.
+   *
    * @param \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface $entity_data_definition
    *   The host entity type + bundle data definition.
    * @param array<string, mixed> $schema
    *   The resolved JSON schema for the prop. When `x-allowed-entity-type-id`
    *   is present, MUST also contain `x-allowed-bundle` if the target entity
    *   type has bundles; absent only for bundle-less target entity types (the
-   *   rule is enforced already by the metadata requirements).
+   *   rule is enforced already by the metadata requirements). For a list of
+   *   references, this is the schema of its `items`.
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
+   *   The cardinality of the prop: 1 for a single reference. For a list of
+   *   references, its `maxItems`, or unlimited if `maxItems` is absent.
    *
+   * @see ::fieldCardinalityMatchesJsonSchemaCardinality()
+   * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester
    * @see \Drupal\canvas\ComponentMetadataRequirementsChecker
    * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::ContentEntityReference
    * @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
@@ -1064,7 +1066,7 @@ final class EntityFieldPropSourceMatcher {
    * @return list<\Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression>
    *   Matched reference field expressions.
    */
-  private static function matchContentEntityReferenceShape(EntityDataDefinitionInterface $entity_data_definition, array $schema): array {
+  private static function matchContentEntityReferenceShape(EntityDataDefinitionInterface $entity_data_definition, array $schema, int $cardinality_in_json_schema): array {
     if (!\array_key_exists('x-allowed-entity-type-id', $schema)) {
       return [];
     }
@@ -1074,9 +1076,15 @@ final class EntityFieldPropSourceMatcher {
 
     $field_definitions = $entity_data_definition->getPropertyDefinitions();
     // @phpstan-ignore argument.type
-    $matches = \array_filter($field_definitions, function (FieldDefinitionInterface $field_definition) use ($json_schema_target_entity_type_id, $json_schema_target_bundle): bool {
+    $matches = \array_filter($field_definitions, function (FieldDefinitionInterface $field_definition) use ($json_schema_target_entity_type_id, $json_schema_target_bundle, $cardinality_in_json_schema): bool {
       // Only consider entity reference fields.
       if (!is_subclass_of($field_definition->getClass(), EntityReferenceFieldItemListInterface::class, TRUE)) {
+        return FALSE;
+      }
+
+      // The field cardinality must match the prop cardinality.
+      $field_cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
+      if (!self::fieldCardinalityMatchesJsonSchemaCardinality($field_cardinality, $cardinality_in_json_schema)) {
         return FALSE;
       }
 
@@ -1121,6 +1129,44 @@ final class EntityFieldPropSourceMatcher {
       ),
       $matches,
     ));
+  }
+
+  /**
+   * Checks if a field cardinality matches the cardinality of a prop.
+   *
+   * Scalar props and content-entity-reference props use this same rule.
+   *
+   * @param int $field_cardinality
+   *   The cardinality of the field storage.
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
+   *   The cardinality of the prop: 1 if it is not an array. For an array, its
+   *   `maxItems`, or unlimited if `maxItems` is absent.
+   *
+   * @return bool
+   *   TRUE if the field can supply the values of the prop, FALSE otherwise.
+   *
+   * @see ::matchEntityPropsForScalar()
+   * @see ::matchContentEntityReferenceShape()
+   */
+  private static function fieldCardinalityMatchesJsonSchemaCardinality(int $field_cardinality, int $cardinality_in_json_schema): bool {
+    if ($cardinality_in_json_schema === $field_cardinality) {
+      return TRUE;
+    }
+    // For finite cardinalities, we can still allow a lower cardinality (>1)
+    // field instance to be matched with a higher cardinality JSON schema.
+    // For example: a `maxItems: 20` component prop could be populated by a
+    // field instance with cardinality 5. But a single-cardinality field
+    // would not make sense, because it's no longer an array.
+    // All other cases would result in problematic UX.
+    // @todo consider allowing/supporting (but needs UX to be designed first to disambiguate the cardinality mismatch) in https://www.drupal.org/i/3522718:
+    // 1. JSON schema cardinality `unlimited`, field cardinality 1–N =>
+    //    would mean only partially populating an array;
+    // 2. JSON schema cardinality `1-N`, field cardinality `unlimited` =>
+    //    would mean some structured data values would not be visible; the
+    //    content author would need to either be informed only the first N
+    //    would be visible, or they'd need to be able to pick specific
+    //    values.
+    return $field_cardinality > 1 && $cardinality_in_json_schema > $field_cardinality;
   }
 
   private static function dataDefinitionMatchesPrimitiveType(DataDefinitionInterface $data_definition, JsonSchemaType $json_schema_primitive_type, bool $is_required_in_json_schema): bool {

@@ -1,0 +1,5 @@
+{
+  "componentDir": "src/components",
+  "aliasBaseDir": "src",
+  "globalCssPath": "src/global.css"
+}

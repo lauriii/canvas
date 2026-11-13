@@ -2375,6 +2375,60 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
+  /canvas/api/v0/interface-translation:
+    description: The languages that interface text can be translated into, for tools that preview code components, such as Canvas Workbench.
+    get:
+      summary: Lists the languages that interface text can be translated into.
+      responses:
+        '200':
+          description: The languages, without locked languages such as "Not specified".
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterfaceTranslationLanguages'
+        '403':
+          $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/interface-translation/{langcode}:
+    description: >-
+      Looks up the interface translations of strings, for tools that preview
+      code components, such as Canvas Workbench. Lookups never register the
+      strings with Locale.
+    parameters:
+      - name: langcode
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Looks up the translations of strings in a language.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [strings]
+              properties:
+                strings:
+                  type: array
+                  maxItems: 1000
+                  items:
+                    $ref: '#/components/schemas/TranslatableString'
+      responses:
+        '200':
+          description: The translations of the strings that are translated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterfaceTranslations'
+        '403':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '404':
+          description: The language does not exist.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: The strings are invalid.
+          $ref: '#/components/responses/ClientErrorResponse'
   '/canvas/api/v0/layout-content-template-draft/{entityTypeId}/{entityId}':
     description: >
       Resolves a content template draft (provided in the request body) against
@@ -3695,7 +3749,7 @@ paths:
             expression strings rooted at the original entity.
       responses:
         '200':
-          description: Array of field descriptors, each with its pickable properties. Internal and multi-valued fields are omitted.
+          description: Array of field descriptors, each with its pickable properties. Internal fields are omitted.
           content:
             application/json:
               schema:
@@ -4332,6 +4386,66 @@ components:
           description: The URL for this link.
     # Update ensure required and optional properties are present in
     #    https://drupal.org/i/3507427.
+    TranslatableString:
+      description: A string that code passes to `t()` or `formatPlural()` of `useTranslation()`.
+      type: object
+      additionalProperties: false
+      required:
+        - source
+      properties:
+        source:
+          type: string
+          minLength: 1
+        plural:
+          type: string
+          minLength: 1
+          description: The plural form, for `formatPlural()`.
+        context:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: ASCII text. Omitted when there is no context.
+    InterfaceTranslationLanguages:
+      type: object
+      additionalProperties: false
+      required: [defaultLangcode, languages]
+      properties:
+        defaultLangcode:
+          type: string
+        languages:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [langcode, label, direction]
+            properties:
+              langcode:
+                type: string
+              label:
+                type: string
+              direction:
+                type: string
+                enum: [ltr, rtl]
+    InterfaceTranslations:
+      description: The shape of the Canvas context's `translations`.
+      type: object
+      additionalProperties: false
+      required: [strings]
+      properties:
+        strings:
+          description: >-
+            Translated strings keyed by context (empty string when none), then
+            by source string. Plural forms are joined with U+0003.
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+        pluralFormula:
+          description: The plural form index for counts up to 199, with a `default`.
+          type: object
+          additionalProperties:
+            type: integer
     ClientSideTransforms:
       title: Client-side transforms
       type: object
@@ -4532,6 +4646,17 @@ components:
           type: string
         compiledCss:
           type: string
+        translatableStrings:
+          # The strings `sourceCodeJs` passes to `t()` and `formatPlural()`, sent together with it. Sending
+          # `sourceCodeJs` without them, or `null`, makes them unknown: the component's strings are then not
+          # translated.
+          # @see \Drupal\canvas\Entity\JavaScriptComponent::updateFromClientSide()
+          # Not `type: ['array', 'null']`: the request validator only accepts `items` for `type: array`.
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/TranslatableString'
+            - type: 'null'
         dataDependencies:
           type: object
           schema:

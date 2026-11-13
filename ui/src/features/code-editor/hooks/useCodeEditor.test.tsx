@@ -514,6 +514,56 @@ describe('useCodeEditor hook', () => {
     expect(updateAutoSaveMutation).toHaveBeenCalledOnce();
   });
 
+  it('auto-saves the translatable strings of the saved source code', async () => {
+    const [updateAutoSaveMutation] = useUpdateAutoSaveMutationCodeComponent();
+    await act(async () => {
+      renderHook(() => useCodeEditor(), {
+        wrapper: ({ children }) => (
+          <AppWrapper
+            store={store}
+            location="/code-editor/component/test_component"
+            path="/code-editor/component/:codeComponentId"
+          >
+            {children}
+          </AppWrapper>
+        ),
+      });
+    });
+    await act(async () => {
+      vi.runAllTimers();
+    });
+    const hook = "import { useTranslation } from 'drupal-canvas/react';\n";
+    // Only the component's own strings: not those of the helpers and other
+    // components it imports.
+    const valid = `${hook}import Badge from '@/components/badge';\nimport { useLabel } from '@/lib/labels';\nconst { t } = useTranslation();\nt('Hello');`;
+    const invalid = `${hook}const { t } = useTranslation();\nt('');`;
+    const lastData = () =>
+      (updateAutoSaveMutation as ReturnType<typeof vi.fn>).mock.lastCall?.[0]
+        .data;
+
+    await act(async () => {
+      store.dispatch(setCodeComponentProperty(['sourceCodeJs', valid]));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    expect(lastData()).toMatchObject({
+      sourceCodeJs: valid,
+      translatableStrings: [{ source: 'Hello' }],
+    });
+
+    // Strings that cannot be determined are not sent, so Drupal does not keep
+    // the strings of the previous source code.
+    await act(async () => {
+      store.dispatch(setCodeComponentProperty(['sourceCodeJs', invalid]));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    expect(lastData()).toMatchObject({ sourceCodeJs: invalid });
+    expect(lastData()).not.toHaveProperty('translatableStrings');
+  });
+
   it('auto-saves on props change', async () => {
     const [updateAutoSaveMutation] = useUpdateAutoSaveMutationCodeComponent();
     await act(async () => {

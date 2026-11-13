@@ -339,6 +339,9 @@ export function CanvasComponentsMixin<
       );
 
       switch (propType) {
+        // An entity reference row accepts the "Label (ID)" form that an
+        // autocomplete selection produces.
+        case 'entity-reference':
         case 'string':
           await popover.getByRole('textbox').fill(propValue);
           await popover.getByRole('textbox').press('Enter');

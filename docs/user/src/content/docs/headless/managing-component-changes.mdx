@@ -13,8 +13,9 @@ frontend, which is another way the same component can change.
 ## How changes reach Canvas
 
 Canvas picks up component changes by syncing. A sync reads each component's
-name, status, props, required props, and slots from your app and stores them
-in Drupal. It doesn't copy your app's code.
+name, status, props, required props, slots, and
+[translatable strings](/headless/interface-translation) from your app and
+stores them in Drupal. It doesn't copy your app's code.
 
 A sync happens automatically when someone with the **Administer Canvas Headless
 frontends** permission opens the Canvas editor or switches frontends. Editors

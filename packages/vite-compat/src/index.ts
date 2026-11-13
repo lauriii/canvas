@@ -155,7 +155,13 @@ export function validateCanvasImportRoots(
   }
 }
 
-function resolveHostImportPath(
+/**
+ * Resolves a host `@/` import, without its prefix, as the Canvas build does.
+ *
+ * @returns
+ *   The first existing candidate file, or the unresolved target path.
+ */
+export function resolveHostImportPath(
   hostRoot: string,
   hostAliasBaseDir: string,
   sourceSuffix: string,

@@ -32,6 +32,7 @@ export default defineConfig({
       '@drupal-canvas/json-schema-validation',
       '@drupal-canvas/height-reader',
       '@drupal-canvas/preview-geometry',
+      '@drupal-canvas/translatable-strings',
     ],
     // Discovery's own runtime dependencies, pulled in transitively.
     onlyBundle: [
@@ -41,10 +42,12 @@ export default defineConfig({
       'extend',
       'fast-deep-equal',
       'fast-uri',
+      'get-tsconfig',
       'glob',
       'ignore',
       'json-schema-traverse',
       'nearley',
+      'resolve-pkg-maps',
       'schemes',
       'smtp-address-parser',
       'uri-js',
@@ -60,6 +63,7 @@ export default defineConfig({
       '@drupal-canvas/json-schema-validation',
       '@drupal-canvas/height-reader',
       '@drupal-canvas/preview-geometry',
+      '@drupal-canvas/translatable-strings',
       /^@drupal-canvas\/ui\//,
     ],
   },

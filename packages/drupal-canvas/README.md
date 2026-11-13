@@ -89,7 +89,35 @@ import { CanvasContextProvider } from 'drupal-canvas/react';
 ```
 
 The `CanvasContext` type describes the provider's value:
-`{ page: PageContext | null; site: SiteContext | null }`.
+`{ page: PageContext | null; site: SiteContext | null; translations?: Translations | null }`.
+
+### `useTranslation`
+
+Translate interface strings with `t()` and `formatPlural()`, which take the same
+arguments as `Drupal.t()` and `Drupal.formatPlural()`. They work in every
+frontend mode: they read the translations from the context. Without a
+translation, they return the source string.
+
+```jsx
+import { useTranslation } from 'drupal-canvas/react';
+
+export default function Greeting({ name, count }) {
+  const { t, formatPlural } = useTranslation();
+  return (
+    <p>
+      {t('Hello @name', { '@name': name })}{' '}
+      {formatPlural(count, '1 new message', '@count new messages')}
+    </p>
+  );
+}
+```
+
+The code editor, the Canvas CLI, and the Headless SDK find the strings in the
+component source, so pass string literals, and a string literal as the
+`context`. Only `@` placeholders, such as `@name`, are replaced. Unlike Drupal's
+functions, which return HTML, both return text: HTML in a string is shown as
+text. See
+[Interface translation](https://project.pages.drupalcode.org/canvas/code-components/interface-translation).
 
 ### `getPageData` and `getSiteData` (deprecated)
 

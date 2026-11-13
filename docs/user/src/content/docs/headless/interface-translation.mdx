@@ -1,0 +1,191 @@
+---
+title: Headless - Interface translation
+---
+
+import { LinkButton, TabItem, Tabs } from '@astrojs/starlight/components';
+
+Components translate their interface text with the `t()` and `formatPlural()`
+functions of the `useTranslation()` React hook. In a headless frontend, they use
+Drupal's translations by default, which you can replace with your own
+dictionary. The API, and the rules for writing translatable strings, are the
+same as for Code Components:
+
+<LinkButton
+  href={`${import.meta.env.BASE_URL}/code-components/interface-translation`.replace(/^\/\//, '/')}
+  variant="secondary"
+  icon="right-arrow"
+>
+  Code Components - Interface translation
+</LinkButton>
+
+## Translations from Drupal
+
+Drupal translates the strings of your application's components like those of
+the Code Components it stores:
+
+1. When your application builds, the Headless SDK finds the strings in each
+   component's entry file, and in those of the components it imports, which it
+   renders itself: with relative imports, or with the `paths` of your
+   `tsconfig.json` or `jsconfig.json`. Helpers are not scanned. The build fails
+   for an invalid string, and reports its file, line, and column.
+2. After you deploy the application, the next
+   [sync](/headless/managing-component-changes#how-changes-reach-canvas) stores
+   the strings in Drupal, which lists them on the _User interface translation_
+   page.
+3. `fetchPage()` returns the translations of the page's components as
+   `page.context.translations`, in the page's interface language.
+
+Pass `context={page.context}` to `CanvasComponentTree`, so that server rendering
+and hydration use the same translations:
+
+```jsx
+import { fetchPage } from '@drupal-canvas/headless-next';
+import CanvasComponentTree from '@drupal-canvas/headless-next/CanvasComponentTree';
+
+const page = await fetchPage(path);
+
+return <CanvasComponentTree tree={page.content} context={page.context} />;
+```
+
+A component's strings include those of the other components that it imports and
+renders itself, so that Drupal returns their translations with it.
+
+### Frameworks
+
+`useTranslation()` is a React hook. The Next.js and TanStack Start integrations,
+and React applications that render with `@drupal-canvas/headless-react`, pass
+Drupal's translations to it in the Canvas context. The Astro and Nuxt
+integrations render their components without the Canvas context, so they do not
+receive Drupal's translations. The Headless SDK finds strings only in JavaScript
+and TypeScript entry files, not in single-file components such as `.astro`,
+`.vue`, or `.svelte` files.
+
+## Using your own dictionary
+
+Optionally, translate with your own dictionary instead of Drupal's: wrap the
+component tree in `TranslationsProvider`. The components below it use your
+dictionary.
+
+Import `TranslationsProvider` from your framework adapter,
+`@drupal-canvas/headless-next` or `@drupal-canvas/headless-tanstack-start`. In
+Next.js, it is a client component, so a server component can render it with a
+dictionary that it loads on the server. Other React applications can import it
+from `drupal-canvas/react`.
+
+Load the dictionary on the server, for `page.context.site.langcode`, so server
+rendering and hydration use the same translations:
+
+```jsx
+import { fetchPage, TranslationsProvider } from '@drupal-canvas/headless-next';
+import CanvasComponentTree from '@drupal-canvas/headless-next/CanvasComponentTree';
+
+const page = await fetchPage(path);
+const translations = await loadDictionary(page.context.site?.langcode);
+
+return (
+  <TranslationsProvider translations={translations}>
+    <CanvasComponentTree tree={page.content} context={page.context} />
+  </TranslationsProvider>
+);
+```
+
+`TranslationsProvider` takes these props:
+
+| Prop           | Type                   | Description                                                                                                                                |
+| -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `translations` | `Translations \| null` | Replaces the translations provided by Canvas for child components. Pass `null` to use the original source strings instead of translations. |
+| `children`     | `ReactNode`            | The components to translate.                                                                                                               |
+
+`useTranslation()` uses only the nearest `TranslationsProvider`, otherwise the
+translations in the Canvas context, such as the `context` of
+`CanvasComponentTree`.
+
+### Create your dictionary
+
+To supply your own translations, create a dictionary for the language you want
+to display. Pass this object to `TranslationsProvider` through its
+`translations` prop. The example below translates English source strings into
+French.
+
+```js
+const translations = {
+  strings: {
+    '': {
+      'Hello @name': 'Bonjour @name',
+      '1 new message\x03@count new messages':
+        '1 nouveau message\x03@count nouveaux messages',
+    },
+    'Long month name': { May: 'mai' },
+  },
+  // The first form for 0 and 1, the second form otherwise.
+  pluralFormula: { 0: 0, 1: 0, default: 1 },
+};
+```
+
+The dictionary has the `Translations` type, the same shape as
+`page.context.translations` from Drupal:
+
+| Property        | Type                                     | Description                                                                                                                                                                                                                                        |
+| --------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `strings`       | `Record<string, Record<string, string>>` | Translations keyed by context (`''` for none), then by source string. A plural string joins its forms with `\x03`, in the source and the translation.                                                                                              |
+| `pluralFormula` | `Record<string, number> \| null`         | Optional. The index of the plural form to use for each count up to 199, and a `default`. A larger count uses the index of 100 plus its remainder over 100. Without it, translations use the first form for 1 and the second form for other counts. |
+
+### Component previews
+
+When you hover over a component in the Canvas editor's component list, Canvas
+shows a preview of that component alone: an iframe of your application's
+component preview route, `/api/canvas/component-preview`. That route renders
+separately from your pages, so a `TranslationsProvider` around your page tree
+does not apply to it.
+
+The preview shows Drupal's translations without further setup. To show your
+own dictionary instead, wrap the preview in `TranslationsProvider` too, with the
+dictionary that you choose, such as your English one:
+
+<Tabs>
+  <TabItem label="Next.js">
+
+```jsx
+// app/api/canvas/component-preview/page.tsx
+import { TranslationsProvider } from '@drupal-canvas/headless-next';
+import ComponentPreviewPage from '@drupal-canvas/headless-next/ComponentPreviewPage';
+
+export default async function Page(props) {
+  return (
+    <TranslationsProvider translations={await loadDictionary('en')}>
+      <ComponentPreviewPage {...props} />
+    </TranslationsProvider>
+  );
+}
+```
+
+  </TabItem>
+  <TabItem label="TanStack Start">
+
+```jsx
+// src/routes/api/canvas.component-preview.tsx
+import { TranslationsProvider } from '@drupal-canvas/headless-tanstack-start';
+import ComponentPreview, {
+  loadComponentPreview,
+} from '@drupal-canvas/headless-tanstack-start/ComponentPreview';
+import { createFileRoute, notFound } from '@tanstack/react-router';
+
+export const Route = createFileRoute('/api/canvas/component-preview')({
+  loader: async () => {
+    const preview = await loadComponentPreview();
+    if (!preview) throw notFound();
+    return { preview, translations: await loadDictionary('en') };
+  },
+  component: () => {
+    const { preview, translations } = Route.useLoaderData();
+    return (
+      <TranslationsProvider translations={translations}>
+        <ComponentPreview {...preview} />
+      </TranslationsProvider>
+    );
+  },
+});
+```
+
+  </TabItem>
+</Tabs>
