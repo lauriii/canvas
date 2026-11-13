@@ -31,6 +31,8 @@ const ICON_PROPS: SVGProps<SVGSVGElement> = {
   height: 17,
   stroke: 'currentColor',
   strokeWidth: 0.3,
+  // An inline SVG sits on the text baseline, above the segment's center.
+  style: { display: 'block' },
 };
 
 /**
