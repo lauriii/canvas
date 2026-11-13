@@ -1,6 +1,19 @@
+/* The group wrapper stacks its label and item list like a regular field.
+   @see themes/canvas_stark/templates/fieldset--canvas-object-props-group.html.twig */
+:global(.canvas-object-props-group) {
+  display: flex;
+  flex-direction: column;
+}
+
 .itemList {
+  /* Clip the rows to the rounded corners. */
+  overflow: hidden;
+  box-sizing: border-box;
   width: 100%;
-  border: 1px solid var(--gray-7);
+  /* Same spacing as a regular field: below its label, above the next field. */
+  margin: var(--space-1) 0 var(--space-4);
+  /* Same color as the border of a text field. */
+  border: 1px solid var(--slate-5);
   border-radius: 4px;
   background-color: var(--gray-a2);
 }
@@ -24,13 +37,14 @@
   transition: background-color 0.15s ease;
   text-align: left;
   border: none;
-  border-bottom: 1px solid var(--gray-a5);
   background-color: white;
   gap: var(--space-2);
 }
 
-.itemRow:first-child {
-  border-radius: 4px 4px 0 0;
+/* Separators between rows only: the list border closes the last row. */
+.itemRow:not(:first-child),
+.addNew {
+  border-top: 1px solid var(--slate-5);
 }
 
 .itemRow:hover {
@@ -67,7 +81,7 @@
   height: 24px;
   cursor: pointer;
   color: var(--blue-9);
-  border: none;
+  border-width: 1px 0 0;
   background-color: transparent;
   font-size: var(--font-size-1);
   gap: var(--space-1);
