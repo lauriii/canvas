@@ -127,7 +127,7 @@ describe('insertPreviewComponent', () => {
     ).toBe(true);
     expect(text(doc)).toBe('A,N,B');
     expect(doc.head.querySelector('link[href="n.css"]')).not.toBeNull();
-    expect(doc.body.innerHTML).toContain('<!--canvas-start-n--><p>N</p>');
+    expect(doc.body.innerHTML).toContain('<!-- canvas-start-n --><p>N</p>');
     expect(previewEditCount()).toBe(edits + 1);
     // The CSS of another instance is there already.
     insertPreviewComponent(
@@ -137,6 +137,27 @@ describe('insertPreviewComponent', () => {
       markup,
     );
     expect(doc.head.querySelectorAll('link[href="n.css"]')).toHaveLength(1);
+  });
+
+  it('gives default markup with a uuid of its own the uuid of the instance', () => {
+    const doc = preview();
+    insertPreviewComponent(
+      doc,
+      layout(component('a'), component('n'), component('b')),
+      'n',
+      {
+        default_markup:
+          '<!-- canvas-start-default --><canvas-island uid="default">' +
+          '<!-- canvas-slot-start-default/body --><!-- canvas-slot-end-default/body -->' +
+          '</canvas-island><!-- canvas-end-default -->',
+        css: '',
+      },
+    );
+    expect(doc.body.innerHTML).toContain(
+      '<!-- canvas-end-a --><!-- canvas-start-n --><canvas-island uid="n">' +
+        '<!-- canvas-slot-start-n/body --><!-- canvas-slot-end-n/body -->' +
+        '</canvas-island><!-- canvas-end-n --><!-- canvas-start-b -->',
+    );
   });
 
   it('adds CSS before the styles kept last', () => {

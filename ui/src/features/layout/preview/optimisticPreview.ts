@@ -195,9 +195,21 @@ export function insertPreviewComponent(
     return false;
   }
   addPreviewCss(document, markup.css);
+  const marker = (position: 'start' | 'end', id: string) =>
+    `<!-- ${formatCanvasCommentMarker({ type: 'component', position, id })} -->`;
+  // The default markup is rendered with a uuid of its own, in its markers and
+  // e.g. on its Canvas island. Give it the uuid of this instance, as the
+  // server-rendered preview has it, so that one finds this markup to be its
+  // own (see inPlaceUpdate.ts).
+  const [, defaultUuid] =
+    markup.default_markup.match(
+      new RegExp(`^\\s*${marker('start', '(.+?)')}`),
+    ) ?? [];
   // Template content is inert: scripts in it don't run.
   const template = document.createElement('template');
-  template.innerHTML = `<!--${formatCanvasCommentMarker({ type: 'component', position: 'start', id: uuid })}-->${markup.default_markup}<!--${formatCanvasCommentMarker({ type: 'component', position: 'end', id: uuid })}-->`;
+  template.innerHTML = defaultUuid
+    ? markup.default_markup.replaceAll(defaultUuid, uuid)
+    : marker('start', uuid) + markup.default_markup + marker('end', uuid);
   insertBefore(position.anchor, template.content, position.container);
   notePreviewEdit();
   return true;
