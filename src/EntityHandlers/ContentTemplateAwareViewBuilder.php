@@ -134,7 +134,9 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     // If a template exists, no matter if disabled, this render array depends
     // on it changing.
     if ($template) {
-      CacheableMetadata::createFromObject($template)->applyTo($defaults);
+      CacheableMetadata::createFromRenderArray($defaults)
+        ->addCacheableDependency($template)
+        ->applyTo($defaults);
     }
     // We need to ensure that as soon as a content template is added, we are
     // using it.

@@ -233,6 +233,8 @@ HTML;
       'config:filter.format.basic_html',
       'user:1',
       'user_view',
+      'node:1',
+      'node_view',
       // TRICKY: this cache tag is present because the config entity does exist,
       // but is disabled. It was assessed whether it should be used, hence its
       // cache tag is present.
@@ -308,6 +310,7 @@ HTML;
     // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::getBuildDefaults()
     self::assertEqualsCanonicalizing([
       "config:canvas.content_template.node.article.$view_mode",
+      'node_view',
       ...$expected_node_component_tree_cache_tags,
     ], $build['#cache']['tags']);
     self::assertEqualsCanonicalizing([
@@ -430,6 +433,7 @@ HTML;
     // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::getBuildDefaults()
     self::assertEqualsCanonicalizing([
       'config:canvas.content_template.node.article.full',
+      'node_view',
       // Components in the component tree.
       'config:canvas.component.sdc.canvas_test_sdc.props-slots',
       'config:canvas.component.sdc.canvas_test_sdc.props-no-slots',
