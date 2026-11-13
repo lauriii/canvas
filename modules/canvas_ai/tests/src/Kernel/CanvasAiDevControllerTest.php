@@ -11,15 +11,21 @@ use Drupal\ai_agents\Entity\AiAgent;
 use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\ai_agents\PluginManager\AiAgentManager;
+use Drupal\ai_agents\Service\AgentStatus\AiAgentStatusUpdate;
+use Drupal\ai_agents\Service\AgentStatus\Interfaces\AiAgentStatusPollerServiceInterface;
+use Drupal\ai_agents\Service\AgentStatus\UpdateItems\TextGenerated;
+use Drupal\ai_agents\Service\AgentStatus\UpdateItems\ToolSelected;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas_ai\Kernel\Traits\CanvasAiDevHopTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -40,8 +46,18 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
 
   use CanvasAiDevHopTrait;
+  use GenerateComponentConfigTrait;
   use RequestTrait;
   use UserCreationTrait;
+
+  /**
+   * The UUIDs of the components on the page the fallback progress test edits.
+   */
+  private const HERO_UUID = '00000000-0000-4000-8000-000000000001';
+
+  private const CARD_UUID = '00000000-0000-4000-8000-000000000003';
+
+  private const UNKNOWN_COMPONENT_UUID = '00000000-0000-4000-8000-000000000005';
 
   /**
    * {@inheritdoc}
@@ -687,6 +703,194 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     self::assertNotNull($temp_store->getStoredConversationState('test-conversation', 'turn-3'));
     $stored_turn = $temp_store->getStoredConversationState('test-conversation', 'turn-3');
     self::assertSame(10, $stored_turn['message_count']);
+  }
+
+  /**
+   * A tool call without narration adds a fallback line to the progress.
+   *
+   * @param list<\Drupal\ai_agents\Service\AgentStatus\UpdateItems\StatusBase> $items
+   *   The status items the agent stored for the turn.
+   * @param string $expected_progress
+   *   The expected progress.
+   *
+   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getAiProgress()
+   */
+  #[DataProvider('providerFallbackProgress')]
+  public function testFallbackProgress(array $items, string $expected_progress): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
+    $this->refreshContainer();
+    $this->setUpAiDevHops();
+    $this->config('canvas_dev_ai.settings')->set('main_agent', 'drupal_canvas_page_agent')->save();
+    $this->generateComponentConfig();
+    // Running out of loops ends the hop before the provider is called, so the
+    // progress comes from the status items below only.
+    $this->config('ai_agents.ai_agent.drupal_canvas_page_agent')->set('max_loops', 0)->save();
+    $status = new AiAgentStatusUpdate();
+    foreach ($items as $item) {
+      $status->addItem($item);
+    }
+    $poller = $this->createMock(AiAgentStatusPollerServiceInterface::class);
+    $poller->method('getLatestStatusUpdates')->willReturn($status);
+    $this->container->set('ai_agents.agent_status_poller', $poller);
+
+    $response = $this->hop([
+      'messages' => [['role' => 'user', 'text' => 'Build it']],
+      'current_layout' => [
+        'regions' => [
+          'content' => [
+            'nodePathPrefix' => [0],
+            'components' => [
+              ['name' => 'sdc.canvas_test_sdc.my-hero', 'uuid' => self::HERO_UUID, 'props' => []],
+              ['name' => 'sdc.canvas_test_sdc.card', 'uuid' => self::CARD_UUID, 'props' => []],
+              // A component whose config entity is gone.
+              ['name' => 'sdc.canvas_test_sdc.removed', 'uuid' => self::UNKNOWN_COMPONENT_UUID, 'props' => []],
+            ],
+          ],
+        ],
+      ],
+    ]);
+
+    self::assertSame($expected_progress, $response['progress']);
+  }
+
+  /**
+   * Provides status items and the progress they produce.
+   *
+   * @return array<string, array{0: list<\Drupal\ai_agents\Service\AgentStatus\UpdateItems\StatusBase>, 1: string}>
+   *   The test cases.
+   */
+  public static function providerFallbackProgress(): array {
+    $place = static fn (string ...$components): array => [
+      'operations' => \array_map(
+        static fn (string $yaml): array => ['target' => 'content', 'placement' => 'inside', 'components' => $yaml],
+        $components,
+      ),
+    ];
+    $edit = static fn (string ...$uuids): array => [
+      'component_edits' => \array_map(static fn (string $uuid): array => ['component_uuid' => $uuid, 'props' => 'heading: Hi'], $uuids),
+    ];
+    $hero = "- sdc.canvas_test_sdc.my-hero:\n    props: {}\n";
+    $card = "- sdc.canvas_test_sdc.card:\n    props: {}\n";
+    $missing_uuid = '00000000-0000-4000-8000-00000000dead';
+    return [
+      'narrated tool call' => [
+        [self::text(1.0, 'Placing the hero now.'), self::tool(1.0, 'place_components', $place($hero))],
+        'Placing the hero now.',
+      ],
+      'whitespace-only narration' => [
+        [self::text(1.0, "\n"), self::tool(1.0, 'place_components', $place($hero))],
+        'Adding Hero',
+      ],
+      'one component' => [
+        [self::tool(1.0, 'place_components', $place($hero))],
+        'Adding Hero',
+      ],
+      'components across operations' => [
+        [self::tool(1.0, 'place_components', $place($hero, $card))],
+        'Adding Hero and Card',
+      ],
+      'components in slots, in tree order' => [
+        [self::tool(1.0, 'place_components', $place("- sdc.canvas_test_sdc.grid-container:\n    slots:\n      content:\n        - sdc.canvas_test_sdc.card: {}\n- sdc.canvas_test_sdc.my-hero: {}\n"))],
+        'Adding Grid Container, Card and other components',
+      ],
+      'a repeated component' => [
+        [self::tool(1.0, 'place_components', $place($hero . $hero . $card))],
+        'Adding Hero and Card',
+      ],
+      'a repeated component after two distinct ones' => [
+        [self::tool(1.0, 'place_components', $place($hero . $card . $hero))],
+        'Adding Hero and Card',
+      ],
+      'components YAML that does not parse' => [
+        [self::tool(1.0, 'place_components', $place("- sdc.canvas_test_sdc.my-hero: [\n"))],
+        '',
+      ],
+      'operations that are not a list' => [
+        [self::tool(1.0, 'place_components', ['operations' => 'sdc.canvas_test_sdc.my-hero'])],
+        '',
+      ],
+      'no operations' => [
+        [self::tool(1.0, 'place_components', ['operations' => []])],
+        '',
+      ],
+      'an empty components list' => [
+        [self::tool(1.0, 'place_components', $place('[]'))],
+        '',
+      ],
+      'components YAML that parses to null' => [
+        [self::tool(1.0, 'place_components', $place('null'))],
+        '',
+      ],
+      'components that are not single-key maps' => [
+        [self::tool(1.0, 'place_components', $place("- sdc.canvas_test_sdc.my-hero\n"))],
+        '',
+      ],
+      'a component that does not exist' => [
+        [self::tool(1.0, 'place_components', $place("- sdc.canvas_test_sdc.missing: {}\n"))],
+        '',
+      ],
+      'edit of components on the page' => [
+        [self::tool(1.0, 'edit_components', $edit(self::HERO_UUID, $missing_uuid, self::UNKNOWN_COMPONENT_UUID, self::CARD_UUID))],
+        'Editing Hero and Card',
+      ],
+      'edit of components not on the page' => [
+        [self::tool(1.0, 'edit_components', $edit($missing_uuid))],
+        '',
+      ],
+      'edits that are not a list' => [
+        [self::tool(1.0, 'edit_components', ['component_edits' => 5])],
+        '',
+      ],
+      'tool with a progress message' => [
+        [self::tool(1.0, 'set_page_value', ['key' => 'title'], 'Setting the page values')],
+        'Setting the page values',
+      ],
+      'tool without a progress message' => [
+        [self::tool(1.0, 'set_page_value', ['key' => 'title'])],
+        'Using tool: set_page_value',
+      ],
+      'several tool calls in one response' => [
+        [self::tool(1.0, 'get_component_details', []), self::tool(1.0, 'place_components', $place($hero))],
+        "Checking available components\n\nAdding Hero",
+      ],
+      // Response 1 repeats its line; response 2 narrates, so response 3 starts
+      // a new line.
+      'a line repeating the one before it' => [
+        [
+          self::tool(1.0, 'set_page_value', ['key' => 'title']),
+          self::tool(1.0, 'set_page_value', ['key' => 'description']),
+          self::text(2.0, 'Setting the title.'),
+          self::tool(2.0, 'set_page_value', ['key' => 'title']),
+          self::tool(3.0, 'set_page_value', ['key' => 'title']),
+        ],
+        "Using tool: set_page_value (2)\n\nSetting the title.\n\nUsing tool: set_page_value",
+      ],
+    ];
+  }
+
+  /**
+   * Builds the status item for the text a model response generated.
+   *
+   * The items of one response share its time and agent runner ID.
+   */
+  private static function text(float $time, string $text): TextGenerated {
+    return new TextGenerated($time, 'drupal_canvas_page_agent', 'Page agent', 'runner', 1, $text);
+  }
+
+  /**
+   * Builds the status item for a tool call in a model response.
+   *
+   * @param float $time
+   *   The time of the response.
+   * @param string $tool_name
+   *   The tool's function name.
+   * @param array $arguments
+   *   The tool call arguments.
+   * @param string $feedback_message
+   *   The tool's configured progress message.
+   */
+  private static function tool(float $time, string $tool_name, array $arguments, string $feedback_message = ''): ToolSelected {
+    return new ToolSelected($time, 'drupal_canvas_page_agent', 'Page agent', 'runner', $tool_name, Json::encode($arguments), 'call', $feedback_message);
   }
 
   /**

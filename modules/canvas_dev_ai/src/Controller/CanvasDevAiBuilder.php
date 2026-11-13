@@ -14,12 +14,15 @@ use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\ai_agents\Service\AgentStatus\Interfaces\AiAgentStatusPollerServiceInterface;
 use Drupal\ai_agents\Service\AgentStatus\UpdateItems\TextGenerated;
+use Drupal\ai_agents\Service\AgentStatus\UpdateItems\ToolSelected;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas_ai\CanvasAiChatHelper;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\BuilderResponseFunctionCallInterface;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponents;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents;
+use Drupal\canvas_ai\Utility\ToolProgressHelper;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Environment;
@@ -170,6 +173,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
     $agent->setDetailedProgressTracking([
       AiAgentStatusItemTypes::Started,
       AiAgentStatusItemTypes::TextGenerated,
+      AiAgentStatusItemTypes::ToolSelected,
     ]);
     $agent->setAiProvider($provider);
     $agent->setModelName($default['model_id']);
@@ -883,26 +887,144 @@ final class CanvasDevAiBuilder extends ControllerBase {
   }
 
   /**
-   * Returns the text generated for the given request.
+   * Returns the progress narration for the given request.
+   *
+   * Each model response adds the text it generated. A response that calls
+   * tools without generating text adds a fallback line per tool call instead,
+   * so the user still sees what the agent is doing. A fallback line that
+   * repeats the fallback line before it adds a count to that line instead,
+   * for example "Adding Section and Heading (2)".
    *
    * @param string $request_id
    *   The request ID.
    *
    * @return string
-   *   The generated status text.
+   *   The progress lines, separated by blank lines.
+   *
+   * @see \Drupal\ai_agents\EventSubscriber\AgentStatusSubscriber::onAgentRespondedExecution()
    */
   private function getAiProgress(string $request_id): string {
-    $progress = $this->poller->getLatestStatusUpdates($request_id);
-    $text = '';
-    foreach ($progress->getItems() as $event) {
-      if ($event instanceof TextGenerated) {
-        $generated_text = $event->getGeneratedText();
-        if (!empty($generated_text)) {
-          $text = !empty($text) ? $text . "\n\n" . $generated_text : $generated_text;
-        }
+    $items = $this->poller->getLatestStatusUpdates($request_id)->getItems();
+    // The items of one response share its time and agent runner ID.
+    $narrated_responses = [];
+    foreach ($items as $item) {
+      if ($item instanceof TextGenerated && \trim($item->getGeneratedText()) !== '') {
+        $narrated_responses[] = [$item->getTime(), $item->getAgentRunnerId()];
       }
     }
-    return $text;
+    $lines = [];
+    $repeated_line = NULL;
+    $repeats = 0;
+    foreach ($items as $item) {
+      if ($item instanceof TextGenerated && \trim($item->getGeneratedText()) !== '') {
+        $lines[] = $item->getGeneratedText();
+        $repeated_line = NULL;
+      }
+      elseif ($item instanceof ToolSelected && !\in_array([$item->getTime(), $item->getAgentRunnerId()], $narrated_responses, TRUE)) {
+        $line = $this->getToolFallbackLine($item);
+        if ($line === NULL) {
+          continue;
+        }
+        if ($line === $repeated_line) {
+          // Replace the previous line with the same line and its repeat count.
+          $repeats++;
+          $lines[\array_key_last($lines)] = \sprintf('%s (%d)', $line, $repeats);
+          continue;
+        }
+        $lines[] = $line;
+        $repeated_line = $line;
+        $repeats = 1;
+      }
+    }
+    return \implode("\n\n", $lines);
+  }
+
+  /**
+   * Describes a tool call the agent made without narrating it.
+   *
+   * @param \Drupal\ai_agents\Service\AgentStatus\UpdateItems\ToolSelected $item
+   *   The tool call.
+   *
+   * @return string|null
+   *   The progress line, or NULL when the components a place_components or
+   *   edit_components call names cannot be read.
+   *
+   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents
+   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponents
+   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\GetComponentDetails
+   */
+  private function getToolFallbackLine(ToolSelected $item): ?string {
+    $arguments = Json::decode($item->getToolInput());
+    $arguments = \is_array($arguments) ? $arguments : [];
+    $feedback_message = $item->getToolFeedbackMessage();
+    return match ($item->getToolName()) {
+      'place_components' => $this->getPlaceComponentsLine($arguments),
+      'edit_components' => $this->getEditComponentsLine($arguments),
+      'get_component_details' => 'Checking available components',
+      default => $feedback_message !== '' ? $feedback_message : 'Using tool: ' . $item->getToolName(),
+    };
+  }
+
+  /**
+   * Describes a place_components call by the components it places.
+   *
+   * The names are the labels of the placed components.
+   *
+   * @param array $arguments
+   *   The decoded tool call arguments.
+   *
+   * @return string|null
+   *   The progress line, or NULL when a components value does not parse, names
+   *   no component, or names a component that does not exist.
+   */
+  private function getPlaceComponentsLine(array $arguments): ?string {
+    $component_ids = ToolProgressHelper::componentIdsFromOperations($arguments['operations'] ?? NULL);
+    if (!$component_ids) {
+      return NULL;
+    }
+    [$component_ids, $has_more] = ToolProgressHelper::firstTwoDistinct($component_ids);
+    $components = $this->entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadMultiple($component_ids);
+    if (\count($components) !== \count($component_ids)) {
+      return NULL;
+    }
+    $labels = \array_map(static fn (string $component_id): string => (string) $components[$component_id]->label(), $component_ids);
+    return ToolProgressHelper::format('Adding', $labels, $has_more);
+  }
+
+  /**
+   * Describes an edit_components call by the labels of the components it edits.
+   *
+   * UUIDs that are not on the page are skipped.
+   *
+   * @param array $arguments
+   *   The decoded tool call arguments.
+   *
+   * @return string|null
+   *   The progress line, or NULL when no edited component is on the page.
+   */
+  private function getEditComponentsLine(array $arguments): ?string {
+    $edits = $arguments['component_edits'] ?? NULL;
+    if (!\is_array($edits)) {
+      return NULL;
+    }
+    $layout = Json::decode($this->canvasAiTempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '');
+    $components_by_uuid = $this->canvasAiPageBuilderHelper->getComponentsByUuid(\is_array($layout) ? $layout : []);
+    $component_ids = [];
+    foreach ($edits as $edit) {
+      $uuid = \is_array($edit) ? ($edit['component_uuid'] ?? NULL) : NULL;
+      if (\is_string($uuid) && isset($components_by_uuid[$uuid])) {
+        $component_ids[] = $components_by_uuid[$uuid]['component_id'];
+      }
+    }
+    $components = $this->entityTypeManager()->getStorage(Component::ENTITY_TYPE_ID)->loadMultiple(\array_unique($component_ids));
+    $labels = [];
+    foreach ($component_ids as $component_id) {
+      if (isset($components[$component_id])) {
+        $labels[] = (string) $components[$component_id]->label();
+      }
+    }
+    [$labels, $has_more] = ToolProgressHelper::firstTwoDistinct($labels);
+    return $labels === [] ? NULL : ToolProgressHelper::format('Editing', $labels, $has_more);
   }
 
 }
