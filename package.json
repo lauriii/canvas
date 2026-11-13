@@ -80,7 +80,7 @@
     "yaml-lint": "^1.7.0"
   },
   "overrides": {
-    "glob": "^13.0.1",
+    "glob": "^14.0.6",
     "qs": "^6.15.2",
     "minimatch@10.2.4": {
       "brace-expansion": "^5.0.6"
@@ -92,6 +92,24 @@
       "react-dom": "^18.2.0"
     },
     "js-yaml": "^4.2.0",
-    "shell-quote": "^1.8.4"
+    "shell-quote": "^1.8.4",
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    },
+    "@ts-morph/common": {
+      "minimatch": "^11.0.8"
+    },
+    "archiver": {
+      "readdir-glob": "^4.0.0"
+    },
+    "@storybook/react-vite": {
+      "@joshwooding/vite-plugin-react-docgen-typescript": "^0.9.1"
+    },
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "^6.1.6"
+    },
+    "tsup": {
+      "esbuild": "^0.28.2"
+    }
   }
 }

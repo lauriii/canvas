@@ -46,6 +46,11 @@ describe('useGit', () => {
         allowUnsafeEditor: true,
         allowUnsafePager: true,
       },
+      allowEnvironment: expect.arrayContaining([
+        'EDITOR',
+        'PAGER',
+        'GIT_TERMINAL_PROMPT',
+      ]),
     });
     expect(envMock).toHaveBeenCalledWith(
       expect.objectContaining({
