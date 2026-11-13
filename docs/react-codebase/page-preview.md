@@ -42,6 +42,8 @@ The `<IFrameSwapper>` is so named because it renders two `<iframe>` elements and
 
 When the new HTML differs from the active `<iframe>`'s HTML only inside one component instance's `<!-- canvas-start-… -->` and `<!-- canvas-end-… -->` markers, no swap happens. The `<IFrameSwapper>` replaces that instance's markup in the active `<iframe>` instead, and detaches and re-attaches Drupal behaviors for it. Any other difference (for example new assets in `<head>` or changed `drupalSettings`) loads the whole document. See `inPlaceUpdate.ts`.
 
+Edits shown in the preview ahead of the server count as preview edits (see `previewEdits.ts`). These are layout edits from `optimisticPreview.ts`, and code component prop values set on a `canvas-island`'s `props` attribute while typing. HTML requested before such an edit does not replace the preview, in place or by a swap. HTML from a component update (`PATCH`) does once a render built from the store and requested after the edit has arrived, as it may be the only render that shows the updated prop value; it matches the layout and model the response sets.
+
 This 'swapping' implementation detail is intended to be transparent to the wider app outside the `<IFrameSwapper>` because the currently active `<iframe>` is exposed using a [customized dynamic ref](https://react.dev/reference/react/useImperativeHandle).
 
 ## The UI
