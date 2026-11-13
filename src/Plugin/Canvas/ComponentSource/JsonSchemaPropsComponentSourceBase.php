@@ -1028,6 +1028,13 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
+      // Icons for the options of an enum prop. Read from the raw component
+      // schema, like the color picker settings above: the stored prop shape is
+      // the same with and without icons.
+      // @see ui/src/components/form/components/SegmentedSelect.tsx
+      if (!empty($prop_schema['x-canvas-enum-icons']) && ($form[$sdc_prop_name]['widget']['#type'] ?? NULL) === 'select') {
+        $form[$sdc_prop_name]['widget']['#attributes']['data-canvas-option-icons'] = \json_encode($prop_schema['x-canvas-enum-icons'], JSON_THROW_ON_ERROR);
+      }
 
       if ($entity instanceof ContentTemplate) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import * as radixIcons from '@radix-ui/react-icons';
 import { SegmentedControl } from '@radix-ui/themes';
 
 import Select from '@/components/form/components/Select';
 import { useFieldContext } from '@/components/form/contexts/FieldContext';
 
+import type { ComponentType, SVGProps } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 
 type Option = {
@@ -17,18 +19,74 @@ type Option = {
 const MAX_OPTIONS = 4;
 const MAX_TOTAL_LABEL_LENGTH = 32;
 
+// An icon takes about as much room as two characters.
+const ICON_LABEL_LENGTH = 2;
+
+type OptionIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+// The icons are drawn for 15px with hairline strokes. Next to the 12px medium
+// labels of the other segments they need to be larger and heavier.
+const ICON_PROPS: SVGProps<SVGSVGElement> = {
+  width: 17,
+  height: 17,
+  stroke: 'currentColor',
+  strokeWidth: 0.3,
+  // An inline SVG sits on the text baseline, above the segment's center.
+  style: { display: 'block' },
+};
+
+/**
+ * The icons of a select's options, by option value.
+ *
+ * The component schema names them with `x-canvas-enum-icons`: a map of enum
+ * value to the name of a Radix icon, such as `text-align-left`. An option
+ * without an icon, or with an unknown icon name, keeps its label.
+ *
+ * @see https://www.radix-ui.com/icons
+ * @see \Drupal\canvas\ComponentMetadataRequirementsChecker
+ */
+export const optionIcons = (
+  attributes: Attributes,
+): Record<string, OptionIcon> => {
+  let names: Record<string, string> = {};
+  try {
+    names = JSON.parse(`${attributes['data-canvas-option-icons'] ?? '{}'}`);
+  } catch {
+    // Not JSON: no icons.
+  }
+  const icons: Record<string, OptionIcon> = {};
+  Object.entries(names).forEach(([value, name]) => {
+    // `text-align-left` is exported as `TextAlignLeftIcon`.
+    const exportName = `${`${name}`.replace(/(^|-)(\w)/g, (_match, _dash, letter) => letter.toUpperCase())}Icon`;
+    // @todo Load the icon set on demand: looking icons up by name bundles all of them.
+    const icon = (radixIcons as Record<string, unknown>)[exportName];
+    if (icon) {
+      icons[value] = icon as OptionIcon;
+    }
+  });
+  return icons;
+};
+
 /**
  * Whether a select is short enough to render as a segmented control.
  */
 export const fitsSegmentedControl = (
   attributes: Attributes,
   options: Option[],
-): boolean =>
-  !('multiple' in attributes) &&
-  options.length >= 2 &&
-  options.length <= MAX_OPTIONS &&
-  options.reduce((length, option) => length + option.label.length, 0) <=
-    MAX_TOTAL_LABEL_LENGTH;
+): boolean => {
+  const icons = optionIcons(attributes);
+  return (
+    !('multiple' in attributes) &&
+    options.length >= 2 &&
+    options.length <= MAX_OPTIONS &&
+    options.reduce(
+      (length, option) =>
+        length +
+        (icons[option.value] ? ICON_LABEL_LENGTH : option.label.length),
+      0,
+    ) <= MAX_TOTAL_LABEL_LENGTH
+  );
+};
 
 /**
  * Renders a short single-value select as a segmented control.
@@ -60,6 +118,8 @@ const SegmentedSelect = ({
     label.id ||= `${id}--label`;
     setLabelledBy(label.id);
   }, [attributes.id]);
+
+  const icons = optionIcons(attributes);
 
   const value = `${
     attributes.value ??
@@ -97,12 +157,23 @@ const SegmentedSelect = ({
           }
         }}
       >
-        {options.map((option) => (
-          <SegmentedControl.Item key={option.value} value={`${option.value}`}>
-            {/* Drupal labels the empty option "- None -". */}
-            {option.label.replace(/^- (.+) -$/, '$1')}
-          </SegmentedControl.Item>
-        ))}
+        {options.map((option) => {
+          // Drupal labels the empty option "- None -".
+          const label = option.label.replace(/^- (.+) -$/, '$1');
+          const Icon = icons[option.value];
+          return (
+            <SegmentedControl.Item
+              key={option.value}
+              value={`${option.value}`}
+              // An icon replaces the label, which stays as the tooltip and the
+              // accessible name.
+              title={Icon && label}
+              aria-label={Icon && label}
+            >
+              {Icon ? <Icon {...ICON_PROPS} /> : label}
+            </SegmentedControl.Item>
+          );
+        })}
       </SegmentedControl.Root>
       <div hidden>
         <Select attributes={attributes} options={options} />
