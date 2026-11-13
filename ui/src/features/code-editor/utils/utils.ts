@@ -418,6 +418,7 @@ export function serializeProps(props: CodeComponentProp[]) {
           'x-formatting-context': xFormattingContext,
           'x-canvas-color-picker': xCanvasColorPicker,
           'x-canvas-color-folders': xCanvasColorFolders,
+          'x-canvas-visible-if': xCanvasVisibleIf,
           derivedType,
           allowMultiple,
           items,
@@ -514,6 +515,9 @@ export function serializeProps(props: CodeComponentProp[]) {
           if (xCanvasColorFolders && xCanvasColorFolders.length > 0)
             processed['x-canvas-color-folders'] = xCanvasColorFolders;
         }
+        if (xCanvasVisibleIf) {
+          processed['x-canvas-visible-if'] = xCanvasVisibleIf;
+        }
         return { ...acc, [getPropMachineName(name)]: processed };
       },
       {} as Record<string, CodeComponentPropSerialized>,
@@ -550,6 +554,7 @@ export function deserializeProps(
       'x-formatting-context': xFormattingContext,
       'x-allowed-entity-type-id': xAllowedEntityTypeId,
       'x-allowed-bundle': xAllowedBundle,
+      'x-canvas-visible-if': xCanvasVisibleIf,
       items,
       maxItems,
     } = prop;
@@ -678,6 +683,7 @@ export function deserializeProps(
         xCanvasColorFolders.length > 0 && {
           'x-canvas-color-folders': xCanvasColorFolders,
         }),
+      ...(xCanvasVisibleIf && { 'x-canvas-visible-if': xCanvasVisibleIf }),
       derivedType,
       ...(allowMultiple && { allowMultiple: true, items }),
       ...(allowMultiple &&

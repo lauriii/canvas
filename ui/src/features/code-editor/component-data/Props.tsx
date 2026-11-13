@@ -43,6 +43,7 @@ import FormPropTypeLink, {
 } from '@/features/code-editor/component-data/forms/FormPropTypeLink';
 import FormPropTypeTextField from '@/features/code-editor/component-data/forms/FormPropTypeTextField';
 import FormPropTypeVideo from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
+import FormPropVisibility from '@/features/code-editor/component-data/forms/FormPropVisibility';
 import SortableList from '@/features/code-editor/component-data/SortableList';
 import {
   VALUE_MODE_LIMITED,
@@ -828,6 +829,19 @@ export default function Props() {
             )}
           </Flex>
         )}
+        <FormPropVisibility
+          key={`visibility-${prop.id}`}
+          prop={prop}
+          props={props}
+          onChange={(condition) =>
+            dispatch(
+              updateProp({
+                id: prop.id,
+                updates: { 'x-canvas-visible-if': condition },
+              }),
+            )
+          }
+        />
       </Flex>
     );
   };

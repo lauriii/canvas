@@ -44,3 +44,24 @@ drupal-html-fragment, element-prop {
   display: flex;
   align-items: center;
 }
+
+/* Props with an `x-canvas-visible-if` condition fade in as they appear, right
+ below the props they depend on.
+ @see ui/src/hooks/usePropVisibility.ts */
+[data-canvas-prop][hidden] {
+  display: none !important;
+}
+[data-canvas-revealed] {
+  animation: canvas-prop-reveal 150ms ease-out;
+}
+@keyframes canvas-prop-reveal {
+  from {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-canvas-revealed] {
+    animation: none;
+  }
+}

@@ -245,6 +245,24 @@ keys:
   no canonical URL. Use it to link to the entity. It does not need an entity
   field expression.
 
+### Conditional props
+
+A prop can be shown in the component form only when other props have certain
+values. In the code editor, use **Show only when…** under the prop. In
+`component.yml`, add `x-canvas-visible-if`:
+
+```yaml
+badgeText:
+  type: string
+  title: Badge text
+  examples:
+    - New
+  x-canvas-visible-if:
+    showBadge: true
+```
+
+See [Conditional props](/sdc-components/conditional-props) for every test.
+
 ## Slot metadata
 
 Slots are defined under the `slots` key. Each slot key becomes the slot name

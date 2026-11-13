@@ -3,11 +3,13 @@ import { createSelector, createSlice } from '@reduxjs/toolkit';
 
 import {
   deserializeRequired,
+  getPropMachineName,
   serializeDataDependencies,
   serializeProps,
   serializeRequired,
   serializeSlots,
 } from '@/features/code-editor/utils/utils';
+import { replacePropInCondition } from '@/features/code-editor/utils/visibilityRules';
 
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
@@ -89,6 +91,23 @@ export const initialState: CodeEditorState = {
   forceRefresh: false,
   initialPropIds: [],
   initialSlotIds: [],
+};
+
+/**
+ * Updates the visibility conditions of props after a prop was renamed or
+ * removed.
+ */
+const replacePropInConditions = (
+  props: CodeComponentProp[],
+  from: string,
+  to: string | null,
+) => {
+  props.forEach((prop) => {
+    const condition = prop['x-canvas-visible-if'];
+    if (condition && from !== to) {
+      prop['x-canvas-visible-if'] = replacePropInCondition(condition, from, to);
+    }
+  });
 };
 
 export const codeEditorSlice = createSlice({
@@ -214,6 +233,14 @@ export const codeEditorSlice = createSlice({
           ...currentProp,
           ...updates,
         } as CodeComponentProp;
+        // Conditions refer to machine names: follow a rename.
+        if (updates.name && currentProp.name) {
+          replacePropInConditions(
+            state.codeComponent.props,
+            getPropMachineName(currentProp.name),
+            getPropMachineName(updates.name),
+          );
+        }
         // Set auto-save to true when updating a prop.
         state.status.needsAutoSave = true;
       }
@@ -226,9 +253,18 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { propId } = action.payload;
+      const removed = state.codeComponent.props.find((p) => p.id === propId);
       state.codeComponent.props = state.codeComponent.props.filter(
         (prop) => prop.id !== propId,
       );
+      // Conditions cannot refer to a prop that no longer exists.
+      if (removed?.name) {
+        replacePropInConditions(
+          state.codeComponent.props,
+          getPropMachineName(removed.name),
+          null,
+        );
+      }
       state.codeComponent.required = state.codeComponent.required.filter(
         (id) => id !== propId,
       );
