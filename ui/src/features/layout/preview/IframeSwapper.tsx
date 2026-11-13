@@ -10,10 +10,7 @@ import clsx from 'clsx';
 
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
-import {
-  applyInPlaceUpdate,
-  findInPlaceUpdate,
-} from '@/features/layout/preview/inPlaceUpdate';
+import { updateInPlace } from '@/features/layout/preview/inPlaceUpdate';
 import { PREVIEW_HEAD_STYLES_ID } from '@/features/layout/preview/optimisticPreview';
 import { isPreviewEditedSince } from '@/features/layout/preview/previewEdits';
 import { selectPreviewHtmlEditsAtRequest } from '@/features/pagePreview/previewSlice';
@@ -74,8 +71,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const headStylesRef = useRef(headStyles);
     headStylesRef.current = headStyles;
     // The markup loading in the inactive iframe, and the markup the active
-    // iframe shows once no swap is pending. A change confined to one component
-    // instance is applied to the active iframe in place, without a swap.
+    // iframe shows once no swap is pending. A change confined to component
+    // instances is applied to the active iframe in place, without a swap.
     const loadingSrcDocumentRef = useRef<string | null>(null);
     const swappedSrcDocumentRef = useRef<string | null>(null);
     const activeSrcDocumentRef = useRef<string | null>(null);
@@ -213,8 +210,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       const { activeIFrame, inactiveIFrame } = getIFrames();
 
       // The shown preview has been edited since this render was requested, so
-      // it would revert the edit, in place or by a swap. Compare the next
-      // render against it, as it is close to what is shown.
+      // it would revert the edit, in place or by a swap. The next render is
+      // still compared against the one the preview was built from.
       if (isPreviewEditedSince(editsAtRequestRef.current)) {
         // While a document loads, let it finish, so it is swapped in (or
         // checked for edits since it was requested, too) and loading ends. The
@@ -224,19 +221,18 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           inactiveIFrame.addEventListener('load', swapIFrames);
           return () => inactiveIFrame.removeEventListener('load', swapIFrames);
         }
-        activeSrcDocumentRef.current = srcDocument;
         return;
       }
 
       const previousSrcDocument = activeSrcDocumentRef.current;
-      const inPlaceUpdate =
-        previousSrcDocument === null
-          ? null
-          : findInPlaceUpdate(previousSrcDocument, srcDocument);
       if (
-        inPlaceUpdate &&
+        previousSrcDocument !== null &&
         activeIFrame.contentDocument &&
-        applyInPlaceUpdate(activeIFrame.contentDocument, inPlaceUpdate)
+        updateInPlace(
+          activeIFrame.contentDocument,
+          previousSrcDocument,
+          srcDocument,
+        )
       ) {
         activeSrcDocumentRef.current = srcDocument;
         setInPlaceUpdates((count) => count + 1);

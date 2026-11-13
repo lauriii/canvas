@@ -14,8 +14,10 @@ import type { RegionNode } from '@/features/layout/layoutModelSlice';
 
 // Dropping a component otherwise shows nothing until the server has rendered a
 // new preview. Updating the current preview's markup lets the drop land
-// immediately; the server-rendered preview then replaces the whole document,
-// correcting anything this approximates.
+// immediately. The server-rendered preview is then shown in place: only the
+// instances whose markup differs are replaced (see updateInPlace in
+// inPlaceUpdate.ts). The whole document is loaded when it doesn't have the
+// components where that preview has them.
 
 /**
  * The id of the styles kept last in the head of the preview.
@@ -23,6 +25,13 @@ import type { RegionNode } from '@/features/layout/layoutModelSlice';
  * @see IframeSwapper
  */
 export const PREVIEW_HEAD_STYLES_ID = 'canvas-preview-head-styles';
+
+/**
+ * Marks the CSS added to the head of the preview ahead of the server.
+ *
+ * @see addPreviewCss
+ */
+export const OPTIMISTIC_CSS_ATTRIBUTE = 'data-canvas-optimistic';
 
 /** Finds the boundary of a component, slot or region by its id. */
 export const findBoundary = (
@@ -122,7 +131,8 @@ function insertBefore(
   anchor.parentNode.insertBefore(node, anchor);
   // The container is no longer empty.
   // ponytail: the container a moved component leaves isn't given a placeholder
-  // when it becomes empty; the server-rendered preview adds it shortly after.
+  // when it becomes empty; it is added when the server-rendered preview is
+  // shown, shortly after (see updateInPlace in inPlaceUpdate.ts).
   if (container) {
     hidePlaceholders(container);
   }
@@ -164,7 +174,7 @@ export function movePreviewComponent(
   range.setStartBefore(moved.start);
   range.setEndAfter(moved.end);
   insertBefore(position.anchor, range.extractContents(), position.container);
-  notePreviewEdit();
+  notePreviewEdit(document);
   return true;
 }
 
@@ -211,7 +221,7 @@ export function insertPreviewComponent(
     ? markup.default_markup.replaceAll(defaultUuid, uuid)
     : marker('start', uuid) + markup.default_markup + marker('end', uuid);
   insertBefore(position.anchor, template.content, position.container);
-  notePreviewEdit();
+  notePreviewEdit(document);
   return true;
 }
 
@@ -235,8 +245,10 @@ export function addPreviewCss(document: Document, css: string) {
         : other.textContent === el.textContent,
     );
     // The head, which is where the server-rendered preview has it too, before
-    // the styles that are kept last.
+    // the styles that are kept last. Marked, as that preview may turn out not
+    // to have it: it is removed once that one is shown (see inPlaceUpdate.ts).
     if (!present) {
+      el.setAttribute(OPTIMISTIC_CSS_ATTRIBUTE, '');
       document.head.insertBefore(
         el,
         document.getElementById(PREVIEW_HEAD_STYLES_ID),
@@ -264,6 +276,6 @@ export function removePreviewComponent(document: Document, uuid: string) {
     range.setStartBefore(removed.start);
     range.setEndAfter(removed.end);
     range.deleteContents();
-    notePreviewEdit();
+    notePreviewEdit(document);
   }
 }

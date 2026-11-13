@@ -4,6 +4,7 @@ import { NodeType } from '@/features/layout/layoutModelSlice';
 import {
   insertPreviewComponent,
   movePreviewComponent,
+  OPTIMISTIC_CSS_ATTRIBUTE,
   PREVIEW_HEAD_STYLES_ID,
 } from '@/features/layout/preview/optimisticPreview';
 import { previewEditCount } from '@/features/layout/preview/previewEdits';
@@ -126,7 +127,9 @@ describe('insertPreviewComponent', () => {
       ),
     ).toBe(true);
     expect(text(doc)).toBe('A,N,B');
-    expect(doc.head.querySelector('link[href="n.css"]')).not.toBeNull();
+    expect(
+      doc.head.querySelector(`link[href="n.css"][${OPTIMISTIC_CSS_ATTRIBUTE}]`),
+    ).not.toBeNull();
     expect(doc.body.innerHTML).toContain('<!-- canvas-start-n --><p>N</p>');
     expect(previewEditCount()).toBe(edits + 1);
     // The CSS of another instance is there already.
