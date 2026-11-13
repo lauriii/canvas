@@ -34,7 +34,7 @@
     "cross-spawn": "^7.0.6",
     "picocolors": "^1.1.1",
     "rimraf": "^6.1.2",
-    "simple-git": "^3.36.0",
+    "simple-git": "^4.0.2",
     "string-width": "^8.3.0",
     "validate-npm-package-name": "^7.0.0"
   },

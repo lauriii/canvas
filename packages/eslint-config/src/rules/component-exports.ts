@@ -31,8 +31,12 @@ const rule: EslintRule.RuleModule = {
       },
       'Program:exit'(node) {
         if (!hasDefaultExport) {
+          // Report at the first token: typescript-eslint 8.72+ includes leading
+          // whitespace and comments in the Program range, so the Program's own
+          // location would depend on the parser.
           context.report({
             node,
+            loc: context.sourceCode.getFirstToken(node)?.loc ?? node.loc,
             message: 'Component must have a default export',
           });
         }
