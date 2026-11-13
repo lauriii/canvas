@@ -888,6 +888,13 @@ test.describe('Multivalue Prop Types', () => {
     await page.waitForLoadState('networkidle');
     await expect(intChips).toHaveCount(2);
 
+    // Wait for the removal to reach the preview before editing another field.
+    await canvas.testInPreviewFrame('#list-int-list li', async (items) => {
+      await expect(items).toHaveCount(2);
+      await expect(items.nth(0)).toContainText('20');
+      await expect(items.nth(1)).toContainText('30');
+    });
+
     // Close the dropdown by pressing Escape.
     await page.keyboard.press('Escape');
 
