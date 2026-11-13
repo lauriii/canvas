@@ -346,6 +346,64 @@ test.describe('Perform CRUD operations on components', () => {
     );
   });
 
+  test('Keeps the preview when the render of a move arrives', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+    const preview = await canvas.getActivePreviewFrame();
+    const components = preview.locator(
+      '[data-component-id^="canvas_test_sdc:"]',
+    );
+    const componentIds = () =>
+      components.evaluateAll((elements) =>
+        elements.map((element) => element.getAttribute('data-component-id')),
+      );
+    expect(await componentIds()).toEqual([
+      'canvas_test_sdc:heading',
+      'canvas_test_sdc:my-hero',
+    ]);
+    // Mark the elements, to tell them from ones a new render replaces them
+    // with.
+    await components.evaluateAll((elements) =>
+      elements.forEach((element) => element.setAttribute('data-kept', '')),
+    );
+
+    // The pending changes are fetched again once the render of the move has
+    // been received.
+    let rendered = false;
+    const renderReceived = page.waitForResponse((response) => {
+      rendered ||=
+        response.request().method() === 'POST' &&
+        response.url().includes('/canvas/api/v0/layout/');
+      return rendered && response.url().includes('/auto-saves/pending');
+    });
+    await page
+      .locator(
+        '.componentOverlay:has([data-canvas-component-id="sdc.canvas_test_sdc.my-hero"])',
+      )
+      .click({ button: 'right', position: { x: 5, y: 5 } });
+    await page.getByRole('menuitem', { name: 'Move', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Move up' }).click();
+
+    // The move is shown right away, and the render of it changes nothing.
+    await expect(components.first()).toHaveAttribute(
+      'data-component-id',
+      'canvas_test_sdc:my-hero',
+    );
+    await renderReceived;
+    await expect(preview.locator('[data-kept]')).toHaveCount(2);
+    expect(await componentIds()).toEqual([
+      'canvas_test_sdc:my-hero',
+      'canvas_test_sdc:heading',
+    ]);
+  });
+
   test('Can add a component with slots', async ({ page, drupal, canvas }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvas(await canvas.createCanvas());
