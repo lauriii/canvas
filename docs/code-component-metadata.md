@@ -24,7 +24,9 @@ Only `name` and `machineName` are required. Authors may also provide:
 Canvas CLI validates the raw YAML before applying defaults. It rejects unknown keys. Authors must not provide:
 
 - `type`, which Canvas derives from the component and project mode;
-- `dataDependencies.urls` or `dataDependencies.drupalSettings`, which Canvas derives from source analysis; or
+- `dataDependencies.urls` or `dataDependencies.drupalSettings`, which Canvas derives from source analysis;
+- `translatableStrings`, which the code editor, the CLI, and the Headless SDK derive from the strings the source code
+  translates; or
 - `x-allowed-entity-type-id` and `x-allowed-bundle`, which Drupal projects from `dataDependencies.entityFields` when it
   constructs the SDC definition.
 

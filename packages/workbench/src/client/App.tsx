@@ -3,8 +3,11 @@ import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 import { CircleAlertIcon } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
+import siteData from 'virtual:drupal-canvas/site-data';
 import { PreviewEntityPicker } from '@wb/client/components/preview-entity-picker';
 import { PreviewErrorAlert } from '@wb/client/components/preview-error-alert';
+import { PreviewLanguagePicker } from '@wb/client/components/preview-language-picker';
+import { PreviewTranslationNotice } from '@wb/client/components/preview-translation-notice';
 import { ThemeMenu } from '@wb/client/components/theme-menu';
 import { Badge } from '@wb/client/components/ui/badge';
 import { Separator } from '@wb/client/components/ui/separator';
@@ -26,6 +29,7 @@ import { Tabs, TabsList, TabsTrigger } from '@wb/client/components/ui/tabs';
 import { fetchDiscoveryResult } from '@wb/lib/discovery-client';
 import { selectPageTemplate } from '@wb/lib/page-template-selection';
 import {
+  fetchCsrfToken,
   fetchPreviewContentTemplateSpec,
   fetchPreviewManifest,
   fetchPreviewPageSpec,
@@ -49,6 +53,12 @@ import {
   getLocalComponentShapes,
   isRecord,
 } from '@wb/lib/preview-spec-utils';
+import {
+  createTranslationLookup,
+  loadPreviewLanguages,
+  sendTranslatedRenderRequest,
+  storePreviewLangcode,
+} from '@wb/lib/preview-translation';
 import { getServerComponentRegistry } from '@wb/lib/server-component-registry';
 import { WORKBENCH_PREVIEW_HTML_PATH } from '@wb/lib/workbench-preview-constants';
 import {
@@ -74,6 +84,10 @@ import type {
   PreviewWarning,
   WorkbenchDiscoveryRefresh,
 } from '@wb/lib/preview-contract';
+import type {
+  InterfaceLanguages,
+  PreviewTranslation,
+} from '@wb/lib/preview-translation';
 import type { WorkbenchHotPayload } from '@wb/lib/workbench-preview-iframe-remount';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
@@ -223,6 +237,31 @@ export function App() {
     Record<string, string | null>
   >({});
   const [error, setError] = useState<string | null>(null);
+  // The interface languages of the site, the one the preview translates into,
+  // and the interface translation of what it renders.
+  const [interfaceLanguages, setInterfaceLanguages] =
+    useState<InterfaceLanguages | null>(null);
+  const [previewLangcode, setPreviewLangcode] = useState<string | null>(null);
+  const [previewTranslation, setPreviewTranslation] =
+    useState<PreviewTranslation | null>(null);
+  // Why the languages, or the translations of the preview, are not available.
+  const [interfaceLanguagesError, setInterfaceLanguagesError] = useState<
+    string | null
+  >(null);
+  const [translationLookupError, setTranslationLookupError] = useState<
+    string | null
+  >(null);
+  // The lookups go through the Workbench proxy with the browser's cookies, as
+  // other requests of Workbench do.
+  const lookupTranslations = useMemo(
+    () =>
+      createTranslationLookup(fetch, {
+        getCsrfToken: () => fetchCsrfToken(),
+      }),
+    [],
+  );
+  // Each run of the render effect, so that only the latest one renders.
+  const renderGenerationRef = useRef(0);
   const [isFrameReady, setIsFrameReady] = useState(false);
   const [settledPreviewRenderId, setSettledPreviewRenderId] = useState<
     string | null
@@ -773,6 +812,44 @@ export function App() {
     [],
   );
 
+  const siteUrl = workbenchConfig?.siteUrl ?? null;
+  useEffect(() => {
+    if (!siteUrl) {
+      return;
+    }
+    let cancelled = false;
+    // Previews show the language selected earlier in this browser tab for the
+    // site, which outlasts full reloads, such as after creating a module.
+    void loadPreviewLanguages({
+      siteUrl,
+      negotiatedLangcode: siteData?.langcode,
+      isCurrent: () => !cancelled,
+    }).then((result) => {
+      if (!result) {
+        return;
+      }
+      if ('error' in result) {
+        setInterfaceLanguagesError(result.error);
+        return;
+      }
+      setInterfaceLanguages(result.languages);
+      setPreviewLangcode(result.langcode);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [siteUrl]);
+
+  const selectPreviewLangcode = useCallback(
+    (langcode: string) => {
+      setPreviewLangcode(langcode);
+      if (siteUrl) {
+        storePreviewLangcode(siteUrl, langcode);
+      }
+    },
+    [siteUrl],
+  );
+
   useEffect(() => {
     if (!isFrameReady || !previewManifest) {
       return;
@@ -783,6 +860,28 @@ export function App() {
     if (!frameWindow) {
       return;
     }
+
+    const generation = ++renderGenerationRef.current;
+    // Sends a render request with the translations of the strings it renders,
+    // unless a later render replaced it meanwhile.
+    const postRenderRequest = (message: PreviewRenderRequest): void => {
+      void sendTranslatedRenderRequest({
+        message,
+        manifest: previewManifest,
+        langcode: interfaceLanguages ? previewLangcode : null,
+        lookup: lookupTranslations,
+        isCurrent: () =>
+          generation === renderGenerationRef.current &&
+          !pageSpecAbortController.signal.aborted,
+        post: (translatedMessage) => {
+          frameWindow.postMessage(translatedMessage, window.location.origin);
+        },
+        onTranslation: (translation, lookupError) => {
+          setPreviewTranslation(translation);
+          setTranslationLookupError(lookupError);
+        },
+      });
+    };
 
     const shellPath = location.pathname + location.search;
 
@@ -924,9 +1023,11 @@ export function App() {
             shellPath,
           },
         };
-        frameWindow.postMessage(message, window.location.origin);
+        postRenderRequest(message);
       })();
-      return;
+      return () => {
+        pageSpecAbortController.abort();
+      };
     }
 
     if (isPageRoute && selectedPage && discoveryResult) {
@@ -1013,7 +1114,7 @@ export function App() {
               cssUrls: mkCssUrls(previewManifest, discoveryResult.components),
             },
           };
-          frameWindow.postMessage(pageMessage, window.location.origin);
+          postRenderRequest(pageMessage);
         } catch (pageLoadError: unknown) {
           if (
             pageLoadError instanceof DOMException &&
@@ -1221,7 +1322,7 @@ export function App() {
               cssUrls: mkCssUrls(previewManifest, discoveryResult.components),
             },
           };
-          frameWindow.postMessage(templateMessage, window.location.origin);
+          postRenderRequest(templateMessage);
         } catch (templateLoadError: unknown) {
           if (
             templateLoadError instanceof DOMException &&
@@ -1287,7 +1388,7 @@ export function App() {
               cssUrls: mkCssUrls(previewManifest, discoveryResult.components),
             },
           };
-          frameWindow.postMessage(pageTemplateMessage, window.location.origin);
+          postRenderRequest(pageTemplateMessage);
         } catch (pageTemplateLoadError: unknown) {
           if (
             pageTemplateLoadError instanceof DOMException &&
@@ -1325,6 +1426,9 @@ export function App() {
     selectedPage,
     selectedPageTemplate,
     workbenchConfig?.siteUrl,
+    interfaceLanguages,
+    previewLangcode,
+    lookupTranslations,
   ]);
 
   if (error) {
@@ -1504,6 +1608,26 @@ export function App() {
         </header>
 
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden p-4">
+          {interfaceLanguages &&
+          interfaceLanguages.languages.length > 1 &&
+          previewLangcode &&
+          previewTranslation &&
+          // Also when unknown: a module may translate interface text.
+          previewTranslation.usesTranslationHook !== false ? (
+            <PreviewLanguagePicker
+              languages={interfaceLanguages.languages}
+              langcode={previewLangcode}
+              onSelect={selectPreviewLangcode}
+            />
+          ) : null}
+          {workbenchConfig?.siteUrl &&
+          previewTranslation &&
+          previewTranslation.usesTranslationHook !== false ? (
+            <PreviewTranslationNotice
+              error={interfaceLanguagesError ?? translationLookupError}
+              unknownComponents={previewTranslation.unknownComponents}
+            />
+          ) : null}
           {selectedContentTemplate ? (
             <PreviewEntityPicker
               entityTypeId={selectedContentTemplate.entityTypeId ?? ''}

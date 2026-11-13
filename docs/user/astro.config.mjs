@@ -115,6 +115,10 @@ export default defineConfig({
               slug: 'code-components/date-formatting',
             },
             {
+              label: 'Interface translation',
+              slug: 'code-components/interface-translation',
+            },
+            {
               label: 'Responsive images',
               slug: 'code-components/responsive-images',
             },
@@ -147,6 +151,10 @@ export default defineConfig({
             { label: 'Introduction', slug: 'headless' },
             { label: 'Setup', slug: 'headless/setup' },
             { label: 'Multilingual sites', slug: 'headless/multilingual-sites' },
+            {
+              label: 'Interface translation',
+              slug: 'headless/interface-translation',
+            },
             {
               label: 'Managing component changes',
               slug: 'headless/managing-component-changes',

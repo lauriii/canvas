@@ -32,6 +32,8 @@ import type {
 } from '@drupal-canvas/discovery';
 import type { CanvasSiteData } from '@drupal-canvas/vite-plugin';
 import type { Spec } from '@json-render/core';
+import type { PreviewInterfaceTranslation } from '../lib/preview-contract';
+import type { ResolveGeneratedPreviewTranslation } from './preview-interface-translation';
 
 // A single written output from Vite's `build()`, excluding the watcher variant
 // it can also resolve to.
@@ -77,6 +79,8 @@ export interface InteractiveBundleResult {
   css: string;
   /** The site data the Vite integration loaded during the bundle build. */
   siteData: CanvasSiteData | null;
+  /** Issues with the interface translation of the preview. */
+  warnings?: PreviewIssue[];
 }
 
 export interface PreviewRuntimeSettings {
@@ -137,6 +141,8 @@ interface BuildPreviewPayloadOptions {
   mode: PreviewMode;
   inputPath: string;
   projectRoot: string;
+  /** Resolves the interface translation of the preview. */
+  resolveInterfaceTranslation?: ResolveGeneratedPreviewTranslation | null;
 }
 
 function normalizePreviewRuntimeSetting(value?: string): string | null {
@@ -162,16 +168,18 @@ export function resolvePreviewRuntimeSettings(
  * resolvable. Mirrors `createWorkbenchContext()` and
  * `createWorkbenchJsonApiConfig()` in ../lib/workbench-context.ts.
  */
-const WORKBENCH_CONTEXT_RUNTIME_SOURCE = [
+export const WORKBENCH_CONTEXT_RUNTIME_SOURCE = [
   'const WORKBENCH_EMPTY_THEME_ASSETS = { logo: { url: "" }, favicon: { url: "", mimeType: "" } };',
-  'function createWorkbenchContext(siteData, fallbackBaseUrl) {',
+  'function createWorkbenchContext(siteData, fallbackBaseUrl, interfaceTranslation) {',
+  '  const langcode = (interfaceTranslation && interfaceTranslation.langcode) || (siteData && siteData.langcode);',
   '  return {',
+  '    ...(interfaceTranslation ? { translations: interfaceTranslation.translations } : {}),',
   '    page: { pageTitle: "", breadcrumbs: [], mainEntity: null },',
   '    site: {',
   '      branding: (siteData && siteData.branding) || { homeUrl: "", siteName: "", siteSlogan: "" },',
   '      baseUrl: (siteData && siteData.baseUrl) || fallbackBaseUrl,',
   '      themeAssets: (siteData && siteData.themeAssets) || WORKBENCH_EMPTY_THEME_ASSETS,',
-  '      ...(siteData && siteData.langcode ? { langcode: siteData.langcode } : {}),',
+  '      ...(langcode ? { langcode } : {}),',
   '    },',
   '  };',
   '}',
@@ -194,6 +202,8 @@ export function buildPreviewRuntimeEntrySource(options: {
   cssEntryPaths: string[];
   /** The static settings; the site data module supplies the rest. */
   runtimeSettings?: PreviewRuntimeSettings;
+  /** The interface language of the preview, and its translations. */
+  interfaceTranslation?: PreviewInterfaceTranslation;
 }): string {
   const runtimeSettings = options.runtimeSettings ?? {
     baseUrl: null,
@@ -262,7 +272,8 @@ export function buildPreviewRuntimeEntrySource(options: {
     WORKBENCH_SITE_DATA_RUNTIME_SOURCE,
     `const canvasStaticSettings = ${JSON.stringify(runtimeSettings)};`,
     'const canvasResolvedSiteData = resolvePreviewSiteData(canvasStaticSettings, canvasSiteData);',
-    'const canvasContext = createWorkbenchContext(canvasResolvedSiteData, canvasPreviewOrigin);',
+    `const canvasInterfaceTranslation = ${JSON.stringify(options.interfaceTranslation ?? null)};`,
+    'const canvasContext = createWorkbenchContext(canvasResolvedSiteData, canvasPreviewOrigin, canvasInterfaceTranslation || undefined);',
     'const canvasJsonApiConfig = createWorkbenchJsonApiConfig(canvasResolvedSiteData, canvasPreviewOrigin);',
     'const withClient = canvasJsonApiConfig ? React.createElement(JsonApiClientProvider, { client: createJsonApiClient(canvasJsonApiConfig) }, renderedNode) : renderedNode;',
     'createRoot(container).render(React.createElement(CanvasContextProvider, { context: canvasContext }, withClient));',
@@ -292,6 +303,24 @@ function toRuntimeRegistryNames(componentName: string): string[] {
   }
 
   return [...names];
+}
+
+/**
+ * Resolves element types to component names, as the registry of generated
+ * previews registers components.
+ */
+export function createRuntimeRegistryResolver(
+  componentSources: Array<{ name: string }>,
+): (type: string) => string | null {
+  const names = new Map<string, string>();
+  for (const { name } of componentSources) {
+    for (const alias of toRuntimeRegistryNames(name)) {
+      if (!names.has(alias)) {
+        names.set(alias, name);
+      }
+    }
+  }
+  return (type) => names.get(type) ?? null;
 }
 
 function toProjectRelativePath(
@@ -585,11 +614,15 @@ function resolveSpecifierFromCurrentModule(specifier: string): string {
 export async function bundleInteractivePreview(options: {
   projectRoot: string;
   aliasBaseDir: string;
+  /** The entry files of the registered components. */
+  registeredEntryPaths: string[];
   spec: Spec;
   pageTemplateSpec?: Spec | null;
   componentSources: BundleComponentSource[];
   cssEntryPaths: string[];
   runtimeSettings?: PreviewRuntimeSettings;
+  /** Resolves the interface translation of the preview. */
+  resolveInterfaceTranslation?: ResolveGeneratedPreviewTranslation | null;
 }): Promise<InteractiveBundleResult> {
   const require = createRequire(import.meta.url);
   const reactPackageRoot = path.dirname(require.resolve('react/package.json'));
@@ -609,12 +642,23 @@ export async function bundleInteractivePreview(options: {
     path.join(os.tmpdir(), 'canvas-workbench-preview-'),
   );
   const entryPath = path.join(temporaryDirectory, 'entry.tsx');
+  const translationResult = options.resolveInterfaceTranslation
+    ? await options.resolveInterfaceTranslation({
+        projectRoot: options.projectRoot,
+        registeredEntryPaths: options.registeredEntryPaths,
+        spec: options.spec,
+        pageTemplateSpec: options.pageTemplateSpec,
+        componentSources: options.componentSources,
+        resolveType: createRuntimeRegistryResolver(options.componentSources),
+      })
+    : { warnings: [] };
   const entrySource = buildPreviewRuntimeEntrySource({
     spec: options.spec,
     pageTemplateSpec: options.pageTemplateSpec,
     componentSources: options.componentSources,
     cssEntryPaths: options.cssEntryPaths,
     runtimeSettings: options.runtimeSettings,
+    interfaceTranslation: translationResult.interfaceTranslation,
   });
   const canvasViteConfig = createCanvasViteBuildConfig({
     hostRoot: options.projectRoot,
@@ -723,6 +767,9 @@ export async function bundleInteractivePreview(options: {
     return {
       ...outputs,
       siteData: canvasPlugin?.api?.getCanvasSiteData() ?? null,
+      warnings: translationResult.warnings.map((warning) =>
+        toIssue(warning.code, warning.message),
+      ),
     };
   } finally {
     await fs.rm(temporaryDirectory, { recursive: true, force: true });
@@ -1139,6 +1186,9 @@ export async function buildPreviewPayload(
     const bundleResult = await bundle({
       projectRoot: options.projectRoot,
       aliasBaseDir: config.aliasBaseDir,
+      registeredEntryPaths: discoveryResult.components.flatMap(
+        ({ jsEntryPath }) => (jsEntryPath ? [jsEntryPath] : []),
+      ),
       spec: preparedResult.prepared.spec,
       pageTemplateSpec:
         options.mode === 'page'
@@ -1147,6 +1197,7 @@ export async function buildPreviewPayload(
       componentSources: preparedResult.prepared.bundleSources,
       cssEntryPaths: uniqueCssPaths,
       runtimeSettings,
+      resolveInterfaceTranslation: options.resolveInterfaceTranslation,
     });
 
     const iframeHtml = buildIframeHtml(
@@ -1162,7 +1213,11 @@ export async function buildPreviewPayload(
       spec: preparedResult.prepared.spec,
       css: bundleResult.css,
       iframeHtml,
-      warnings: [...warnings, ...preparedResult.warnings],
+      warnings: [
+        ...warnings,
+        ...preparedResult.warnings,
+        ...(bundleResult.warnings ?? []),
+      ],
       errors: [],
     });
   } catch (error) {

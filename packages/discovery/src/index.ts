@@ -1,4 +1,15 @@
 export { discoverCanvasProject, JS_EXTENSIONS } from './discover';
+export { createConfigAliasedImports } from './config-aliased-imports';
+export {
+  createRegisteredComponentImports,
+  resolveRuntimeFile,
+  RUNTIME_EXTENSIONS,
+} from './registered-component-imports';
+export type {
+  AliasedImportResolver,
+  RegisteredComponentImports,
+  RegisteredComponentModule,
+} from './registered-component-imports';
 export {
   ASSET_EXTENSIONS,
   AUDIO_EXTENSIONS,

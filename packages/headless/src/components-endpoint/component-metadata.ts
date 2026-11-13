@@ -1,9 +1,13 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
+  createConfigAliasedImports,
+  createRegisteredComponentImports,
   discoverCanvasProject,
   loadComponentsMetadata,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
+import { getComponentTranslatableStrings } from '@drupal-canvas/translatable-strings';
 
 import { COMPONENT_ENTRY_EXTENSIONS } from '../component-entry-extensions';
 import { COMPONENT_METADATA_PAYLOAD_VERSION } from './payload-version';
@@ -44,11 +48,27 @@ export interface ComponentMetadataEntry {
     { title: string; description?: string; examples?: string[] }
   >;
   /**
+   * The strings that the component's entry file, and the entry files of the
+   * registered components it imports, pass to `t()` and `formatPlural()` from
+   * `useTranslation()`, for Drupal to translate. Other local modules, such as
+   * helpers, are not scanned. `null`: unknown, for an
+   * entry file that is not JavaScript or TypeScript, or cannot be parsed.
+   */
+  translatableStrings: TranslatableString[] | null;
+  /**
    * The component's directory relative to the component root. Diagnostic
    * context for duplicate-machine-name conflicts; no server filesystem
    * layout beyond the component tree leaks.
    */
   relativeDirectory: string;
+}
+
+export interface TranslatableString {
+  source: string;
+  /** Only for `formatPlural()`. */
+  plural?: string;
+  /** Omitted when there is no context. */
+  context?: string;
 }
 
 export interface ComponentMetadataPayload {
@@ -80,7 +100,7 @@ export interface BuildComponentMetadataOptions {
  * excluded by discovery itself (with a warning); duplicate machine names
  * are all included, each flagged by a warning — conflict policy belongs to
  * the reader. Malformed component metadata rejects, so a broken registry
- * never ships silently.
+ * never ships silently, and so do invalid translatable strings.
  */
 export async function buildComponentMetadataPayload(
   options: BuildComponentMetadataOptions = {},
@@ -123,6 +143,52 @@ export async function buildComponentMetadataPayload(
     });
   }
 
+  // Follows the registered components that a component imports too: it
+  // renders them itself, so Drupal does not deliver their strings on their
+  // own. Imports resolve relatively, and with the paths of the app's
+  // tsconfig.json or jsconfig.json.
+  const componentImports = createRegisteredComponentImports({
+    resolveAliased: createConfigAliasedImports({ projectRoot }),
+    entryPaths: result.components.flatMap(({ jsEntryPath }) =>
+      jsEntryPath ? [jsEntryPath] : [],
+    ),
+    readSource: (entryPath) => readFileSync(entryPath, 'utf-8'),
+  });
+  const extractions = result.components.map(({ jsEntryPath }) => {
+    if (!jsEntryPath) {
+      return { translatableStrings: null, errors: [] };
+    }
+    // Only string literals are found, as by the Canvas CLI: other calls show
+    // their source string.
+    const extraction = getComponentTranslatableStrings(
+      componentImports.load(jsEntryPath),
+      componentImports.resolve,
+    );
+    if ('translatableStrings' in extraction) {
+      return {
+        translatableStrings: extraction.translatableStrings,
+        errors: [],
+      };
+    }
+    // The application's own build reports syntax errors.
+    return {
+      translatableStrings: null,
+      errors:
+        'errors' in extraction
+          ? extraction.errors.map(
+              ({ module, message, line, column }) =>
+                `${path.relative(projectRoot, module)}:${line}:${column}: ${message}`,
+            )
+          : [],
+    };
+  });
+  const translatableStringErrors = extractions.flatMap(({ errors }) => errors);
+  if (translatableStringErrors.length > 0) {
+    throw new Error(
+      `Invalid translatable strings:\n${translatableStringErrors.map((error) => `  ${error}`).join('\n')}`,
+    );
+  }
+
   // loadComponentsMetadata() returns entries positionally parallel to the
   // discovered components.
   const components = metadata.map((componentMetadata, index) => {
@@ -137,6 +203,7 @@ export async function buildComponentMetadataPayload(
       props: (componentMetadata.props.properties ??
         {}) as unknown as ComponentMetadataEntry['props'],
       slots: componentMetadata.slots as ComponentMetadataEntry['slots'],
+      translatableStrings: extractions[index]?.translatableStrings ?? null,
       // The arrays are positionally parallel; the fallback only satisfies
       // consumers compiling with noUncheckedIndexedAccess.
       relativeDirectory: result.components[index]?.relativeDirectory ?? '',

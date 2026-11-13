@@ -14,6 +14,7 @@ import {
   setStatus,
 } from '@/features/code-editor/codeEditorSlice';
 import {
+  getTranslatableStringsPayload,
   serializeDataDependencies,
   serializeProps,
   serializeRequired,
@@ -146,6 +147,9 @@ const useAutoSave = (requestedComponentId: string): void => {
           required: serializeRequired(props, required),
           importedJsComponents: importedJsComponentsRef.current,
           dataDependencies: serializeDataDependencies(props, dataDependencies),
+          // Derived from the `sourceCodeJs` sent with it, never from state
+          // that may still describe other source code.
+          ...getTranslatableStringsPayload(sourceCodeJs),
         },
       });
     }, 1000);

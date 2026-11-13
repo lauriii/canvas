@@ -64,7 +64,9 @@ export type {
 export {
   CanvasComponentTree,
   JsonApiRuntimeProvider,
+  TranslationsProvider,
   type CanvasComponentRegistry,
   type CanvasComponentTreeProps,
   type JsonApiRuntimeProviderProps,
+  type TranslationsProviderProps,
 } from '@drupal-canvas/headless-react';

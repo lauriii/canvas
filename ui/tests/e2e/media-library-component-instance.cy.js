@@ -70,7 +70,8 @@ const testMediaLibraryInComponentInstanceForm = (
 
     const removeIt = `[class*="contextualPanel"] .js-media-library-selection  [aria-label="${step.removeText}"][data-once="drupal-ajax"]`;
     cy.reasonableWait();
-    cy.get(removeIt).realClick();
+    // Wait until Canvas allows pointer events after pending updates.
+    cy.get(removeIt).click();
     cy.get(removeIt).should('not.exist');
 
     // The default image should appear because the prop is required.

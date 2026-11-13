@@ -24,3 +24,7 @@ export {
   useJsonApiRuntimeConfig,
   type JsonApiRuntimeProviderProps,
 } from './jsonapi-runtime';
+export {
+  TranslationsProvider,
+  type TranslationsProviderProps,
+} from './translations';

@@ -1127,6 +1127,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'sourceCodeCss' => '',
       'compiledJs' => '',
       'compiledCss' => '',
+      'translatableStrings' => NULL,
       'dataDependencies' => [],
       'links' => [
         'delete-form' => \base_path() . 'canvas/api/v0/config/js_component/disabled_js_component',
@@ -1411,6 +1412,12 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'sourceCodeCss' => '.test { display: none; }',
       'compiledJs' => 'console.log("Test")',
       'compiledCss' => '.test{display:none;}',
+      'translatableStrings' => [
+        ['source' => 'Test'],
+        ['source' => 'Test', 'context' => 'Log'],
+        ['source' => 'Test'],
+        ['source' => '1 test', 'plural' => '@count tests'],
+      ],
       'importedJsComponents' => ['another_component'],
       'dataDependencies' => [],
     ];
@@ -1474,6 +1481,12 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'sourceCodeCss' => '.test { display: none; }',
       'compiledJs' => 'console.log("Test")',
       'compiledCss' => '.test{display:none;}',
+      // Deduplicated and sorted.
+      'translatableStrings' => [
+        ['source' => '1 test', 'plural' => '@count tests'],
+        ['source' => 'Test'],
+        ['source' => 'Test', 'context' => 'Log'],
+      ],
       'dataDependencies' => [],
       'links' => [
         'delete-form' => \base_path() . 'canvas/api/v0/config/js_component/test',
@@ -1500,8 +1513,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Admin should be able to get the Code Component from the Canvas HTTP API.
+    // Its preview translates its strings, so it varies with their translations.
     $canonical_url = Url::fromUri('base:/canvas/api/v0/config/js_component/test');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:canvas.js_component.another_component', 'config:canvas.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:canvas.js_component.another_component', 'config:canvas.js_component.test', 'http_response', 'locale'], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertIsArray($body);
     $body_without_preview = self::assertPreviewForJavaScriptComponentIsPresentThenOmit($body, 'test', []);
     $this->assertSame($expected_component, $body_without_preview);
@@ -1525,6 +1539,32 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         ],
       ],
     ]), $body_without_preview);
+
+    // Source code sent without its translatable strings, such as by an older
+    // Canvas CLI, makes them unknown, whatever the source code: 200.
+    $request_options[RequestOptions::JSON] = [
+      ...\array_diff_key($code_component_to_send, ['translatableStrings' => TRUE]),
+      'sourceCodeJs' => "import { useTranslation } from 'drupal-canvas/react';",
+    ];
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/canvas/api/v0/config/js_component/test'), $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertNull($body['translatableStrings']);
+
+    // Translatable strings that Drupal cannot store are still rejected: 422.
+    // The OpenAPI schema allows a non-ASCII context; Locale does not.
+    $request_options[RequestOptions::JSON] = [
+      ...$code_component_to_send,
+      'translatableStrings' => [['source' => 'May', 'context' => 'Month – long']],
+    ];
+    $body = $this->assertExpectedResponse('PATCH', Url::fromUri('base:/canvas/api/v0/config/js_component/test'), $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'A translation context must contain only ASCII characters.',
+          'source' => ['pointer' => 'translatableStrings.0.context'],
+        ],
+      ],
+    ], $body);
 
     // Modify a JavaScriptComponent incorrectly (shape-wise): 500.
     $request_options[RequestOptions::JSON] = [
@@ -1621,6 +1661,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       AutoSaveManager::CACHE_TAG,
       'config:js_component_list',
       'http_response',
+      // The preview of `test` translates its strings.
+      'locale',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     // Ensure the order matches.
     \assert(\is_array($body));
@@ -1699,11 +1741,15 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       AutoSaveManager::CACHE_TAG,
       'config:canvas.js_component.another_component',
       'config:canvas.js_component.test',
+      // The preview of `test` translates its strings.
+      'locale',
     ]);
     $this->assertExposedCodeComponents(['js.test'], 'HIT', $request_options, [
       AutoSaveManager::CACHE_TAG,
       'config:canvas.js_component.another_component',
       'config:canvas.js_component.test',
+      // The preview of `test` translates its strings.
+      'locale',
     ]);
     // Confirm that there STILL is an auto-save, and its `status` was updated!
     $expected_auto_save['status'] = TRUE;
@@ -1739,6 +1785,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       AutoSaveManager::CACHE_TAG,
       'config:js_component_list',
       'http_response',
+      // The preview of `test` translates its strings.
+      'locale',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertIsArray($body);
     $body_without_preview = $body;

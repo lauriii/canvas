@@ -1,5 +1,6 @@
 import { camelCase, isEqual } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
+import { getTranslatableStringsFromSource } from '@drupal-canvas/translatable-strings';
 
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 import { CONFIG_EXAMPLE_URLS as DOCUMENT_CONFIG_EXAMPLE_URLS } from '@/features/code-editor/component-data/forms/FormPropTypeDocument';
@@ -51,6 +52,45 @@ export function serializeDataDependencies(
     serialized.entityFields = entityFields;
   }
   return serialized;
+}
+
+let lastTranslatableStrings: {
+  source: string;
+  result: ReturnType<typeof getTranslatableStringsFromSource>;
+} | null = null;
+
+/**
+ * Extracts the translatable strings of source code, memoized for the last one.
+ *
+ * The preview and every request that sends the source code need the result
+ * for the same, current source code.
+ */
+export function getTranslatableStrings(
+  sourceCodeJs: string,
+): ReturnType<typeof getTranslatableStringsFromSource> {
+  if (lastTranslatableStrings?.source !== sourceCodeJs) {
+    lastTranslatableStrings = {
+      source: sourceCodeJs,
+      result: getTranslatableStringsFromSource(sourceCodeJs),
+    };
+  }
+  return lastTranslatableStrings.result;
+}
+
+/**
+ * Builds the `translatableStrings` of a payload that sends `sourceCodeJs`.
+ *
+ * Always derive it from the exact source code in the same payload. Without
+ * the property, Drupal treats the strings as unknown: the component's strings
+ * are not translated until they are sent with its source code.
+ */
+export function getTranslatableStringsPayload(
+  sourceCodeJs: string,
+): Pick<CodeComponentSerialized, 'translatableStrings'> {
+  const result = getTranslatableStrings(sourceCodeJs);
+  return 'translatableStrings' in result
+    ? { translatableStrings: result.translatableStrings }
+    : {};
 }
 
 /**

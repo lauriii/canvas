@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { detectValidPropOrSlotChange } from './utils';
+import {
+  detectValidPropOrSlotChange,
+  getTranslatableStringsPayload,
+} from './utils';
 
 describe('detectValidSlotsOrPropChange', () => {
   it('invalid change when arrays are identical', () => {
@@ -131,5 +134,44 @@ describe('detectValidSlotsOrPropChange', () => {
       { id: '2', name: 'test2' },
     ];
     expect(detectValidPropOrSlotChange(current, last)).toBe(true);
+  });
+});
+
+describe('getTranslatableStringsPayload', () => {
+  const hook = "import { useTranslation } from 'drupal-canvas/react';\n";
+
+  it('derives the strings of the source code', () => {
+    expect(
+      getTranslatableStringsPayload(
+        `${hook}const { t } = useTranslation();\nt('Hello', {}, { context: 'Greeting' });`,
+      ),
+    ).toEqual({
+      translatableStrings: [{ source: 'Hello', context: 'Greeting' }],
+    });
+    expect(getTranslatableStringsPayload('export default () => null;')).toEqual(
+      { translatableStrings: [] },
+    );
+  });
+
+  it('derives the strings of the component only', () => {
+    // Drupal delivers the strings of the components that a component imports
+    // with their own, and helpers are passed translated text.
+    expect(
+      getTranslatableStringsPayload(
+        `${hook}import Badge from '@/components/badge';
+import { useLabel } from '@/lib/labels';
+import { format } from './format';
+export default () => [useTranslation().t('Card'), useLabel(), Badge];`,
+      ),
+    ).toEqual({ translatableStrings: [{ source: 'Card' }] });
+  });
+
+  it('omits the strings when they cannot be determined', () => {
+    expect(
+      getTranslatableStringsPayload(
+        `${hook}const { t } = useTranslation();\nt('');`,
+      ),
+    ).toEqual({});
+    expect(getTranslatableStringsPayload('const x = ;')).toEqual({});
   });
 });

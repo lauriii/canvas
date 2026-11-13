@@ -130,6 +130,16 @@ describe('buildCanvasProject fixture projects', () => {
     expect(card?.componentPayload.dataDependencies).toEqual({
       drupalSettings: ['v0.baseUrl', 'v0.branding'],
     });
+    // Only the component's own source code is scanned, not the local modules
+    // it imports.
+    expect(card?.componentPayload.translatableStrings).toEqual([]);
+    const button = buildResult.builtComponents.find(
+      (component) => component.machineName === 'button',
+    );
+    expect(button?.componentPayload.translatableStrings).toEqual([
+      { source: 'Open @label' },
+      { source: '1 click', plural: '@count clicks', context: 'Button' },
+    ]);
 
     const cardJs = await readDistFile(projectRoot, 'components/card/index.js');
     expect(cardJs).toContain(
@@ -158,6 +168,7 @@ describe('buildCanvasProject fixture projects', () => {
         /^\.\/local\/banner-[\w-]+\.jpg$/,
       ),
       '@/lib/format': expect.stringMatching(/^\.\/local\/format-[\w-]+\.js$/),
+      '@/lib/labels': expect.stringMatching(/^\.\/local\/labels-[\w-]+\.js$/),
     });
     expect(buildResult.manifest.shared).not.toContain(
       buildResult.manifest.local['@/components/card/hero.webp'],
@@ -167,6 +178,27 @@ describe('buildCanvasProject fixture projects', () => {
     );
     await expectManifestFilesExist(projectRoot, buildResult.manifest.vendor);
     await expectManifestFilesExist(projectRoot, buildResult.manifest.local);
+  });
+
+  it('fails to build a component with an invalid translatable string', async () => {
+    const { buildResult } = await buildFixtureProject(
+      'build-invalid-translatable-strings',
+    );
+
+    expect(buildResult.componentResults).toEqual([
+      {
+        itemName: 'greeting',
+        success: false,
+        details: [
+          {
+            heading: 'Invalid translatable string',
+            content:
+              'src/components/greeting/index.tsx:9:34: A translation context must contain only ASCII characters.',
+          },
+        ],
+      },
+    ]);
+    expect(buildResult.builtComponents).toEqual([]);
   });
 
   it('builds custom component and alias roots with named component files', async () => {

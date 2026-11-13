@@ -1,0 +1,39 @@
+{
+  "name": "@drupal-canvas/translatable-strings",
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
+  "description": "Shared extraction of the interface strings that Canvas Code Components translate with useTranslation(), used by the Canvas UI code editor, the Canvas CLI, Canvas Workbench, and the Headless SDK",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.26.9",
+    "@babel/traverse": "^7.29.7"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.29.7",
+    "@types/babel__traverse": "^7.28.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "sideEffects": false
+}

@@ -70,7 +70,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   /**
    * {@inheritdoc}
    */
-  protected static array $propertiesWithOptionalValues = ['type'];
+  protected static array $propertiesWithOptionalValues = ['type', 'translatableStrings'];
 
   /**
    * {@inheritdoc}
@@ -1477,6 +1477,78 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
 
     $this->entity->set('dataDependencies', $test);
     $this->assertValidationErrors($expected_errors);
+  }
+
+  /**
+   * Tests validation of the translatable strings.
+   *
+   * @param list<array<string, string>> $translatable_strings
+   *   The translatable strings to validate.
+   * @param array<string, string|list<string>> $expected_errors
+   *   The expected validation errors, keyed by property path.
+   */
+  #[DataProvider('providerTranslatableStrings')]
+  public function testTranslatableStrings(array $translatable_strings, array $expected_errors): void {
+    $this->entity->set('translatableStrings', $translatable_strings);
+    $this->assertValidationErrors($expected_errors);
+  }
+
+  public static function providerTranslatableStrings(): \Generator {
+    yield 'valid' => [
+      [
+        ['source' => 'Hello @name'],
+        ['source' => '1 file', 'plural' => '@count files'],
+        ['source' => 'May', 'context' => \str_repeat('a', 255)],
+      ],
+      [],
+    ];
+    yield 'none' => [[], []];
+    yield 'empty source' => [
+      [['source' => '']],
+      ['translatableStrings.0.source' => 'This value should not be blank.'],
+    ];
+    yield 'missing source' => [
+      [['plural' => '@count files']],
+      ['translatableStrings.0' => "'source' is a required key."],
+    ];
+    yield 'empty plural' => [
+      [['source' => '1 file', 'plural' => '']],
+      ['translatableStrings.0.plural' => 'This value should not be blank.'],
+    ];
+    yield 'empty context' => [
+      [['source' => 'May', 'context' => '']],
+      ['translatableStrings.0.context' => 'This value should not be blank.'],
+    ];
+    yield 'plural delimiter' => [
+      [['source' => "1 file\x03", 'plural' => "\x03@count files"]],
+      [
+        'translatableStrings.0.source' => 'A translatable string must not contain the U+0003 character, which separates plural forms.',
+        'translatableStrings.0.plural' => 'A translatable string must not contain the U+0003 character, which separates plural forms.',
+      ],
+    ];
+    yield 'non-ASCII context' => [
+      [['source' => 'May', 'context' => 'Month – long']],
+      ['translatableStrings.0.context' => 'A translation context must contain only ASCII characters.'],
+    ];
+    yield 'long context' => [
+      [['source' => 'May', 'context' => \str_repeat('a', 256)]],
+      ['translatableStrings.0.context' => 'A translation context must not be longer than 255 characters.'],
+    ];
+    yield 'unknown key' => [
+      [['source' => 'May', 'locale' => 'pl']],
+      ['translatableStrings.0.locale' => "'locale' is not a supported key."],
+    ];
+  }
+
+  /**
+   * Tests that translatable strings may be unknown, whatever the source code.
+   */
+  public function testTranslatableStringsUnknown(): void {
+    $this->entity->set('js', ['original' => "import { useTranslation } from 'drupal-canvas/react';", 'compiled' => '']);
+    $this->entity->set('translatableStrings', NULL);
+    $this->assertValidationErrors([]);
+    $this->entity->set('translatableStrings', []);
+    $this->assertValidationErrors([]);
   }
 
   /**

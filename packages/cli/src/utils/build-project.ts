@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { compilePartialCss } from 'tailwindcss-in-browser';
 import { parse } from '@babel/parser';
+import { getTranslatableStringsFromAst } from '@drupal-canvas/translatable-strings';
 import {
   getDataDependenciesFromAst,
   getImportsFromAst,
@@ -21,12 +22,17 @@ import {
   createComponentPayload,
   readComponentMetadata,
 } from './process-component-files';
+import { formatFilePathForOutput } from './utils';
 import { validateComponents } from './validate';
 
 import type {
   DiscoveredComponent,
   DiscoveryResult,
 } from '@drupal-canvas/discovery';
+import type {
+  TranslatableString,
+  TranslatableStringError,
+} from '@drupal-canvas/translatable-strings';
 import type {
   CanvasDependencyMetadata,
   CanvasVendorArtifactBuildResult,
@@ -92,15 +98,20 @@ function mergeDependencyMetadata(
 function parseBackendMetadata(sourceCodeJs: string): {
   importedJsComponents: string[];
   dataDependencies: DataDependencies;
+  translatableStrings: TranslatableString[];
+  translatableStringErrors: TranslatableStringError[];
 } {
   const ast = parse(sourceCodeJs, {
     sourceType: 'module',
     plugins: ['jsx', 'typescript'],
   });
+  const { translatableStrings, errors } = getTranslatableStringsFromAst(ast);
 
   return {
     importedJsComponents: getImportsFromAst(ast, '@/components/'),
     dataDependencies: getDataDependenciesFromAst(ast),
+    translatableStrings,
+    translatableStringErrors: errors,
   };
 }
 
@@ -119,6 +130,8 @@ async function prepareComponentBuild(options: {
       outputBaseName: string;
       importedJsComponents: string[];
       dataDependencies: DataDependencies;
+      // Unknown when the source code cannot be parsed.
+      translatableStrings?: TranslatableString[];
     }
   | { result: Result }
 > {
@@ -164,6 +177,7 @@ async function prepareComponentBuild(options: {
         outputBaseName,
         importedJsComponents: [],
         dataDependencies: {},
+        translatableStrings: [],
       };
     }
 
@@ -185,15 +199,34 @@ async function prepareComponentBuild(options: {
     const sourceCodeJs = await fs.readFile(component.jsEntryPath, 'utf-8');
     let importedJsComponents: string[] = [];
     let dataDependencies: DataDependencies = {};
+    let translatableStrings: TranslatableString[] | undefined;
+    let translatableStringErrors: TranslatableStringError[] = [];
     try {
       const metadata = parseBackendMetadata(sourceCodeJs);
       importedJsComponents = metadata.importedJsComponents;
       dataDependencies = metadata.dataDependencies;
+      translatableStrings = metadata.translatableStrings;
+      translatableStringErrors = metadata.translatableStringErrors;
     } catch {
       result.warnings = [
         ...(result.warnings ?? []),
         'Could not parse component imports for backend metadata.',
       ];
+    }
+    if (translatableStringErrors.length > 0) {
+      const entryPath = formatFilePathForOutput(component.jsEntryPath);
+      return {
+        result: {
+          ...result,
+          success: false,
+          details: translatableStringErrors.map(
+            ({ message, line, column }) => ({
+              heading: 'Invalid translatable string',
+              content: `${entryPath}:${line}:${column}: ${message}`,
+            }),
+          ),
+        },
+      };
     }
 
     let sourceCodeCss = '';
@@ -218,6 +251,7 @@ async function prepareComponentBuild(options: {
       outputBaseName,
       importedJsComponents,
       dataDependencies,
+      translatableStrings,
     };
   } catch (error) {
     return {
@@ -244,6 +278,7 @@ async function buildComponentPayload(options: {
   outputBaseName: string;
   importedJsComponents: string[];
   dataDependencies: DataDependencies;
+  translatableStrings?: TranslatableString[];
 }): Promise<Component> {
   const compiledJs = await fs.readFile(
     path.join(options.distDir, `${options.outputBaseName}.js`),
@@ -269,6 +304,7 @@ async function buildComponentPayload(options: {
       sourceCodeCss: options.sourceCodeCss,
       compiledCss: options.compiledCss,
       importedJsComponents: options.importedJsComponents,
+      translatableStrings: options.translatableStrings,
     },
   });
 }
@@ -421,6 +457,7 @@ export async function buildCanvasProject(
           outputBaseName: prepared.outputBaseName,
           importedJsComponents: prepared.importedJsComponents,
           dataDependencies: prepared.dataDependencies,
+          translatableStrings: prepared.translatableStrings,
         });
 
         builtComponents.push({

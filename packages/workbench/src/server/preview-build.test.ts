@@ -150,8 +150,28 @@ describe('preview-build', () => {
         inputPath: 'components/card/component.yml',
         outDir: '.canvas-preview',
         pretty: true,
+        langcode: null,
       },
     });
+    expect(
+      parsePreviewBuildArgs([
+        '--page-path',
+        'pages/home.json',
+        '--out-dir',
+        '.canvas-preview',
+        '--langcode',
+        'fr',
+      ]),
+    ).toMatchObject({ ok: true, value: { langcode: 'fr' } });
+    expect(
+      parsePreviewBuildArgs([
+        '--page-path',
+        'pages/home.json',
+        '--out-dir',
+        '.canvas-preview',
+        '--langcode',
+      ]),
+    ).toEqual({ ok: false, error: 'Missing value for --langcode.' });
 
     const missingOutDir = parsePreviewBuildArgs([
       '--component-path',

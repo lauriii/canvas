@@ -100,6 +100,13 @@ the root route's loader calls (alongside the session state) and render
 `CanvasComponentTree` also accepts it as an explicit `jsonApi` prop. The
 configuration is serializable and carries no credentials.
 
+`context` also carries the translations of the components' interface strings. To
+use the application's own dictionary instead, render `TranslationsProvider` from
+`@drupal-canvas/headless-tanstack-start` above the tree, and around the
+component preview with a dictionary for the language you want previews to show.
+See
+[Interface translation](https://project.pages.drupalcode.org/canvas/headless/interface-translation).
+
 During server rendering `useJsonApiClient()` returns the same draft-aware client
 as in the browser, so SWR fallback data supplied through `SWRConfig` renders
 into the initial HTML and hydration does not mismatch, but the client performs

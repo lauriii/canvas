@@ -25,6 +25,7 @@ import {
 import {
   getPropValuesForPreview,
   getSlotNamesForPreview,
+  getTranslatableStrings,
 } from '@/features/code-editor/utils/utils';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
@@ -86,6 +87,13 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const [jsImportNameWithError, setJsImportNameWithError] = useState('');
 
   const [iframeSrcDoc, setIframeSrcDoc] = useState('');
+  const translatableStrings = getTranslatableStrings(sourceCodeJs);
+  // Source code that cannot be parsed is reported by the compiler, which runs
+  // after a delay: until then, the preview keeps showing the last result.
+  const translatableStringErrors =
+    'errors' in translatableStrings && !translatableStrings.syntaxError
+      ? translatableStrings.errors
+      : [];
 
   // Copy import maps from the main window, adding preview-specific entries.
   const importMapTags = useMemo(() => {
@@ -333,16 +341,40 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     );
   };
 
+  const renderTranslatableStringsError = () => (
+    <ErrorCard
+      title="Error: The translatable strings could not be determined."
+      asChild={true}
+    >
+      <Flex direction="column" gap="1">
+        <TextBlock>
+          Until these errors are fixed, the strings of this component are not
+          translated. Strings passed to <code>t()</code> and{' '}
+          <code>formatPlural()</code> must not be empty, and a context must
+          contain at most 255 ASCII characters.
+        </TextBlock>
+        {translatableStringErrors.map(({ message, line, column }) => (
+          <TextBlock key={`${line}:${column}:${message}`}>
+            Line {line}, column {column}: {message}
+          </TextBlock>
+        ))}
+      </Flex>
+    </ErrorCard>
+  );
+
   const errorComponents = {
     isCompileError: renderCompileError(),
     isDefaultExportMissingError: renderExportMissingError(),
     isJsImportError: renderImportError(),
+    isTranslatableStringsError: renderTranslatableStringsError(),
   };
 
   const activeErrors = Object.entries({
     isCompileError: compilationError,
     isDefaultExportMissingError,
     isJsImportError,
+    isTranslatableStringsError:
+      !compilationError && translatableStringErrors.length > 0,
   })
     .filter(([_, hasError]) => hasError)
     .map(([key]) => key);

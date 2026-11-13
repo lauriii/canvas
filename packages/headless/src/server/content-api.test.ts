@@ -400,3 +400,24 @@ describe('preview request URL helpers', () => {
     ).toBe('/page?tag=a%20b&tag=c#');
   });
 });
+
+describe('interface translations', () => {
+  it("returns Drupal's translations in the page context", async () => {
+    const drupal = {
+      strings: { '': { Hello: 'Bonjour' } },
+      pluralFormula: { 1: 0, default: 1 },
+    };
+    const result = await fetchPage('/fr/page/1', {
+      baseUrl: 'https://drupal.example',
+      fetchImpl: vi.fn().mockResolvedValue(
+        Response.json({
+          content: { element: 'js-greeting' },
+          head: { title: 'Page' },
+          route: { managedByCanvas: false, negotiatedLanguage: 'fr' },
+          context: { page: null, site: null, translations: drupal },
+        }),
+      ),
+    });
+    expect(result).toMatchObject({ context: { translations: drupal } });
+  });
+});

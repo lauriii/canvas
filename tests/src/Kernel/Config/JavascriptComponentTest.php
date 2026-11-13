@@ -308,4 +308,161 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
     self::assertTrue($react_component->isExternal());
   }
 
+  /**
+   * Tests that translatable strings are only stored with their source code.
+   *
+   * @legacy-covers ::createFromClientSide
+   * @legacy-covers ::updateFromClientSide
+   * @legacy-covers ::getTranslatableStrings
+   */
+  public function testTranslatableStringsFromClientSide(): void {
+    $source = "import { useTranslation } from 'drupal-canvas/react';";
+    $code = [
+      'sourceCodeJs' => $source,
+      'sourceCodeCss' => '',
+      'compiledJs' => '',
+      'compiledCss' => '',
+      'importedJsComponents' => [],
+    ];
+    $client_data = [
+      'machineName' => 'translated',
+      'name' => 'Translated',
+      'status' => TRUE,
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'dataDependencies' => [],
+      ...$code,
+    ];
+    $violations = static fn (JavaScriptComponent $component): array => \array_map(
+      static fn ($violation): array => [$violation->getPropertyPath() => (string) $violation->getMessage()],
+      \iterator_to_array($component->getTypedData()->validate()),
+    );
+    // Deduplicated and sorted by context, source and plural.
+    $component = JavaScriptComponent::createFromClientSide([
+      ...$client_data,
+      'translatableStrings' => [
+        ['context' => 'Month', 'source' => 'May'],
+        ['plural' => '@count files', 'source' => '1 file'],
+        ['source' => 'b'],
+        // Compared as strings, not numbers.
+        ['source' => '9'],
+        ['source' => '10'],
+        ['source' => 'May'],
+        ['source' => '1 file'],
+        ['source' => 'May', 'context' => 'Month'],
+      ],
+    ]);
+    $expected = [
+      ['source' => '1 file'],
+      ['source' => '1 file', 'plural' => '@count files'],
+      ['source' => '10'],
+      ['source' => '9'],
+      ['source' => 'May'],
+      ['source' => 'b'],
+      ['source' => 'May', 'context' => 'Month'],
+    ];
+    self::assertSame($expected, $component->get('translatableStrings'));
+    self::assertSame($expected, $component->toArray()['translatableStrings']);
+    self::assertSame([
+      ['source' => '1 file', 'context' => ''],
+      ['source' => "1 file\x03@count files", 'context' => ''],
+      ['source' => '10', 'context' => ''],
+      ['source' => '9', 'context' => ''],
+      ['source' => 'May', 'context' => ''],
+      ['source' => 'b', 'context' => ''],
+      ['source' => 'May', 'context' => 'Month'],
+    ], $component->getTranslatableStrings());
+    self::assertSame([], $violations($component));
+
+    // Metadata changes keep the strings.
+    $component->updateFromClientSide(['name' => 'Renamed']);
+    self::assertSame($expected, $component->get('translatableStrings'));
+
+    // Source code without strings makes them unknown, rather than keeping the
+    // strings of the previous source code.
+    $component->updateFromClientSide($code);
+    self::assertNull($component->get('translatableStrings'));
+    self::assertNull($component->getTranslatableStrings());
+    self::assertArrayNotHasKey('translatableStrings', $component->toArray());
+    // Unknown strings are valid, also for source code that translates strings.
+    self::assertSame([], $violations($component));
+    $component->updateFromClientSide([...$code, 'translatableStrings' => NULL]);
+    self::assertNull($component->get('translatableStrings'));
+    self::assertSame([], $violations($component));
+
+    // Deduplication keeps an invalid empty context for validation to report,
+    // whichever order the strings are in.
+    $empty_context = ['source' => 'May', 'context' => ''];
+    $no_context = ['source' => 'May'];
+    foreach ([
+      'translatableStrings.0.context' => [$empty_context, $no_context],
+      'translatableStrings.1.context' => [$no_context, $empty_context],
+    ] as $path => $strings) {
+      $component->updateFromClientSide([...$code, 'translatableStrings' => $strings]);
+      self::assertSame($strings, $component->get('translatableStrings'));
+      self::assertSame([[$path => 'This value should not be blank.']], $violations($component));
+    }
+
+    // An empty list means no strings.
+    $component->updateFromClientSide([...$code, 'translatableStrings' => []]);
+    self::assertSame([], $component->get('translatableStrings'));
+    self::assertSame([], $component->toArray()['translatableStrings']);
+    self::assertSame([], $violations($component));
+
+    // Other shapes cannot be validated.
+    foreach (['May', ['May'], [['source' => ['May']]], ['a' => ['source' => 'May']]] as $invalid) {
+      try {
+        $component->updateFromClientSide([...$code, 'translatableStrings' => $invalid]);
+        $this->fail('Expected ConstraintViolationException not thrown.');
+      }
+      catch (ConstraintViolationException $exception) {
+        self::assertSame("The 'translatableStrings' field must be a list of objects with string values.", $exception->getConstraintViolationList()->get(0)->getMessage());
+      }
+    }
+    self::assertSame([], $component->get('translatableStrings'));
+
+    // Strings are only accepted with the source code they describe.
+    try {
+      $component->updateFromClientSide(['translatableStrings' => [['source' => 'Stale']]]);
+      $this->fail('Expected ConstraintViolationException not thrown.');
+    }
+    catch (ConstraintViolationException $exception) {
+      self::assertSame("The 'translatableStrings' field is only allowed together with 'sourceCodeJs'.", $exception->getConstraintViolationList()->get(0)->getMessage());
+    }
+    self::assertSame([], $component->get('translatableStrings'));
+
+    // External components have the strings of the external application's
+    // implementation, without source code. Without strings, the stored
+    // strings are kept.
+    $component->updateFromClientSide(['type' => 'external']);
+    self::assertSame([], $component->get('translatableStrings'));
+    $external = [['source' => 'App'], ['source' => 'App', 'context' => 'Card']];
+    $component->updateFromClientSide(['translatableStrings' => [...\array_reverse($external), ['source' => 'App']]]);
+    self::assertSame($external, $component->get('translatableStrings'));
+    self::assertSame([], $violations($component));
+    $component->updateFromClientSide(['name' => 'Renamed again']);
+    self::assertSame($external, $component->get('translatableStrings'));
+
+    // Their strings are validated like those of other code components.
+    $component->updateFromClientSide(['translatableStrings' => [['source' => 'May', 'context' => 'Month – long']]]);
+    self::assertSame([['translatableStrings.0.context' => 'A translation context must contain only ASCII characters.']], $violations($component));
+    try {
+      $component->updateFromClientSide(['translatableStrings' => 'May']);
+      $this->fail('Expected ConstraintViolationException not thrown.');
+    }
+    catch (ConstraintViolationException $exception) {
+      self::assertSame("The 'translatableStrings' field must be a list of objects with string values.", $exception->getConstraintViolationList()->get(0)->getMessage());
+    }
+
+    // NULL makes them unknown.
+    $component->updateFromClientSide(['translatableStrings' => NULL]);
+    self::assertNull($component->get('translatableStrings'));
+
+    // Source code is still not accepted.
+    $this->expectException(ConstraintViolationException::class);
+    $this->expectExceptionMessage('External code components cannot contain JavaScript or CSS.');
+    $component->updateFromClientSide(['sourceCodeJs' => 'export default () => null;', 'translatableStrings' => []]);
+  }
+
 }

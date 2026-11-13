@@ -210,6 +210,17 @@ This example requests French, but renders English because the French translation
       "uuid": "773942c6-3660-4c50-9a8d-e25966a69bff",
       "langcode": "en"
     }
+  },
+  "context": {
+    "page": {...},
+    "site": {...},
+    "translations": {
+      "strings": {
+        "": {
+          "Read more": "Lire la suite"
+        }
+      }
+    }
   }
 }
 ```
@@ -217,6 +228,11 @@ This example requests French, but renders English because the French translation
 `content` is one structured root or `null`. Multiple roots use a transparent `renderless-container` with the ordered
 roots in its `default` slot. Routes Canvas does not manage and managed routes with empty trees both use `content: null`.
 `route.managedByCanvas` distinguishes them and remains `true` for an empty managed tree.
+
+`context` is the page and site context that Code Components read. `context.translations` holds the interface
+translations of the strings that the rendered code components translate, in the request's interface language, keyed
+by translation context (an empty string when none) and source string. It is absent when none of them is translated,
+and includes `pluralFormula` when a plural string is translated and a formula is available.
 
 `head` is compatible with the [Unhead](https://unhead.unjs.io/) package. It always contains `title` and may also
 contain `meta`, `link`, and `script`. Canonical links are omitted because the frontend owns its public URLs.

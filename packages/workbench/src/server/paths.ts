@@ -14,6 +14,8 @@ export interface WorkbenchPathsOptions {
 }
 
 export interface WorkbenchPaths {
+  /** The directory that `@/` imports resolve from. */
+  aliasBaseRoot: string;
   appHtmlPath: string;
   allowedFsRoots: string[];
   clientRoot: string;
@@ -90,6 +92,7 @@ export function resolveWorkbenchPaths(
   ];
 
   return {
+    aliasBaseRoot: path.resolve(hostProjectRoot, canvasConfig.aliasBaseDir),
     appHtmlPath: path.resolve(clientRoot, 'index.html'),
     allowedFsRoots: [
       hostProjectRoot,

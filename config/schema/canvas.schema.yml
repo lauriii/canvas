@@ -212,6 +212,52 @@ canvas.js_component.*:
       type: canvas.compilable_code
       label: 'CSS'
       requiredKey: false
+    # The strings the JS passes to `t()` and `formatPlural()` from `useTranslation()`, as found by the code editor, the
+    # Canvas CLI or the Headless SDK. Omitted when unknown; an empty sequence means there are none.
+    # @see \Drupal\canvas\Entity\JavaScriptComponent::getTranslatableStrings()
+    translatableStrings:
+      type: sequence
+      label: 'Translatable strings'
+      requiredKey: false
+      sequence:
+        type: mapping
+        label: 'Translatable string'
+        mapping:
+          source:
+            type: string
+            label: 'Source string'
+            constraints:
+              NotBlank: ~
+              # Locale joins the singular and plural forms with this character.
+              # @see \Drupal\Component\Gettext\PoItem::DELIMITER
+              Regex:
+                pattern: '/\x03/'
+                match: false
+                message: 'A translatable string must not contain the U+0003 character, which separates plural forms.'
+          plural:
+            # Only for `formatPlural()`.
+            type: string
+            label: 'Plural source string'
+            requiredKey: false
+            constraints:
+              NotBlank: ~
+              Regex:
+                pattern: '/\x03/'
+                match: false
+                message: 'A translatable string must not contain the U+0003 character, which separates plural forms.'
+          context:
+            # Omitted when there is no context. Locale stores contexts as ASCII text of at most 255 characters.
+            type: string
+            label: 'Context'
+            requiredKey: false
+            constraints:
+              NotBlank: ~
+              Length:
+                max: 255
+                maxMessage: 'A translation context must not be longer than 255 characters.'
+              Regex:
+                pattern: '/^[\x00-\x7F]*$/'
+                message: 'A translation context must contain only ASCII characters.'
     dataDependencies:
       type: mapping
       label: 'Data dependencies'

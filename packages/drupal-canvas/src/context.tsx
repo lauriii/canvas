@@ -7,9 +7,10 @@
  * @see docs/adr/0021-code-component-runtime-compatibility-across-frontend-modes.md
  */
 
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 
 import { reportCanvasData } from './data-inspection.js';
+import { formatPlural, translate } from './translation.js';
 import { warnOnce } from './warnings.js';
 
 import type { ReactNode } from 'react';
@@ -17,12 +18,15 @@ import type {
   CanvasContext,
   PageContext,
   SiteContext,
+  Translations,
 } from './context-types.js';
+import type { FormatPluralFunction, TranslateFunction } from './translation.js';
 
 export type {
   CanvasContext,
   PageContext,
   SiteContext,
+  Translations,
 } from './context-types.js';
 
 export interface CanvasContextProviderProps {
@@ -47,6 +51,41 @@ export function CanvasContextProvider({
   children,
 }: CanvasContextProviderProps) {
   return <Context.Provider value={context}>{children}</Context.Provider>;
+}
+
+export interface TranslationsProviderProps {
+  /**
+   * The translations for every component below, e.g. the application's own
+   * dictionary. They replace the translations of the Canvas context instead
+   * of being merged with them; `null` means none, so components show their
+   * source strings.
+   */
+  translations: Translations | null;
+  children?: ReactNode;
+}
+
+/** `undefined` means no `TranslationsProvider` is mounted. */
+const TranslationsContext = createContext<Translations | null | undefined>(
+  undefined,
+);
+TranslationsContext.displayName = 'CanvasTranslations';
+
+/**
+ * Replaces the translations `useTranslation()` uses below it. The nearest
+ * provider takes precedence over the Canvas context's translations, also over
+ * a context that a rendering integration provides further down, such as the
+ * `context` of `CanvasComponentTree`. Without it, components use the
+ * translations of the Canvas context. Adds no DOM wrapper.
+ */
+export function TranslationsProvider({
+  translations,
+  children,
+}: TranslationsProviderProps) {
+  return (
+    <TranslationsContext.Provider value={translations}>
+      {children}
+    </TranslationsContext.Provider>
+  );
 }
 
 const MISSING_PROVIDER_WARNING =
@@ -100,6 +139,44 @@ export function useSiteContext(): SiteContext | null {
     }
   }, [context, site]);
   return site;
+}
+
+/**
+ * Returns `t()` and `formatPlural()`, which translate strings into the page's
+ * interface language. They take the arguments of `Drupal.t()` and
+ * `Drupal.formatPlural()`, with `@` placeholders only, but return text, not
+ * HTML, which React escapes when it renders it. The code editor, the Canvas
+ * CLI, and the Headless SDK find the strings to translate in the component
+ * source: pass string literals.
+ *
+ * The translations come from the nearest `TranslationsProvider`, otherwise
+ * from the Canvas context. Without a translation for a string, they return the
+ * source string. Without either provider they also warn once.
+ *
+ * @example
+ * const { t, formatPlural } = useTranslation();
+ * t('Hello @name', { '@name': name });
+ * formatPlural(count, '1 item', '@count items');
+ */
+export function useTranslation(): {
+  t: TranslateFunction;
+  formatPlural: FormatPluralFunction;
+} {
+  const context = useContext(Context);
+  const override = useContext(TranslationsContext);
+  if (context === undefined && override === undefined) {
+    warnOnce(`useTranslation(): ${MISSING_PROVIDER_WARNING}`);
+  }
+  const translations =
+    override === undefined ? context?.translations : override;
+  return useMemo(
+    () => ({
+      t: (str, args, options) => translate(translations, str, args, options),
+      formatPlural: (count, singular, plural, args, options) =>
+        formatPlural(translations, count, singular, plural, args, options),
+    }),
+    [translations],
+  );
 }
 
 /**

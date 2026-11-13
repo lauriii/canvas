@@ -26,6 +26,7 @@ use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
+use Drupal\Component\Gettext\PoItem;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
@@ -70,6 +71,7 @@ use Symfony\Component\Validator\ConstraintViolation;
     'slots',
     'js',
     'css',
+    'translatableStrings',
     'dataDependencies',
   ],
   constraints: [
@@ -119,6 +121,19 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
   protected ?array $slots = [];
 
   /**
+   * The strings the JavaScript translates, or NULL when they are unknown.
+   *
+   * The code editor and the Canvas CLI find them in the source code; for
+   * external code components, the external application's build does. Drupal
+   * never parses JavaScript.
+   *
+   * @var list<array{source: string, plural?: string, context?: string}>|null
+   *
+   * @see ::getTranslatableStrings()
+   */
+  protected ?array $translatableStrings = NULL;
+
+  /**
    * Data dependencies.
    */
   protected ?array $dataDependencies;
@@ -157,6 +172,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     }
     if ($this->css === NULL) {
       unset($data['css']);
+    }
+    if ($this->translatableStrings === NULL) {
+      unset($data['translatableStrings']);
     }
     return $data;
   }
@@ -219,6 +237,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
         'sourceCodeCss' => $this->css['original'] ?? '',
         'compiledJs' => $this->js['compiled'] ?? '',
         'compiledCss' => $this->css['compiled'] ?? '',
+        // NULL when unknown.
+        'translatableStrings' => $this->translatableStrings,
       ];
     }
     $values += [
@@ -430,8 +450,24 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
           $data['importedJsComponents'],
         ));
       }
+      if (isset($data['translatableStrings']) && !self::isListOfStringMaps($data['translatableStrings'])) {
+        // Config validation cannot report other shapes.
+        $violation_list->add(new ConstraintViolation(
+          "The 'translatableStrings' field must be a list of objects with string values.",
+          "The 'translatableStrings' field must be a list of objects with string values.",
+          [],
+          NULL,
+          'translatableStrings',
+          $data['translatableStrings'],
+        ));
+      }
       if ($violation_list->count() > 0) {
         throw new ConstraintViolationException($violation_list);
+      }
+      // The strings of the external application's implementation. Without
+      // them, the stored strings are kept.
+      if (\array_key_exists('translatableStrings', $data)) {
+        $this->set('translatableStrings', isset($data['translatableStrings']) ? self::normalizeTranslatableStrings($data['translatableStrings']) : NULL);
       }
       return;
     }
@@ -444,7 +480,32 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     }
 
     $violation_list = new EntityConstraintViolationList($this);
-    if (\array_key_exists('sourceCodeJs', $data) || \array_key_exists('compiledJs', $data)) {
+    $has_js = \array_key_exists('sourceCodeJs', $data) || \array_key_exists('compiledJs', $data);
+    if (!$has_js && isset($data['translatableStrings'])) {
+      // The strings describe the source code sent with them.
+      $violation_list->add(new ConstraintViolation(
+        "The 'translatableStrings' field is only allowed together with 'sourceCodeJs'.",
+        "The 'translatableStrings' field is only allowed together with 'sourceCodeJs'.",
+        [],
+        NULL,
+        'translatableStrings',
+        $data['translatableStrings'],
+      ));
+      throw new ConstraintViolationException($violation_list);
+    }
+    if (isset($data['translatableStrings']) && !self::isListOfStringMaps($data['translatableStrings'])) {
+      // Config validation cannot report other shapes.
+      $violation_list->add(new ConstraintViolation(
+        "The 'translatableStrings' field must be a list of objects with string values.",
+        "The 'translatableStrings' field must be a list of objects with string values.",
+        [],
+        NULL,
+        'translatableStrings',
+        $data['translatableStrings'],
+      ));
+      throw new ConstraintViolationException($violation_list);
+    }
+    if ($has_js) {
       if (!\array_key_exists('importedJsComponents', $data)) {
         $violation_list->add(new ConstraintViolation(
           "The 'importedJsComponents' field is required when 'sourceCodeJs' or 'compiledJs' is provided",
@@ -480,7 +541,75 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
         'original' => $data['sourceCodeJs'] ?? '',
         'compiled' => $data['compiledJs'] ?? '',
       ]);
+      // Never keep the strings of the previous source code: without strings,
+      // the strings of this source code are unknown, so they are not
+      // translated until they are sent.
+      $this->set('translatableStrings', isset($data['translatableStrings']) ? self::normalizeTranslatableStrings($data['translatableStrings']) : NULL);
     }
+  }
+
+  /**
+   * Whether a value is a list of string-keyed arrays of strings.
+   *
+   * @internal
+   *   Shared with the synchronization of external code components.
+   */
+  public static function isListOfStringMaps(mixed $value): bool {
+    if (!\is_array($value) || !\array_is_list($value)) {
+      return FALSE;
+    }
+    foreach ($value as $item) {
+      if (!\is_array($item) || !Inspector::assertAllStrings(\array_keys($item)) || !Inspector::assertAllStrings($item)) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
+   * Deduplicates and sorts translatable strings by context, source and plural.
+   *
+   * The code editor, the Canvas CLI and the Headless SDK send them in the same
+   * order, comparing by code point like strcmp() on UTF-8. Strings with unknown
+   * keys are returned unchanged, for config validation to report.
+   *
+   * @param list<array<string, string>> $strings
+   *   The translatable strings.
+   *
+   * @return list<array<string, string>>
+   *   The normalized translatable strings.
+   *
+   * @see packages/translatable-strings/src/extract.ts
+   *
+   * @internal
+   *   Shared with the synchronization of external code components.
+   */
+  public static function normalizeTranslatableStrings(array $strings): array {
+    $unique = [];
+    foreach ($strings as $string) {
+      if (\array_diff_key($string, \array_flip(['source', 'plural', 'context'])) !== []) {
+        return $strings;
+      }
+      // The config schema's key order.
+      $string = \array_merge(\array_intersect_key(['source' => '', 'plural' => '', 'context' => ''], $string), $string);
+      // An explicit empty context is invalid: keep it apart from no context,
+      // for config validation to report.
+      $unique[\serialize([$string['context'] ?? NULL, $string['source'] ?? '', $string['plural'] ?? NULL])] = $string;
+    }
+    \usort($unique, static function (array $a, array $b): int {
+      foreach (['context', 'source'] as $key) {
+        $order = \strcmp($a[$key] ?? '', $b[$key] ?? '');
+        if ($order !== 0) {
+          return $order;
+        }
+      }
+      // Without a plural form first.
+      if (isset($a['plural'], $b['plural'])) {
+        return \strcmp($a['plural'], $b['plural']);
+      }
+      return isset($a['plural']) <=> isset($b['plural']);
+    });
+    return $unique;
   }
 
   /**
@@ -1070,6 +1199,29 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     );
     $js_component_ids = \array_map(fn($dependency) => mb_substr($dependency, mb_strlen($this->getConfigPrefix()) + 1), $js_dependencies);
     return self::loadMultiple($js_component_ids);
+  }
+
+  /**
+   * The strings the component source translates with `useTranslation()`.
+   *
+   * @return list<array{source: string, context: string}>|null
+   *   The strings, each with its context (`''` when none), or NULL when they
+   *   are unknown. Plural strings join their singular and plural forms with
+   *   PoItem::DELIMITER, as Locale stores them.
+   *
+   * @see ::$translatableStrings
+   */
+  public function getTranslatableStrings(): ?array {
+    if ($this->translatableStrings === NULL) {
+      return NULL;
+    }
+    return \array_map(
+      static fn (array $string): array => [
+        'source' => $string['source'] . (isset($string['plural']) ? PoItem::DELIMITER . $string['plural'] : ''),
+        'context' => $string['context'] ?? '',
+      ],
+      $this->translatableStrings,
+    );
   }
 
   public function getCacheTags() {

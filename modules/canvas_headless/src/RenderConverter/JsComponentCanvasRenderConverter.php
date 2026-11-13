@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_headless\RenderConverter;
 
+use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\custom_elements\CustomElement;
 use Drupal\custom_elements\RenderConverter\CanvasRenderConverter;
@@ -29,6 +31,32 @@ final class JsComponentCanvasRenderConverter extends CanvasRenderConverter {
   ];
 
   /**
+   * The translations attached by the code components converted so far.
+   *
+   * @var array<string, mixed>
+   */
+  private array $translations = [];
+
+  /**
+   * Converts a render array, with the translations of its code components.
+   *
+   * Drupal-rendered pages attach each code component's translations to
+   * `drupalSettings`, which Custom Elements output does not carry; these are
+   * the same translations, merged, for the components actually output.
+   *
+   * @return array{\Drupal\custom_elements\CustomElement, array<string, mixed>}
+   *   The custom element, and the translations shaped like `Translations` in
+   *   the `drupal-canvas` package, or an empty array when there are none.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+   */
+  public function convertRenderArrayWithTranslations(array $render_array): array {
+    $this->translations = [];
+    $element = $this->convertRenderArray($render_array);
+    return [$element, $this->translations];
+  }
+
+  /**
    * {@inheritdoc}
    */
   // @phpstan-ignore shipmonk.deadMethod (Called by the parent converter.)
@@ -42,7 +70,7 @@ final class JsComponentCanvasRenderConverter extends CanvasRenderConverter {
    */
   public function convertRenderArray(array $render_array): CustomElement {
     if (($render_array[self::PREVIEW_CONTENT_REGION] ?? FALSE) === TRUE) {
-      // Tell the headless SDK where to place editor markers in page chrome.
+      // Tell the Headless SDK where to place editor markers in page chrome.
       $element = CustomElement::create('canvas-preview-content-region');
       $content = $render_array['content'] ?? [];
       if (\is_array($content)) {
@@ -55,6 +83,12 @@ final class JsComponentCanvasRenderConverter extends CanvasRenderConverter {
     $metadata = self::getComponentMetadata($render_array);
     if ($metadata === NULL) {
       return parent::convertRenderArray($render_array);
+    }
+
+    $translations = $render_array['#attached']['drupalSettings'][CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['translations'] ?? NULL;
+    if (\is_array($translations)) {
+      // Merged like drupalSettings, which keeps the plural formula's keys.
+      $this->translations = NestedArray::mergeDeepArray([$this->translations, $translations], TRUE);
     }
 
     $tag = \strtolower(\str_replace([':', '.', '_'], '-', $metadata['component_id']));

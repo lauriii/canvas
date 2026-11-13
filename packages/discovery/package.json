@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@drupal-canvas/json-schema-validation": "*",
+    "get-tsconfig": "^4.14.0",
     "glob": "^13.0.1",
     "ignore": "^7.0.5",
     "yaml": "^2.8.3"

@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { createWorkbenchContext } from '../lib/workbench-context';
 import {
   buildIframeHtml,
   buildPreviewPayload,
@@ -10,6 +11,7 @@ import {
   bundleInteractivePreview,
   resolvePreviewSiteData,
   withBrandKitColorCss,
+  WORKBENCH_CONTEXT_RUNTIME_SOURCE,
 } from './preview-payload';
 
 import type { Spec } from '@json-render/core';
@@ -583,11 +585,9 @@ props:
     expect(source).toContain(
       'const canvasResolvedSiteData = resolvePreviewSiteData(canvasStaticSettings, canvasSiteData);',
     );
+    expect(source).toContain('const canvasInterfaceTranslation = null;');
     expect(source).toContain(
-      'const canvasContext = createWorkbenchContext(canvasResolvedSiteData, canvasPreviewOrigin);',
-    );
-    expect(source).toContain(
-      '...(siteData && siteData.langcode ? { langcode: siteData.langcode } : {})',
+      'const canvasContext = createWorkbenchContext(canvasResolvedSiteData, canvasPreviewOrigin, canvasInterfaceTranslation || undefined);',
     );
     expect(source).toContain(
       'const canvasJsonApiConfig = createWorkbenchJsonApiConfig(canvasResolvedSiteData, canvasPreviewOrigin);',
@@ -605,6 +605,56 @@ props:
     expect(source).toContain(
       'page: { pageTitle: "", breadcrumbs: [], mainEntity: null }',
     );
+  });
+
+  it('embeds the interface translation of the preview', () => {
+    const interfaceTranslation = {
+      langcode: 'fr',
+      translations: { strings: { '': { Hello: 'Bonjour' } } },
+    };
+    expect(
+      buildPreviewRuntimeEntrySource({
+        spec: { root: 'root', elements: {} },
+        componentSources: [],
+        cssEntryPaths: [],
+        interfaceTranslation,
+      }),
+    ).toContain(
+      `const canvasInterfaceTranslation = ${JSON.stringify(interfaceTranslation)};`,
+    );
+  });
+
+  it('builds the same context as interactive previews', () => {
+    const mirror = new Function(
+      `${WORKBENCH_CONTEXT_RUNTIME_SOURCE}\nreturn createWorkbenchContext;`,
+    )() as typeof createWorkbenchContext;
+    const siteData = {
+      baseUrl: 'https://drupal.example',
+      langcode: 'en',
+      branding: { homeUrl: '/', siteName: 'Site', siteSlogan: '' },
+    };
+    for (const [data, interfaceTranslation] of [
+      [null, undefined],
+      [siteData, undefined],
+      [siteData, { langcode: 'fr', translations: null }],
+      [
+        { ...siteData, langcode: undefined },
+        {
+          langcode: 'fr',
+          translations: { strings: { '': { Hello: 'Bonjour' } } },
+        },
+      ],
+    ] as const) {
+      expect(
+        mirror(data, 'https://preview.example', interfaceTranslation),
+      ).toEqual(
+        createWorkbenchContext(
+          data,
+          'https://preview.example',
+          interfaceTranslation,
+        ),
+      );
+    }
   });
 
   it('declares the Workbench runtime and site data in the bootstrap script', () => {
@@ -813,6 +863,7 @@ props:
     const bundled = await bundleInteractivePreview({
       projectRoot: root,
       aliasBaseDir: 'src',
+      registeredEntryPaths: [],
       spec: {
         root: 'canvas-workbench-preview-root',
         elements: {
@@ -851,6 +902,7 @@ props:
     const bundled = await bundleInteractivePreview({
       projectRoot: root,
       aliasBaseDir: 'src',
+      registeredEntryPaths: [],
       spec: {
         root: 'canvas-workbench-preview-root',
         elements: {

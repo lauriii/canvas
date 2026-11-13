@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { loadEnv } from 'vite';
 import {
   discoverCanvasProject,
   readBrandKitColors,
@@ -13,6 +14,7 @@ import {
 
 import { isSupportedPreviewModulePath } from '../lib/preview-runtime';
 import { toPreviewManifestComponentMocks } from '../lib/spec-discovery';
+import { createSiteGeneratedPreviewTranslationResolver } from './preview-interface-translation';
 import {
   buildIframeHtml,
   buildPreviewPayload,
@@ -29,6 +31,7 @@ import type {
   PreviewManifestComponentMock,
   PreviewWarning,
 } from '../lib/preview-contract';
+import type { ResolveGeneratedPreviewTranslation } from './preview-interface-translation';
 import type {
   PreviewIssue,
   PreviewMode,
@@ -43,6 +46,8 @@ export interface PreviewBuildCliArgs {
   inputPath: string;
   pretty: boolean;
   outDir: string;
+  /** The interface language of the previews, or `null` for the site's. */
+  langcode: string | null;
 }
 
 export interface PreviewBuildSummary {
@@ -67,6 +72,8 @@ interface BuildPreviewArtifactOptions {
   inputPath: string;
   projectRoot: string;
   outDir: string;
+  /** Resolves the interface translation of each preview. */
+  resolveInterfaceTranslation?: ResolveGeneratedPreviewTranslation | null;
 }
 
 interface BuildPreviewArtifactDependencies {
@@ -173,6 +180,7 @@ interface ParsedPreviewTargetArgs {
   mode: PreviewMode;
   inputPath: string;
   pretty: boolean;
+  langcode: string | null;
 }
 
 function parsePreviewTargetArgs(
@@ -181,6 +189,7 @@ function parsePreviewTargetArgs(
   let componentPath: string | null = null;
   let pagePath: string | null = null;
   let pretty = false;
+  let langcode: string | null = null;
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -214,6 +223,17 @@ function parsePreviewTargetArgs(
       continue;
     }
 
+    if (argument === '--langcode') {
+      const next = argv[index + 1];
+      if (!next || next.startsWith('--')) {
+        return parsePreviewBuildArgsError('Missing value for --langcode.');
+      }
+
+      langcode = next;
+      index += 1;
+      continue;
+    }
+
     return parsePreviewBuildArgsError(`Unknown argument: ${argument}`);
   }
 
@@ -232,6 +252,7 @@ function parsePreviewTargetArgs(
         mode: 'component',
         inputPath: componentPath,
         pretty,
+        langcode,
       },
     };
   }
@@ -242,6 +263,7 @@ function parsePreviewTargetArgs(
       mode: 'page',
       inputPath: pagePath!,
       pretty,
+      langcode,
     },
   };
 }
@@ -287,6 +309,7 @@ export function parsePreviewBuildArgs(
       inputPath: parsed.value.inputPath,
       pretty: parsed.value.pretty,
       outDir,
+      langcode: parsed.value.langcode,
     },
   };
 }
@@ -562,6 +585,7 @@ export async function buildPreviewArtifact(
     mode: options.mode,
     inputPath: options.inputPath,
     projectRoot: options.projectRoot,
+    resolveInterfaceTranslation: options.resolveInterfaceTranslation,
   });
 
   if (!previewPayload.ok) {
@@ -740,6 +764,9 @@ export async function buildPreviewArtifact(
           const bundleResult = await bundle({
             projectRoot: options.projectRoot,
             aliasBaseDir: config.aliasBaseDir,
+            registeredEntryPaths: discoveryResult.components.flatMap(
+              ({ jsEntryPath }) => (jsEntryPath ? [jsEntryPath] : []),
+            ),
             spec: resolvePageColorPropsForPreview(
               mock.spec,
               brandKitColors,
@@ -748,7 +775,9 @@ export async function buildPreviewArtifact(
             componentSources: registrySources,
             cssEntryPaths: uniqueCssEntryPaths,
             runtimeSettings,
+            resolveInterfaceTranslation: options.resolveInterfaceTranslation,
           });
+          combinedWarnings.push(...(bundleResult.warnings ?? []));
           const mockHtml = buildIframeHtml(
             bundleResult.js,
             withBrandKitColorCss(options.projectRoot, bundleResult.css),
@@ -863,6 +892,13 @@ export async function runPreviewBuildCli(argv: string[]): Promise<number> {
     inputPath: parsed.value.inputPath,
     projectRoot: process.cwd(),
     outDir: parsed.value.outDir,
+    // Looked up as interactive previews look them up, with the credentials
+    // of the Workbench proxy.
+    resolveInterfaceTranslation:
+      await createSiteGeneratedPreviewTranslationResolver(
+        loadEnv('', process.cwd(), 'CANVAS_'),
+        parsed.value.langcode,
+      ),
   });
 
   const serialized = parsed.value.pretty

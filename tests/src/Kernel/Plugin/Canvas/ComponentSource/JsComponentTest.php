@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
+// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk fichier fichiers
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
@@ -38,6 +39,7 @@ use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\StorageCacheInterface;
@@ -49,10 +51,13 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\StringTranslation\TranslationManager;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -61,6 +66,8 @@ use Drupal\filter\Entity\FilterFormat;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\link\LinkItemInterface;
 use Drupal\link\LinkTitleVisibility;
+use Drupal\locale\PluralFormulaInterface;
+use Drupal\locale\StringStorageInterface;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -1017,6 +1024,196 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     else {
       self::assertNotContains('filter/caption', $island['#attached']['library'] ?? []);
     }
+  }
+
+  /**
+   * Strings passed to `t()` and `formatPlural()` reach `useTranslation()`.
+   *
+   * @legacy-covers ::renderComponent
+   * @legacy-covers \Drupal\canvas\Entity\JavaScriptComponent::getTranslatableStrings
+   * @legacy-covers \Drupal\canvas\Hook\LocaleHooks
+   */
+  public function testRenderComponentAttachesTranslations(): void {
+    // The strings as the code editor and the Canvas CLI find them.
+    $greeting_strings = [
+      ['source' => '1 file', 'plural' => '@count files'],
+      ['source' => 'Hello @name'],
+      ['source' => 'Untranslated'],
+      ['source' => '1 day', 'plural' => '@count days', 'context' => 'Age'],
+      ['source' => "It's @count", 'context' => 'Counter'],
+    ];
+    $create = static fn(string $id, ?array $strings, array $imports = []) => JavaScriptComponent::create([
+      'machineName' => $id,
+      'name' => $id,
+      'status' => TRUE,
+      'props' => [],
+      'required' => [],
+      'js' => ['original' => $strings ? "import { useTranslation } from 'drupal-canvas/react';" : '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'translatableStrings' => $strings,
+      'dataDependencies' => [],
+      // How the code editor records `@/components/*` imports.
+      'dependencies' => ['enforced' => ['config' => $imports]],
+    ]);
+    // An indirect import without strings, yet.
+    $icon = $create('icon', []);
+    $icon->save();
+    $button = $create('button', [['source' => 'Read more']], [$icon->getConfigDependencyName()]);
+    $button->save();
+    $greeting = $create('greeting', $greeting_strings, [$button->getConfigDependencyName()]);
+    $greeting->save();
+
+    self::assertSame([
+      ['source' => "1 file\x03@count files", 'context' => ''],
+      ['source' => 'Hello @name', 'context' => ''],
+      ['source' => 'Untranslated', 'context' => ''],
+      ['source' => "1 day\x03@count days", 'context' => 'Age'],
+      ['source' => "It's @count", 'context' => 'Counter'],
+    ], $greeting->getTranslatableStrings());
+
+    $this->setSetting('locale_custom_strings_fr', [
+      '' => [
+        'Hello @name' => 'Bonjour @name',
+        'Read more' => 'Lire la suite',
+        "1 file\x03@count files" => "1 fichier\x03@count fichiers",
+      ],
+      'Counter' => ["It's @count" => "C'est @count"],
+    ]);
+    $translation_manager = $this->container->get(TranslationInterface::class);
+    \assert($translation_manager instanceof TranslationManager);
+    $translation_manager->setDefaultLangcode('fr');
+    $render = function (): array {
+      $component = Component::load(JsComponent::componentIdFromJavascriptComponentId('greeting'));
+      self::assertInstanceOf(ComponentInterface::class, $component);
+      $source_plugin = $component->getComponentSource();
+      self::assertInstanceOf(JsComponent::class, $source_plugin);
+      return $source_plugin->renderComponent(['props' => []], [], 'some-uuid');
+    };
+    $expected_strings = [
+      '' => [
+        "1 file\x03@count files" => "1 fichier\x03@count fichiers",
+        'Hello @name' => 'Bonjour @name',
+        'Read more' => 'Lire la suite',
+      ],
+      'Counter' => ["It's @count" => "C'est @count"],
+    ];
+
+    // Without the Locale module there is no plural formula.
+    $island = $render();
+    self::assertSame(['strings' => $expected_strings], $island['#attached']['drupalSettings']['canvasData']['v0']['translations']);
+    self::assertContains('languages:language_interface', $island['#cache']['contexts']);
+    self::assertContains('locale', $island['#cache']['tags']);
+    // Changing the strings of an indirect import changes the translations.
+    self::assertContains('config:' . $icon->getConfigDependencyName(), $island['#cache']['tags']);
+
+    // External code components attach the translations of the strings their
+    // external application's build found, whether Drupal renders them as
+    // nothing or renders their fallback implementation.
+    $external_strings = [['source' => 'Hello @name'], ['source' => 'Untranslated']];
+    foreach (['external_greeting' => NULL, 'external_fallback_greeting' => 'export default function Greeting() {}'] as $id => $js) {
+      $external = $create($id, $external_strings);
+      $external->set('type', 'external');
+      $external->set('js', $js === NULL ? NULL : ['original' => $js, 'compiled' => $js]);
+      $external->set('css', $js === NULL ? NULL : ['original' => '', 'compiled' => '']);
+      $external->save();
+      $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($id));
+      self::assertInstanceOf(ComponentInterface::class, $component);
+      $external_build = $component->getComponentSource()->renderComponent(['props' => []], [], 'external-uuid', FALSE);
+      self::assertSame($js === NULL, isset($external_build[JsComponent::EXTERNAL_RENDER_METADATA]));
+      self::assertSame(['strings' => ['' => ['Hello @name' => 'Bonjour @name']]], $external_build['#attached']['drupalSettings']['canvasData']['v0']['translations']);
+      self::assertContains('languages:language_interface', $external_build['#cache']['contexts']);
+      self::assertContains('locale', $external_build['#cache']['tags']);
+      self::assertContains('config:' . $external->getConfigDependencyName(), $external_build['#cache']['tags']);
+    }
+
+    // With it, the interface language's plural formula is attached.
+    $this->enableModules(['language', 'locale']);
+    $this->installSchema('locale', ['locales_source', 'locales_target', 'locales_location']);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('system.site')->set('default_langcode', 'fr')->save();
+    $this->container->get(LanguageManagerInterface::class)->reset();
+    $translation_manager = $this->container->get(TranslationInterface::class);
+    \assert($translation_manager instanceof TranslationManager);
+    $translation_manager->setDefaultLangcode('fr');
+    $this->container->get(PluralFormulaInterface::class)->setPluralFormula('fr', 2, [0 => 0, 1 => 0, 'default' => 1]);
+    $island = $render();
+    self::assertSame([
+      'strings' => $expected_strings,
+      'pluralFormula' => [0 => 0, 1 => 0, 'default' => 1],
+    ], $island['#attached']['drupalSettings']['canvasData']['v0']['translations']);
+
+    // Saving a code component registers its strings with Locale, so they are
+    // translatable before any page renders it.
+    $string_storage = $this->container->get(StringStorageInterface::class);
+    \assert($string_storage instanceof StringStorageInterface);
+    self::assertNull($string_storage->findString(['source' => 'Hello @name', 'context' => '']));
+    $greeting = JavaScriptComponent::load('greeting');
+    \assert($greeting instanceof JavaScriptComponent);
+    $greeting->save();
+    $button = JavaScriptComponent::load('button');
+    \assert($button instanceof JavaScriptComponent);
+    $button->save();
+    $locations = static function (string $source, string $context = '') use ($string_storage): ?array {
+      $string = $string_storage->findString(['source' => $source, 'context' => $context]);
+      return $string ? \array_map(\array_keys(...), $string->getLocations()) : NULL;
+    };
+    self::assertSame(['js_component' => ['greeting']], $locations('Hello @name'));
+    self::assertSame(['js_component' => ['greeting']], $locations("1 file\x03@count files"));
+    self::assertSame(['js_component' => ['greeting']], $locations("It's @count", 'Counter'));
+    self::assertSame(['js_component' => ['button']], $locations('Read more'));
+
+    // Strings a code component no longer uses are removed, unless they are
+    // translated or something else still uses them.
+    $string_id = static fn (string $source, string $context = '') => $string_storage->findString(['source' => $source, 'context' => $context])?->getId();
+    // Imported from a .po file.
+    $string_storage->createTranslation(['lid' => $string_id('Hello @name'), 'language' => 'fr', 'translation' => 'Bonjour @name', 'customized' => LOCALE_NOT_CUSTOMIZED])->save();
+    // Entered in the UI.
+    $string_storage->createTranslation(['lid' => $string_id("1 file\x03@count files"), 'language' => 'fr', 'translation' => "1 fichier\x03@count fichiers", 'customized' => LOCALE_CUSTOMIZED])->save();
+    // Also used outside code components.
+    $string_storage->findString(['source' => "It's @count", 'context' => 'Counter'])?->addLocation('path', '/elsewhere')->save();
+    $greeting->set('translatableStrings', $button->get('translatableStrings'));
+    $greeting->save();
+    self::assertSame(['js_component' => ['button', 'greeting']], $locations('Read more'));
+    self::assertSame([], $locations('Hello @name'));
+    self::assertSame(['path' => ['/elsewhere']], $locations("It's @count", 'Counter'));
+    // Other code may translate the same string without adding a location.
+    self::assertSame([], $locations("1 file\x03@count files"));
+    self::assertEqualsCanonicalizing(['Bonjour @name', "1 fichier\x03@count fichiers"], \array_column($string_storage->getTranslations(['language' => 'fr', 'translated' => TRUE]), 'translation'));
+
+    // Locale also caches lookups of untranslated strings, so deleting a string
+    // invalidates them: code that still translates it registers it again.
+    $cache = $this->container->get('cache.default');
+    \assert($cache instanceof CacheBackendInterface);
+    $only_here = $create('only_here', [['source' => 'Only here']]);
+    $only_here->save();
+    $cache->set('locale_lookup_stand_in', TRUE, tags: ['locale']);
+    $only_here->save();
+    self::assertNotFalse($cache->get('locale_lookup_stand_in'));
+    $only_here->set('translatableStrings', []);
+    $only_here->save();
+    self::assertNull($locations('Only here'));
+    self::assertFalse($cache->get('locale_lookup_stand_in'));
+
+    // Unknown strings, such as of source code saved by an older Canvas CLI,
+    // change nothing in Locale, but cannot be translated.
+    $button->set('translatableStrings', NULL);
+    $button->save();
+    self::assertSame(['js_component' => ['button', 'greeting']], $locations('Read more'));
+    $greeting->set('translatableStrings', NULL);
+    $greeting->save();
+    self::assertSame(['js_component' => ['button', 'greeting']], $locations('Read more'));
+    self::assertArrayNotHasKey('translations', $render()['#attached']['drupalSettings']['canvasData']['v0'] ?? []);
+    $greeting->set('translatableStrings', $button_strings = [['source' => 'Read more']]);
+    $greeting->save();
+    $button->set('translatableStrings', $button_strings);
+    $button->save();
+
+    // Deleting a code component removes the strings only it used.
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $greeting->delete();
+    self::assertSame(['js_component' => ['button']], $locations('Read more'));
+    $button->delete();
+    self::assertNull($locations('Read more'));
   }
 
   public function testRenderJsComponentPreloadsGlobalFonts(): void {

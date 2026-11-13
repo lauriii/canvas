@@ -1,6 +1,7 @@
 import { isSupportedPreviewModulePath, toViteFsUrl } from './preview-runtime';
 
 import type { Spec } from '@json-render/core';
+import type { Translations } from 'drupal-canvas';
 import type { DiscoveryResult, DiscoveryWarning } from './discovery-client';
 
 export type PreviewIneligibilityReason =
@@ -38,6 +39,40 @@ export interface PreviewManifestComponent {
   };
   metadataErrors: PreviewComponentMetadataError[];
   mocks: PreviewManifestComponentMock[];
+  /** Absent when unknown. */
+  translation?: PreviewManifestComponentTranslation;
+}
+
+/**
+ * The interface translation of a component: of its own module and of the
+ * local modules it imports, including other components.
+ */
+export interface PreviewManifestComponentTranslation {
+  /**
+   * Whether they refer to `useTranslation()`, whatever they translate, or
+   * `null` when that is unknown because a module cannot be parsed or found.
+   */
+  usesTranslationHook: boolean | null;
+  /**
+   * The strings they pass to `t()` and `formatPlural()`, or `null` when they
+   * are unknown, such as for invalid literals.
+   */
+  translatableStrings: Array<{
+    source: string;
+    plural?: string;
+    context?: string;
+  }> | null;
+  /** Why the strings are unknown. */
+  issues?: PreviewTranslationIssue[];
+}
+
+/** An issue that makes the strings of a component unknown. */
+export interface PreviewTranslationIssue {
+  /** The project-relative path of the module. */
+  path: string;
+  line?: number;
+  column?: number;
+  message: string;
 }
 
 export interface PreviewManifestComponentMock {
@@ -60,6 +95,11 @@ export interface PreviewWarning {
 export interface PreviewManifest {
   componentRoot: string;
   components: PreviewManifestComponent[];
+  /**
+   * The revision of the interface translation of the components, which
+   * changes with it. Absent when unknown.
+   */
+  translationRevision?: number;
   warnings: PreviewWarning[];
   globalCssUrl: string | null;
   brandKitCssUrl: string | null;
@@ -92,7 +132,19 @@ export interface PreviewRenderRequest {
     pageTemplate?: PreviewRenderPageTemplate;
     /** Workbench shell path (pathname + search) so the preview iframe MemoryRouter stays aligned. */
     shellPath?: string;
+    /**
+     * The interface language of the preview, with the translations of the
+     * strings it renders. Absent: the language of the site data, without
+     * translations.
+     */
+    interfaceTranslation?: PreviewInterfaceTranslation;
   };
+}
+
+export interface PreviewInterfaceTranslation {
+  langcode: string;
+  /** `null` when they are not available: source strings. */
+  translations: Translations | null;
 }
 
 export interface PreviewFrameReady {

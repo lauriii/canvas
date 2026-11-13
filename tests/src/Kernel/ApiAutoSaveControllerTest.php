@@ -1773,6 +1773,53 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   /**
+   * Tests that drafts whose translatable strings are unknown can be published.
+   *
+   * The code editor auto-saves source code with invalid translatable strings
+   * without them.
+   */
+  public function testPublishUnknownTranslatableStrings(): void {
+    $this->setUpCurrentUser(permissions: [
+      JavaScriptComponent::ADMIN_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+    $auto_save = $this->container->get(AutoSaveManager::class);
+    $code_component = JavaScriptComponent::createFromClientSide([
+      'machineName' => 'translated',
+      'name' => 'Translated',
+      'status' => TRUE,
+      'required' => [],
+      'props' => [],
+      'slots' => [],
+      'sourceCodeJs' => 'export default () => null;',
+      'sourceCodeCss' => '',
+      'compiledJs' => '',
+      'compiledCss' => '',
+      'importedJsComponents' => [],
+      'translatableStrings' => [],
+      'dataDependencies' => [],
+    ]);
+    $this->assertSame(SAVED_NEW, $code_component->save());
+
+    $draft = JavaScriptComponent::create($code_component->toArray());
+    $draft->updateFromClientSide([
+      'sourceCodeJs' => "import { useTranslation } from 'drupal-canvas/react';\nexport default () => useTranslation().t('');",
+      'compiledJs' => '',
+      'importedJsComponents' => [],
+    ]);
+    $auto_save->saveEntity($draft);
+
+    $auto_save_key = 'js_component:translated';
+    $response = $this->makePublishAllRequest([$auto_save_key => $this->getAutoSaveStatesFromServer()[$auto_save_key]]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    // The source code is published, with unknown strings.
+    $published = JavaScriptComponent::load('translated');
+    self::assertStringContainsString('useTranslation', $published?->get('js')['original']);
+    self::assertNull($published?->getTranslatableStrings());
+    self::assertArrayNotHasKey($auto_save_key, $this->getAutoSaveStatesFromServer());
+  }
+
+  /**
    * Tests that publishing carries over the auto-saved moderation state.
    */
   public function testPublishModeratedEntity(): void {

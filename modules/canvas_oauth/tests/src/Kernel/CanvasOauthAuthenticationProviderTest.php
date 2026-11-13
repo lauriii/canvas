@@ -112,6 +112,8 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
       ['canvas.api.content.patch', ['canvas_page' => "1"], TRUE],
       ['canvas.api.form.component_instance', [], FALSE],
       ['canvas.api.form.content_entity', [], FALSE],
+      ['canvas.api.interface_translation.languages', [], TRUE],
+      ['canvas.api.interface_translation.lookup', ['langcode' => 'en'], TRUE],
       ['canvas.api.layout.get', [], FALSE],
       ['canvas.api.layout.patch', [], FALSE],
       ['canvas.api.layout.post', [], FALSE],

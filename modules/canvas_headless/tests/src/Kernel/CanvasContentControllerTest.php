@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Kernel;
 
-// cspell:ignore unroutable francaise Btag Anglais
+// cspell:ignore unroutable francaise Btag Anglais fichier fichiers rendu Salut brouillon externe
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CodeComponentDataProvider;
@@ -42,6 +42,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Session\PermissionCheckerInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
@@ -408,6 +409,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       $this->container->get(LanguageManagerInterface::class),
       $this->container,
       $settings,
+      $this->container->get(TranslationInterface::class),
     ));
     $response = $this->renderContentPath('/user/login');
     self::assertSame('http://localhost/core/themes/stark/logo.svg', self::responseData($response)['context']['site']['themeAssets']['logo']['url']);
@@ -965,6 +967,117 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         self::assertContains(AutoSaveManager::CACHE_TAG, $response->getCacheableMetadata()->getCacheTags());
       }
     }
+  }
+
+  /**
+   * Tests the translations of the rendered code components' strings.
+   */
+  public function testCodeComponentTranslations(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
+      ->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setSetting('locale_custom_strings_fr', [
+      '' => [
+        'Hello @name' => 'Bonjour @name',
+        'Read more' => 'Lire la suite',
+        "1 file\x03@count files" => "1 fichier\x03@count fichiers",
+        'Not rendered' => 'Pas rendu',
+        'Draft greeting' => 'Salut brouillon',
+        'External greeting' => 'Salut externe',
+      ],
+    ]);
+    $hook = "import { useTranslation } from 'drupal-canvas/react';";
+    // The strings as the code editor and the Canvas CLI find them.
+    $create = static fn (string $id, array $strings, array $imports = []) => JavaScriptComponent::create([
+      'machineName' => $id,
+      'name' => $id,
+      'status' => TRUE,
+      'props' => [],
+      'required' => [],
+      'slots' => [],
+      'js' => ['original' => $hook, 'compiled' => $hook],
+      'css' => ['original' => '', 'compiled' => ''],
+      'translatableStrings' => $strings,
+      'dataDependencies' => [],
+      'dependencies' => ['enforced' => ['config' => $imports]],
+    ]);
+    $button = $create('canvas_headless_translated_button', [['source' => 'Read more']]);
+    $button->save();
+    $greeting = $create('canvas_headless_translated', [
+      ['source' => '1 file', 'plural' => '@count files'],
+      ['source' => 'Hello @name'],
+    ], [$button->getConfigDependencyName()]);
+    $greeting->save();
+    $create('canvas_headless_not_rendered', [['source' => 'Not rendered']])->save();
+    // The strings that the external application's build found.
+    $external = JavaScriptComponent::load('canvas_headless_test');
+    self::assertInstanceOf(JavaScriptComponent::class, $external);
+    $external->set('translatableStrings', [['source' => 'External greeting']])->save();
+    $page = Page::create([
+      'title' => 'Translated components',
+      'owner' => $this->editor->id(),
+      'status' => TRUE,
+      'components' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => 'js.canvas_headless_translated',
+          'inputs' => [],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => self::COMPONENT_ID,
+          'inputs' => ['heading' => 'External'],
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+    $this->setCurrentAccount($this->editor);
+
+    // Only the rendered components and the components they import.
+    $response = $this->renderContentPath('/fr/page/' . $page->id());
+    self::assertEquals([
+      'strings' => [
+        '' => [
+          'Hello @name' => 'Bonjour @name',
+          "1 file\x03@count files" => "1 fichier\x03@count fichiers",
+          'Read more' => 'Lire la suite',
+          'External greeting' => 'Salut externe',
+        ],
+      ],
+    ], self::responseData($response)['context']['translations']);
+    $cacheability = $response->getCacheableMetadata();
+    self::assertContains('languages:language_interface', $cacheability->getCacheContexts());
+    self::assertContains('locale', $cacheability->getCacheTags());
+
+    // Previews read the auto-saved versions that they render.
+    $draft = clone $greeting;
+    $draft->set('translatableStrings', [['source' => 'Draft greeting']]);
+    $this->container->get(AutoSaveManager::class)->saveEntity($draft);
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    foreach (['false', 'true'] as $exclude_auto_save) {
+      $strings = self::responseData($this->renderContentPath('/fr/page/' . $page->id(), [
+        CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save,
+      ]))['context']['translations']['strings'][''];
+      self::assertSame($exclude_auto_save === 'false', isset($strings['Draft greeting']));
+      self::assertSame($exclude_auto_save === 'true', isset($strings['Hello @name']));
+      self::assertSame('Lire la suite', $strings['Read more']);
+    }
+    $this->setCurrentAccount($this->editor);
+
+    // No translations: no key, as for Drupal-rendered pages.
+    self::assertArrayNotHasKey('translations', self::responseData($this->renderContentPath('/page/' . $page->id()))['context']);
+    $page->set('components', [
+      [
+        'uuid' => $this->container->get('uuid')->generate(),
+        'component_id' => self::COMPONENT_ID,
+        'inputs' => ['heading' => 'External'],
+      ],
+    ])->save();
+    $external->set('translatableStrings', NULL)->save();
+    self::assertArrayNotHasKey('translations', self::responseData($this->renderContentPath('/fr/page/' . $page->id()))['context']);
   }
 
   /**

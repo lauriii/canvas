@@ -670,6 +670,31 @@ components:
                       type: string
                     mimeType:
                       type: string
+        translations:
+          description: >-
+            Interface translations of the strings the rendered code components
+            pass to `t()` and `formatPlural()` of `useTranslation()`, in the
+            request's interface language. Absent when none of them is
+            translated.
+          type: object
+          additionalProperties: false
+          required: [strings]
+          properties:
+            strings:
+              description: >-
+                Translated strings keyed by context (empty string when none),
+                then by source string. Plural forms are joined with U+0003.
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: string
+            pluralFormula:
+              description: >-
+                The plural form index for counts up to 199, with a `default`.
+              type: object
+              additionalProperties:
+                type: integer
 
     CanvasRedirectResult:
       type: object

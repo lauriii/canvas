@@ -1,0 +1,148 @@
+---
+title: Code Components - Interface translation
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+To translate the interface text of a component:
+
+1. Write the text with `t()` and `formatPlural()` from `useTranslation()`, as
+   string literals.
+2. Publish the component in Canvas, push it with the Canvas CLI, or sync it
+   from your headless application. Drupal then lists the discovered strings for
+   translation.
+3. Translate the strings in Drupal.
+
+```jsx
+import { useTranslation } from 'drupal-canvas/react';
+
+export default function Greeting({ name, count }) {
+  const { t, formatPlural } = useTranslation();
+  return (
+    <div>
+      <p>{t('Hello @name', { '@name': name })}</p>
+      <p>{t('May', {}, { context: 'Long month name' })}</p>
+      <p>{formatPlural(count, '1 new message', '@count new messages')}</p>
+    </div>
+  );
+}
+```
+
+## Writing translatable strings
+
+The code editor, the Canvas CLI, and the
+[Headless SDK](/headless/interface-translation) find the strings in the
+component's source code. Only string literals are found; other calls show their
+source string.
+
+| Call                                                    | Found |
+| ------------------------------------------------------- | ----- |
+| `t('Hello')`, `t("Hello")`                              | Yes   |
+| `formatPlural(n, '1 item', '@count items')`             | Yes   |
+| `t('May', {}, { context: 'Long month name' })`          | Yes   |
+| `translate('Hello')` after `const { t: translate } = …` | Yes   |
+| `i18n.t('Hello')` after `const i18n = useTranslation()` | Yes   |
+| `t(label)`, ``t(`Hello`)``, `t('Hello ' + name)`        | No    |
+| `t('May', {}, { context: month })`                      | No    |
+| A `t()` or `formatPlural()` not from `useTranslation()` | No    |
+
+Put changing values in placeholders, not in the string.
+
+The code editor reports these invalid values, and the Canvas CLI and the
+Headless SDK fail to build the component. Until they are fixed, the component's
+strings are not translated, but it can still be published. Drupal checks the
+strings it receives against the same rules, and rejects invalid ones.
+
+| Value   | Rule                                                         |
+| ------- | ------------------------------------------------------------ |
+| String  | Not empty, and without U+0003, which separates plural forms. |
+| Context | Only ASCII characters, at most 255.                          |
+
+- Only the component's own file is scanned, not the helpers it imports. Pass
+  helpers text that the component has already translated, not `t`:
+
+  ```jsx
+  import { useTranslation } from 'drupal-canvas/react';
+  import { formatLabel } from '@/lib/format';
+
+  export default function Card() {
+    const { t } = useTranslation();
+    // 'Read more' is found; a t() call inside src/lib/format.js would not be.
+    return <a>{formatLabel(t('Read more'))}</a>;
+  }
+  ```
+
+- If Card imports Badge, Badge's strings are translated too, even when only
+  Card is placed on the page.
+- Exported configuration stores the strings in each component's
+  `translatableStrings`. Update them if you edit the source code there by hand.
+
+## Translating in Drupal
+
+When a component is published or synced, its strings appear on the _User
+interface translation_ page (`/admin/config/regional/translate`). The list
+follows changes from the code editor, the Canvas CLI, headless component syncs,
+and configuration imports:
+
+- A string that no component uses anymore is removed if it is untranslated. A
+  translated string is kept, so that translators' work is not lost if a
+  component uses the string again. A string that Drupal recorded another use of
+  is kept too.
+- Drupal does not record every use, for example by PHP code: such a string can
+  be removed while untranslated. It is listed again once that code translates it
+  into a language other than English, in a later request.
+
+Drupal adds the translations to Drupal-rendered pages, in the page's interface
+language. [Workbench](/code-components/workbench#interface-translation) previews
+look them up in the language you select. For headless frontends, see
+[Headless - Interface translation](/headless/interface-translation).
+
+## API
+
+`useTranslation()` returns `{ t, formatPlural }`. They take the arguments of
+[`Drupal.t()` and `Drupal.formatPlural()`](https://www.drupal.org/docs/8/api/translation-api/overview#s-translation-in-javascript-files),
+with `@` placeholders only, and return text, not HTML.
+
+### `t(str, args?, options?)`
+
+| Argument          | Type                                       | Description                                                              |
+| ----------------- | ------------------------------------------ | ------------------------------------------------------------------------ |
+| `str`             | `string`                                   | The source string.                                                       |
+| `args`            | ``Record<`@${string}`, string \| number>`` | Values for `@` placeholders, such as `{ '@name': name }`. Default: none. |
+| `options.context` | `string`                                   | Translation context; defaults to an empty string.                        |
+
+Returns a `string`: the translation, or `str` without one, with the `@`
+placeholders replaced.
+
+### `formatPlural(count, singular, plural, args?, options?)`
+
+| Argument          | Type                                       | Description                                                         |
+| ----------------- | ------------------------------------------ | ------------------------------------------------------------------- |
+| `count`           | `number`                                   | Picks the plural form, and replaces `@count`.                       |
+| `singular`        | `string`                                   | The English form for 1, such as `'1 new message'`.                  |
+| `plural`          | `string`                                   | The English form for other counts, such as `'@count new messages'`. |
+| `args`            | ``Record<`@${string}`, string \| number>`` | Values for `@` placeholders. Default: none.                         |
+| `options.context` | `string`                                   | As for `t()`.                                                       |
+
+Returns a `string`: the form for `count`, with the `@` placeholders replaced.
+Without a translation, that is `singular` for 1 and `plural` otherwise. A
+translation can have more than two forms: Drupal picks one with the plural rules
+of the language's imported translations, or uses the first form for 1 and the
+second for other counts.
+
+### Placeholders
+
+Only `@` placeholders, such as `@name`, are replaced. Drupal's `%`, `:` and `!`
+placeholders are not supported: they stay in the text.
+
+<Aside type="caution" title="Text, not HTML">
+HTML in a source string or its translation is shown as text. Keep markup in the
+component, around the translated text:
+
+```jsx
+<p>
+  <strong>{t('Note:')}</strong> {t('Prices include tax.')}
+</p>
+```
+
+</Aside>

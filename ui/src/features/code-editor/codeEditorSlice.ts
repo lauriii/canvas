@@ -3,6 +3,7 @@ import { createSelector, createSlice } from '@reduxjs/toolkit';
 
 import {
   deserializeRequired,
+  getTranslatableStringsPayload,
   serializeDataDependencies,
   serializeProps,
   serializeRequired,
@@ -517,6 +518,7 @@ export const selectCodeComponentSerialized = createSelector(
       codeComponent.props,
       codeComponent.dataDependencies,
     ),
+    ...getTranslatableStringsPayload(codeComponent.sourceCodeJs),
   }),
 );
 

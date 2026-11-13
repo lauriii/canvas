@@ -456,6 +456,84 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that metadata replaces, keeps and validates translatable strings.
+   */
+  public function testTranslatableStrings(): void {
+    $this->installConfig(['canvas_headless']);
+    $frontend = FrontendUrl::fromConfig(self::FRONTEND_URL);
+    self::assertInstanceOf(FrontendUrl::class, $frontend);
+    $this->config('canvas_headless.settings')
+      ->set('frontends', [['url' => self::FRONTEND_URL, 'components' => []]])
+      ->save();
+    $synchronizer = new ExternalComponentSync(
+      $this->container->get(ConfigFactoryInterface::class),
+      $this->container->get(EntityTypeManagerInterface::class),
+      $this->container->get('lock'),
+      $this->container->get(LoggerChannelFactoryInterface::class),
+      $this->container->get(ComponentSourceManager::class),
+      $this->container->get(TypedConfigManagerInterface::class),
+      $this->container->get(PropShapeRepositoryInterface::class),
+    );
+    $payload = static fn (array $extra): array => [
+      'version' => 1,
+      'components' => [
+        [
+          'machineName' => 'greeting',
+          'name' => 'Greeting',
+          'status' => TRUE,
+          'required' => [],
+          'props' => [],
+          'slots' => [],
+          'relativeDirectory' => 'greeting',
+        ] + $extra,
+      ],
+      'warnings' => [],
+    ];
+    $strings = static fn (): mixed => JavaScriptComponent::load('greeting')?->get('translatableStrings');
+
+    // Normalized like the strings the code editor and the Canvas CLI send.
+    $result = $synchronizer->synchronize($frontend, $payload([
+      'translatableStrings' => [
+        ['source' => 'Hello', 'context' => 'Greeting'],
+        ['source' => 'Hello'],
+        ['source' => 'Hello'],
+      ],
+    ]));
+    self::assertSame([], $result['errors']);
+    self::assertSame(1, $result['created']);
+    self::assertSame([['source' => 'Hello'], ['source' => 'Hello', 'context' => 'Greeting']], $strings());
+
+    // The same strings leave the component unchanged; other strings replace
+    // them.
+    $result = $synchronizer->synchronize($frontend, $payload(['translatableStrings' => [['source' => 'Hello'], ['source' => 'Hello', 'context' => 'Greeting']]]));
+    self::assertSame(1, $result['unchanged']);
+    $result = $synchronizer->synchronize($frontend, $payload(['translatableStrings' => [['source' => 'Bye']]]));
+    self::assertSame(1, $result['updated']);
+    self::assertSame([['source' => 'Bye']], $strings());
+
+    // Payloads of older SDKs, without strings, keep the stored strings.
+    $result = $synchronizer->synchronize($frontend, $payload([]));
+    self::assertSame(1, $result['unchanged']);
+    self::assertSame([['source' => 'Bye']], $strings());
+
+    // Strings Drupal cannot store are rejected, and the stored strings kept.
+    foreach ([
+      'must contain only ASCII characters' => [['source' => 'May', 'context' => 'Month – long']],
+      'invalid translatableStrings metadata' => 'May',
+    ] as $message => $invalid) {
+      $result = $synchronizer->synchronize($frontend, $payload(['translatableStrings' => $invalid]));
+      self::assertCount(1, $result['errors']);
+      self::assertStringContainsString($message, $result['errors'][0]);
+      self::assertSame([['source' => 'Bye']], $strings());
+    }
+
+    // NULL makes them unknown.
+    $result = $synchronizer->synchronize($frontend, $payload(['translatableStrings' => NULL]));
+    self::assertSame(1, $result['updated']);
+    self::assertNull($strings());
+  }
+
+  /**
    * Builds a component metadata payload fixture in the SDK's shape.
    */
   private static function metadataPayload(string $name, string $level_type): array {

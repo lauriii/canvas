@@ -525,6 +525,35 @@ canvas.api.form.content_entity:
     # Used by Drupal's AJAX system.
     - POST
 
+canvas.api.interface_translation.languages:
+  path: '/canvas/api/v0/interface-translation'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiInterfaceTranslationController::languages'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # The tools that preview code components: Canvas Workbench authenticates
+    # with the scopes of the Canvas CLI, of content templates, or of page
+    # templates.
+    _permission: 'administer code components+administer content templates+administer page template'
+    _format: 'json'
+  methods: [GET]
+  options:
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
+
+canvas.api.interface_translation.lookup:
+  path: '/canvas/api/v0/interface-translation/{langcode}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiInterfaceTranslationController::lookup'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer code components+administer content templates+administer page template'
+    _format: 'json'
+  methods: [POST]
+  options:
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
+
 canvas.api.layout.content_template_draft:
   path: '/canvas/api/v0/layout-content-template-draft/{entity_type}/{preview_entity}'
   defaults:
