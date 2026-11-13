@@ -166,6 +166,9 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.empty-enum' => [
         'Prop "pets" has an empty enum value.',
       ],
+      'sdc.canvas_test_sdc.enum-invalid-icons' => [
+        '"x-canvas-enum-icons" on prop "align" must map values of its "enum" to icon names such as "text-align-left".',
+      ],
       'sdc.canvas_test_sdc.html-invalid-format' => [
         'Invalid value "invalid" for "x-formatting-context". Valid values are "inline" and "block".',
       ],

@@ -405,7 +405,7 @@ However, if there is Vanilla JS that impacts the layout of elements within the f
 
 #### 3.5.3 Enhanced rendering of core widgets
 Some core widgets render with a more visual control. The original form element stays in the DOM and remains the form element: the visual control sets its value, which fires the same change event as direct input.
-- In the component instance form, `options_select` with 2 to 4 short options renders as a segmented control. The `<select>` is hidden. See `ui/src/components/form/components/SegmentedSelect.tsx`.
+- In the component instance form, `options_select` with 2 to 4 short options renders as a segmented control. The `<select>` is hidden. See `ui/src/components/form/components/SegmentedSelect.tsx`. An SDC enum prop can name an icon per option with `x-canvas-enum-icons`, a map of enum value to [Radix icon](https://www.radix-ui.com/icons) name, such as `{left: text-align-left}`. The icon replaces the option's label, which stays as its tooltip and accessible name.
 - `number` with a `min` and a `max` renders a slider next to the number input, if that offers at most 10,000 positions. The step is the prop's `multipleOf`, otherwise 1 for integers and 100 steps across the range for numbers. See `ui/src/components/form/components/NumberSlider.tsx`.
 
 #### 3.5.4 Auto-save and real time preview considerations

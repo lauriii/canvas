@@ -187,6 +187,18 @@ final class ComponentMetadataRequirementsChecker {
         }
       }
 
+      // Validation for x-canvas-enum-icons: a map of enum value to icon name.
+      // The UI knows which icon names exist and shows the label for the rest.
+      // @see ui/src/components/form/components/SegmentedSelect.tsx
+      if (\array_key_exists('x-canvas-enum-icons', $prop)) {
+        $icons = $prop['x-canvas-enum-icons'];
+        $enum = \array_map('strval', $prop['enum'] ?? []);
+        if (!\is_array($icons) || \array_diff(\array_map('strval', \array_keys($icons)), $enum) !== [] || \array_filter($icons, static fn (mixed $icon): bool => !\is_string($icon) || !\preg_match('/^[a-z0-9]+(-[a-z0-9]+)*$/', $icon)) !== []) {
+          $messages[] = \sprintf('"x-canvas-enum-icons" on prop "%s" must map values of its "enum" to icon names such as "text-align-left".', $prop_name);
+          continue;
+        }
+      }
+
       // Validation for x-canvas-color-folders.
       if (\array_key_exists('x-canvas-color-folders', $prop)) {
         $folders = $prop['x-canvas-color-folders'];

@@ -43,6 +43,41 @@ describe('fitsSegmentedControl', () => {
   });
 });
 
+describe('option icons', () => {
+  const attributes = {
+    'data-canvas-option-icons': JSON.stringify({
+      a: 'text-align-left',
+      b: 'no-such-icon',
+    }),
+  };
+
+  it('fits long labels that are replaced by icons', () => {
+    const options = [
+      option('a', 'A very long option label that would not fit'),
+      option('b', 'Right'),
+    ];
+    expect(fitsSegmentedControl({}, options)).toBe(false);
+    expect(fitsSegmentedControl(attributes, options)).toBe(true);
+  });
+
+  it('shows the icon, and keeps the label of an unknown icon', () => {
+    render(
+      <Theme>
+        <SegmentedSelect
+          attributes={{ id: 'edit-align', name: 'align', ...attributes }}
+          options={[option('a', 'Left', true), option('b', 'Right')]}
+        />
+      </Theme>,
+    );
+    const left = screen.getByRole('radio', { name: 'Left' });
+    expect(left.querySelector('svg')).not.toBeNull();
+    expect(left.textContent).toBe('');
+    expect(left.getAttribute('title')).toBe('Left');
+    const right = screen.getByRole('radio', { name: 'Right' });
+    expect(right.querySelector('svg')).toBeNull();
+  });
+});
+
 // Clicking a segment is covered by ui/tests/e2e/prop-types.cy.js: jsdom wraps
 // <select> in a Proxy, which rejects interceptNativeSetter().
 describe('SegmentedSelect', () => {
