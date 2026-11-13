@@ -1,0 +1,217 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\canvas\Plugin\Canvas\OptionsSource;
+
+use Drupal\canvas\Attribute\OptionsSource;
+use Drupal\canvas\OptionsSource\OptionsSourceInterface;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface;
+use Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManagerInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Plugin\PluginBase;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\taxonomy\TermStorageInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
+/**
+ * Offers the entities of a type, optionally of some bundles, by ID.
+ *
+ * Uses the entity type's default entity reference selection handler, so the
+ * options respect access. Taxonomy terms are listed in tree order, labeled with
+ * their path, such as "Design › Typography".
+ *
+ * @code
+ * x-canvas-options:
+ *   source: entity
+ *   entity_type: taxonomy_term
+ *   bundles: [tags]
+ * @endcode
+ */
+#[OptionsSource(
+  id: 'entity',
+  label: new TranslatableMarkup('Site content'),
+)]
+final class EntityOptionsSource extends PluginBase implements OptionsSourceInterface, ContainerFactoryPluginInterface {
+
+  /**
+   * Entity types that authors rarely pick from.
+   */
+  private const array NOT_SUGGESTED = ['comment', 'block_content', 'shortcut'];
+
+  /**
+   * Entity types without bundles that authors pick from, such as a menu.
+   */
+  private const array SUGGESTED_WITHOUT_BUNDLES = ['menu', 'user'];
+
+  public function __construct(
+    array $configuration,
+    string $plugin_id,
+    mixed $plugin_definition,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
+    private readonly SelectionPluginManagerInterface $selectionManager,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
+  ) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): self {
+    return new self(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(EntityTypeBundleInfoInterface::class),
+      $container->get(SelectionPluginManagerInterface::class),
+      $container->get(EntityFieldManagerInterface::class),
+    );
+  }
+
+  public function getOptions(): array {
+    $entity_type_id = $this->configuration['entity_type'];
+    // The module that provides the entity type may have been uninstalled.
+    $entity_type = $this->entityTypeManager->getDefinition($entity_type_id, FALSE);
+    if ($entity_type === NULL) {
+      return [];
+    }
+    $label_key = $entity_type->getKey('label');
+    $handler = $this->selectionManager->getInstance([
+      'target_type' => $entity_type_id,
+      'target_bundles' => $this->configuration['bundles'] ?? NULL,
+      'sort' => ['field' => $label_key === FALSE ? '_none' : $label_key, 'direction' => 'ASC'],
+      // Only the user selection handler uses this: nobody picks "Anonymous".
+      'include_anonymous' => FALSE,
+    ]);
+    \assert($handler instanceof SelectionInterface);
+    $options = [];
+    foreach ($handler->getReferenceableEntities() as $bundle_options) {
+      foreach ($bundle_options as $id => $label) {
+        // Selection handlers escape labels for use in HTML.
+        $options[$id] = Html::decodeEntities((string) $label);
+      }
+    }
+    return $entity_type_id === 'taxonomy_term' ? $this->labelTermsWithTheirPath($options) : $options;
+  }
+
+  /**
+   * Labels terms with their path, such as "Design › Typography".
+   *
+   * The term selection handler lists terms as a tree, with a dash per level.
+   * A path keeps the parent visible once a term is chosen, and when searching.
+   *
+   * @param array<int|string, string> $options
+   *   Term labels as the term selection handler lists them, keyed by term ID.
+   *
+   * @return array<int|string, string>
+   *   The same options, in the same order, labeled with their path.
+   *
+   * @see \Drupal\taxonomy\Plugin\EntityReferenceSelection\TermSelection::getReferenceableEntities()
+   */
+  private function labelTermsWithTheirPath(array $options): array {
+    $storage = $this->entityTypeManager->getStorage('taxonomy_term');
+    \assert($storage instanceof TermStorageInterface);
+    $parents = [];
+    $names = [];
+    $depths = [];
+    $vocabularies = $this->configuration['bundles'] ?? \array_keys($this->entityTypeBundleInfo->getBundleInfo('taxonomy_term'));
+    foreach ($vocabularies as $vocabulary) {
+      foreach ($storage->loadTree($vocabulary) as $term) {
+        // Without loading entities, terms are plain objects.
+        \assert($term instanceof \stdClass);
+        $parents[$term->tid] = (int) ($term->parents[0] ?? 0);
+        $names[$term->tid] = $term->name;
+        // A term with several parents is in the tree once per parent. Like the
+        // selection handler's label, its depth is that of the last one.
+        $depths[$term->tid] = $term->depth;
+      }
+    }
+    foreach ($options as $id => $label) {
+      // Remove the selection handler's dash per level.
+      $options[$id] = substr($label, $depths[$id] ?? 0);
+    }
+    $paths = [];
+    foreach ($options as $id => $label) {
+      $path = [$label];
+      for ($parent = $parents[$id] ?? 0; $parent !== 0; $parent = $parents[$parent] ?? 0) {
+        // An inaccessible parent is not an option; use its untranslated name.
+        array_unshift($path, $options[$parent] ?? $names[$parent]);
+      }
+      $paths[$id] = implode(' › ', $path);
+    }
+    return $paths;
+  }
+
+  public function validateConfiguration(string $type): array {
+    $unknown = \array_diff(\array_keys($this->configuration), ['entity_type', 'bundles']);
+    if ($unknown) {
+      return [\sprintf('Unknown keys for the "entity" source: %s. Use `entity_type` and optionally `bundles`.', implode(', ', $unknown))];
+    }
+    $entity_type_id = $this->configuration['entity_type'] ?? NULL;
+    if (!\is_string($entity_type_id) || !$this->entityTypeManager->hasDefinition($entity_type_id)) {
+      return [\sprintf('`entity_type` must be an existing entity type, but is %s.', json_encode($entity_type_id))];
+    }
+    if ($type === 'integer' && !$this->hasIntegerIds($entity_type_id)) {
+      return [\sprintf('"%s" has text IDs, such as machine names. Use `type: string`.', $entity_type_id)];
+    }
+    if (!\array_key_exists('bundles', $this->configuration)) {
+      return [];
+    }
+    $bundles = $this->configuration['bundles'];
+    if (!\is_array($bundles) || !array_is_list($bundles) || $bundles === []) {
+      return ['`bundles` must be a list of bundles, such as `[tags]`.'];
+    }
+    $missing = \array_diff($bundles, \array_keys($this->entityTypeBundleInfo->getBundleInfo($entity_type_id)));
+    return $missing
+      ? [\sprintf('`bundles` lists %s, which "%s" does not have.', implode(', ', \array_map(fn ($bundle) => json_encode($bundle), $missing)), $entity_type_id)]
+      : [];
+  }
+
+  /**
+   * Whether the entities of a type have integer IDs.
+   */
+  private function hasIntegerIds(string $entity_type_id): bool {
+    $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+    if (!$entity_type instanceof ContentEntityTypeInterface) {
+      // Config entities have machine names.
+      return FALSE;
+    }
+    $id_key = $entity_type->getKey('id');
+    $id_field = $this->entityFieldManager->getBaseFieldDefinitions($entity_type_id)[$id_key] ?? NULL;
+    return $id_field?->getType() === 'integer';
+  }
+
+  public function getSuggestions(): array {
+    $suggestions = [];
+    foreach ($this->entityTypeManager->getDefinitions() as $entity_type_id => $entity_type) {
+      // Suggest what content authors pick from: entities in site-configured
+      // bundles (vocabularies, content types, media types…), menus and users.
+      // Other entity types, such as image styles, can be set in
+      // `component.yml`.
+      if (\in_array($entity_type_id, self::SUGGESTED_WITHOUT_BUNDLES, TRUE)) {
+        $suggestions[] = [
+          'label' => (string) $entity_type->getLabel(),
+          'configuration' => ['entity_type' => $entity_type_id],
+        ];
+        continue;
+      }
+      if (!$entity_type instanceof ContentEntityTypeInterface || $entity_type->getBundleEntityType() === NULL || $entity_type->isInternal() || \in_array($entity_type_id, self::NOT_SUGGESTED, TRUE)) {
+        continue;
+      }
+      foreach ($this->entityTypeBundleInfo->getBundleInfo($entity_type_id) as $bundle => $info) {
+        $suggestions[] = [
+          'label' => \sprintf('%s: %s', $entity_type->getLabel(), $info['label']),
+          'configuration' => ['entity_type' => $entity_type_id, 'bundles' => [$bundle]],
+        ];
+      }
+    }
+    usort($suggestions, fn (array $a, array $b) => strnatcasecmp($a['label'], $b['label']));
+    return $suggestions;
+  }
+
+}

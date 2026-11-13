@@ -543,3 +543,23 @@ entity type and bundle live in the JavaScriptComponent config entity's `dataDepe
 truth). At runtime, `JavaScriptComponent::toSdcDefinition()` **projects** these keys into the SDC definition so it matches the
 shape above. The persisted config entity is never mutated; the projection produces a local copy of the props for the SDC
 definition. See ADR 11.
+
+#### 3.2.4 Options from site data
+
+A `type: string` or `type: integer` prop (or the `items` of a `type: array` prop) with `x-canvas-options` is stored like an
+`enum` prop: `list_string` or `list_integer` with the `canvas_load_allowed_values_for_component_prop` allowed values
+function, and the `options_select` widget. Instead of `enum` + `meta:enum`, an `OptionsSource` plugin lists the options when
+the form is built. `x-canvas-options.source` is the plugin ID; its other keys are the plugin's configuration:
+
+```yaml
+category:
+  type: string
+  title: Category
+  x-canvas-options:
+    source: entity
+    entity_type: taxonomy_term
+    bundles: [tags]
+```
+
+Because the shape includes `x-canvas-options`, each source configuration is a distinct prop shape. Such props must be
+optional, and cannot have `enum`. See `\Drupal\canvas\OptionsSource\OptionsSourceInterface`.

@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\OptionsSource\OptionsSourceInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -363,6 +364,25 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       unset($prop_field_definition);
     }
     return $settings;
+  }
+
+  /**
+   * Gets where an explicit input prop's options come from, if from site data.
+   *
+   * @return array<string, mixed>|null
+   *   The prop's `x-canvas-options`, or NULL if it has none.
+   *
+   * @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+   */
+  public function getOptionsSourceForExplicitInputProp(string $prop_name): ?array {
+    $shape = $this->getExplicitInputDefinitions()['shapes'][$prop_name] ?? NULL;
+    if ($shape === NULL) {
+      return NULL;
+    }
+    $schema = (new PropShape($shape))->resolvedSchema;
+    // For multiple values, the options apply to each item.
+    $item_schema = ($schema['type'] ?? NULL) === 'array' ? ($schema['items'] ?? []) : $schema;
+    return $item_schema[OptionsSourceInterface::KEY] ?? NULL;
   }
 
   /**
@@ -1028,6 +1048,27 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
+
+      // Options from site data.
+      // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+      if (($form[$sdc_prop_name]['widget']['#type'] ?? NULL) === 'select' && $this->getOptionsSourceForExplicitInputProp($sdc_prop_name) !== NULL) {
+        $select = &$form[$sdc_prop_name]['widget'];
+        // The UI offers search however many options there are today.
+        $select['#attributes']['data-canvas-options-source'] = 'true';
+        // Keep a value that is no longer an option, such as a deleted term or
+        // one the current user cannot view. The widget drops it from its
+        // default value, so the select would fall back to "None", and the next
+        // change would clear the prop.
+        $stored_values = \array_map(strval(...), (array) ($source->getValue() ?? []));
+        $unavailable_values = \array_diff($stored_values, \array_map(strval(...), \array_keys($select['#options'] ?? [])));
+        foreach ($unavailable_values as $value) {
+          $select['#options'][$value] = new TranslatableMarkup('Unavailable (@id)', ['@id' => $value]);
+        }
+        if ($unavailable_values) {
+          $select['#default_value'] = !empty($select['#multiple']) ? $stored_values : reset($stored_values);
+        }
+        unset($select);
+      }
 
       if ($entity instanceof ContentTemplate) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);

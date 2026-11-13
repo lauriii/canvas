@@ -1,3 +1,5 @@
+/* Styles for react-select pickers, matching the other form elements.
+   @see ui/src/components/form/components/TextField.module.css */
 .container {
   width: 100%;
 }
@@ -6,147 +8,149 @@
   display: none;
 }
 
-/* React Select Control (Main input container) */
-.container [class*="canvas-select__control"] {
-  flex-wrap: wrap;
-  min-height: 40px;
-  padding: 1px 1px;
+/* Control: like a text field. */
+.container [class~="canvas-select__control"] {
+  min-height: 2rem;
   cursor: pointer;
-  border: 1px solid var(--slate-7);
+  border: none;
   border-radius: 4px;
   background-color: white;
+  box-shadow: inset 0 0 0 1px var(--slate-5);
 }
 
-.container [class*="canvas-select__control"]:hover {
-  border-color: var(--blue-9);
+.container [class~="canvas-select__control"]:hover {
+  box-shadow: inset 0 0 0 1px var(--slate-7);
 }
 
-.container [class*="canvas-select__control--is-focused"] {
-  border-color: var(--blue-9);
-  box-shadow: 0 0 0 1px var(--blue-9);
+.container [class~="canvas-select__control--is-focused"],
+.container [class~="canvas-select__control--is-focused"]:hover {
+  /* react-select removes the outline, so draw the focus ring as a shadow. */
+  box-shadow:
+    inset 0 0 0 1px var(--slate-7),
+    0 0 0 2px var(--focus-8);
 }
 
-/* Value Container */
-.container [class*="canvas-select__value-container"] {
-  padding: 1px 2px;
+.container [class~="canvas-select__value-container"] {
+  gap: 4px;
+  padding: 3px 4px 3px 8px;
 }
 
-/* Multi Value (Selected chips/tags) */
-.container [class*="canvas-select__multi-value"] {
-  margin: 2px;
-  border-radius: 4px;
-  background-color: var(--blue-3);
+.container [class~="canvas-select__single-value"],
+.container [class~="canvas-select__placeholder"],
+.container [class~="canvas-select__input-container"] {
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: 21px;
 }
 
-.container [class*="canvas-select__multi-value__label"] {
-  overflow: hidden;
-  max-width: 100px;
-  padding: 2px 4px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--blue-9);
-  font-size: 12px;
-}
-
-.container [class*="canvas-select__multi-value__remove"] {
-  padding: 0 4px;
-  cursor: pointer;
-  color: var(--blue-9);
-  background-color: transparent;
-}
-
-.container [class*="canvas-select__multi-value__remove"]:hover {
-  color: var(--red-9);
-  background-color: transparent;
-}
-
-/* Dropdown Menu */
-.container [class*="canvas-select__menu"] {
-  z-index: 9999;
-  padding: 4px 0;
-  border-radius: 4px;
-}
-
-.container [class*="canvas-select__menu-list"] {
-  padding: 1px 2px;
-}
-
-/* Dropdown Options */
-.container [class*="canvas-select__option"] {
-  width: calc(100% - 4px);
-  margin: 1px 2px;
-  padding: var(--space-2) var(--space-3);
-  cursor: pointer;
+.container [class~="canvas-select__single-value"],
+.container [class~="canvas-select__input-container"] {
   color: var(--slate-12);
-  border-radius: 6px;
-  background-color: transparent;
-  font-size: 14px;
-  font-weight: 400;
 }
 
-.container [class*="canvas-select__option"]:active {
-  background-color: var(--blue-3);
+.container [class~="canvas-select__placeholder"] {
+  color: var(--slate-a9);
 }
 
-.container [class*="canvas-select__option--is-focused"] {
+/* Chips of multiple values: soft and neutral. */
+.container [class~="canvas-select__multi-value"] {
+  min-width: 0;
+  margin: 0;
+  border-radius: 3px;
   background-color: var(--slate-a3);
 }
 
-.container [class*="canvas-select__option--is-selected"] {
-  color: var(--blue-9);
-  background-color: var(--blue-3);
+.container [class~="canvas-select__multi-value__label"] {
+  overflow: hidden;
+  max-width: 100%;
+  padding: 1px 2px 1px 6px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--slate-12);
+  font-size: var(--font-size-1);
+  line-height: 18px;
+}
+
+.container [class~="canvas-select__multi-value__remove"] {
+  padding: 0 4px;
+  cursor: pointer;
+  color: var(--slate-10);
+  border-radius: 0 3px 3px 0;
+  background-color: transparent;
+}
+
+.container [class~="canvas-select__multi-value__remove"]:hover {
+  color: var(--slate-12);
+  background-color: var(--slate-a4);
+}
+
+/* Indicators: quiet until hovered. */
+.container [class~="canvas-select__dropdown-indicator"],
+.container [class~="canvas-select__clear-indicator"] {
+  padding: 0 6px;
+  color: var(--slate-10);
+}
+
+.container [class~="canvas-select__dropdown-indicator"]:hover,
+.container [class~="canvas-select__clear-indicator"]:hover {
+  color: var(--slate-12);
+}
+
+/* Menu: like other popovers. */
+.container [class~="canvas-select__menu"] {
+  z-index: 9999;
+  overflow: hidden;
+  margin-top: 4px;
+  border-radius: 6px;
+  box-shadow: var(--shadow-5);
+}
+
+.container [class~="canvas-select__menu-list"] {
+  padding: 4px;
+}
+
+.container [class~="canvas-select__option"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 2rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--slate-12);
+  border-radius: 4px;
+  background-color: transparent;
+  font-size: var(--font-size-2);
+  line-height: 21px;
+}
+
+.container [class~="canvas-select__option--is-focused"],
+.container [class~="canvas-select__option"]:active {
+  background-color: var(--slate-a3);
+}
+
+/* Chosen options get a check, not a color. */
+.container [class~="canvas-select__option--is-selected"] {
+  color: var(--slate-12);
   font-weight: 500;
 }
 
-/* Disabled Options (when cardinality limit reached) */
-.container [class*="canvas-select__option--is-disabled"] {
+.container [class~="canvas-select__option--is-selected"] svg {
+  flex-shrink: 0;
+  color: var(--accent-11);
+}
+
+/* Disabled options (when cardinality limit reached) */
+.container [class~="canvas-select__option--is-disabled"],
+.container [class~="canvas-select__option--is-disabled"]:hover {
   cursor: not-allowed;
   color: var(--slate-a8);
   background-color: transparent;
-  font-weight: 400;
 }
 
-.container [class*="canvas-select__option--is-disabled"]:hover {
-  color: var(--slate-a8);
-  background-color: transparent;
+.container [class~="canvas-select__menu-notice"] {
+  padding: 6px 8px;
+  text-align: start;
+  color: var(--slate-a10);
+  font-size: var(--font-size-2);
 }
-
-/* Placeholder */
-.container [class*="canvas-select__placeholder"] {
-  color: var(--slate-a9);
-  font-size: 14px;
-}
-
-/* Input */
-.container [class*="canvas-select__input-container"] {
-  color: var(--slate-12);
-  font-size: 14px;
-}
-
-/* Dropdown Indicator */
-.container [class*="canvas-select__dropdown-indicator"] {
-  padding: var(--space-2);
-  color: #6E7B8B;
-}
-
-.container [class*="canvas-select__dropdown-indicator"]:hover {
-  color: var(--slate-12);
-}
-
-/* Clear Indicator */
-.container [class*="canvas-select__clear-indicator"] {
-  padding: 2px;
-  cursor: pointer;
-  color: #6E7B8B;
-}
-
-.container [class*="canvas-select__clear-indicator"]:hover {
-  color: var(--red-9);
-}
-
-/* No Options Message */
-.container [class*="canvas-select__menu-notice--no-options"] {
-  color: var(--slate-a8);
-  font-size: 14px;
-}
-

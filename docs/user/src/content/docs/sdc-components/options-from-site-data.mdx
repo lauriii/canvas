@@ -1,0 +1,115 @@
+---
+title: SDC components - Options from site data
+---
+
+A prop can offer options that come from the site instead of a fixed `enum`:
+the terms of a vocabulary, articles, users, menus, or the results of a view. Content
+authors pick from the options as they are when they edit, so site builders add
+options without changing the component.
+
+Add `x-canvas-options` to a `string` or `integer` prop. Its `source` says where
+the options come from; the other keys configure that source.
+
+```yaml
+props:
+  type: object
+  properties:
+    category:
+      type: string
+      title: Category
+      x-canvas-options:
+        source: entity
+        entity_type: taxonomy_term
+        bundles: [tags]
+```
+
+The component receives the ID of the chosen option, such as the term ID `'5'`,
+not its label. A code component can fetch what else it needs with that ID, for
+example from JSON:API.
+
+## Sources
+
+### `entity`
+
+Offers entities of a type, optionally of some bundles, through the entity type's
+entity reference selection handler. Content authors see the same entities an
+entity reference field would offer them: for example, only published content
+they can view, but all active users. Taxonomy terms are
+listed as a tree: content authors search them, and see the chosen term with its
+parents, such as **Design › Typography**.
+
+| Key | Required | Example |
+| --- | --- | --- |
+| `entity_type` | yes | `taxonomy_term`, `node`, `user`, `media`, `menu` (`menu` and other config entities need `type: string`) |
+| `bundles` | no | `[tags]`, `[article, page]` |
+
+### `view`
+
+Offers the results of a view's **Entity Reference** display. Site builders
+choose which entities are offered, their order and their labels in the view.
+
+| Key | Required | Example |
+| --- | --- | --- |
+| `view` | yes | `featured_articles` |
+| `display` | yes | `entity_reference_1` |
+| `arguments` | no | `['5']`, the values of the view's contextual filters, as text |
+
+```yaml
+    featured:
+      type: string
+      title: Featured story
+      x-canvas-options:
+        source: view
+        view: featured_articles
+        display: entity_reference_1
+```
+
+### Your own source
+
+Modules can add sources, for example for options from an external API:
+
+1. Add a plugin in `src/Plugin/Canvas/OptionsSource` with the
+   `#[OptionsSource]` attribute. Extend `PluginBase` and implement
+   `OptionsSourceInterface`. The keys next to `source` are the plugin's
+   `$this->configuration`.
+2. `getOptions()` returns labels keyed by the values props receive: integers
+   for `type: integer` props. It runs, uncached, as the current user each time
+   the form is built. Return `[]` rather than throw when the data is gone. Label
+   nested options with their path, such as `Design › Typography`.
+3. `validateConfiguration()` returns problems as sentences. `getSuggestions()`
+   returns the configurations offered in the code editor, or `[]`.
+4. Define the config schema type `canvas.options_source.<plugin ID>` for the
+   keys, with the `FullyValidatable` constraint. Code components need it.
+
+See `EntityOptionsSource` for an example.
+
+## Rules
+
+- A prop with options from site data must be optional, because the site may have
+  no options to choose from. It cannot have `enum` or `examples`: an example
+  would become the default value, but IDs differ between sites.
+- For multiple values, put `x-canvas-options` in `items`:
+
+  ```yaml
+      topics:
+        type: array
+        title: Topics
+        items:
+          type: string
+          x-canvas-options:
+            source: entity
+            entity_type: taxonomy_term
+            bundles: [tags]
+  ```
+
+- Canvas validates the source when it discovers the component. An unknown
+  source, entity type, bundle or view makes the component unavailable, with
+  the reason in the component list.
+- If an option is deleted later, or the content author cannot view it, pages
+  that use it keep its ID, and the form shows it as **Unavailable**. Handle
+  IDs that no longer exist in the component.
+- Canvas does not check stored values against the options on the server. The
+  form only offers the options.
+
+Code components get the same sources from the **List: from site** prop type in
+the code editor.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\JsonSchemaInterpreter;
 
+use Drupal\canvas\OptionsSource\OptionsSourceInterface;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -333,6 +334,17 @@ enum JsonSchemaType: string {
         // Require $ref to be resolved, because that might add some of the other
         // keywords.
         \array_key_exists('$ref', $schema) => NULL,
+        // Options from site data: the allowed values function gets them from
+        // the options source.
+        // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+        \array_key_exists(OptionsSourceInterface::KEY, $schema) => new StorablePropShape(
+          shape: $shape,
+          fieldTypeProp: new FieldTypePropExpression('list_string', 'value'),
+          fieldWidget: 'options_select',
+          fieldStorageSettings: [
+            'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
+          ],
+        ),
         \array_key_exists('enum', $schema) => match(\in_array('', $schema['enum'], TRUE)) {
           // The empty string is not a sensible enum value. To indicate
           // optionality, the prop should be made optional.
@@ -380,7 +392,7 @@ enum JsonSchemaType: string {
         // `multipleOf` has no equivalent field type in Drupal core, so leave it
         // to contrib.
         \array_key_exists('multipleOf', $schema) => NULL,
-        \array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
+        \array_key_exists('enum', $schema), \array_key_exists(OptionsSourceInterface::KEY, $schema) => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
         // `min` and/or `max`

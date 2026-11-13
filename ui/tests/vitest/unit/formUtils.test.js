@@ -506,6 +506,51 @@ Value`,
     // Should be truncated to 2 items (maxItems: 2), not 3.
     expect(propsValues.tags).to.deep.equal(['red', 'green']);
   });
+
+  it('Should drop the empty option of props with options from site data', () => {
+    const options = { source: 'entity', entity_type: 'taxonomy_term' };
+    const { propsValues, selectedModel } = getPropsValues(
+      {
+        'canvas_component_props[all-props][category]': '_none',
+        'canvas_component_props[all-props][author]': '_none',
+        'canvas_component_props[all-props][topics][]': ['_none', '5'],
+        form_build_id: 'test-form-build-id',
+        form_token: 'test-form-token',
+        form_id: 'component_instance_form',
+      },
+      {
+        version: '82b745980fd23b55',
+        selectedComponent: 'all-props',
+        selectedComponentType: 'sdc.sdc_test_all_props.all-props',
+        layout: [],
+        model: {
+          'all-props': { resolved: { category: '6', author: 1 }, source: {} },
+        },
+        components: {
+          'sdc.sdc_test_all_props.all-props': {
+            propSources: {
+              category: {
+                jsonSchema: { type: 'string', 'x-canvas-options': options },
+              },
+              author: {
+                jsonSchema: { type: 'integer', 'x-canvas-options': options },
+              },
+              topics: {
+                jsonSchema: {
+                  type: 'array',
+                  items: { type: 'string', 'x-canvas-options': options },
+                },
+              },
+            },
+          },
+        },
+      },
+      {},
+    );
+    expect(propsValues).to.deep.equal({ topics: ['5'] });
+    // Picking the empty option clears the previous value.
+    expect(selectedModel.resolved).to.deep.equal({});
+  });
 });
 
 describe('coerceValueForSchema', () => {
@@ -792,6 +837,20 @@ describe('propInputData', () => {
 });
 
 describe('getCurrentValueFromProps', () => {
+  it('should return every selected option of a multiple select', () => {
+    expect(
+      getCurrentValueFromProps({
+        attributes: { multiple: 'multiple' },
+        options: [
+          { value: '_none', selected: false },
+          { value: '3', selected: true },
+          { value: '5', selected: false },
+          { value: '6', selected: true },
+        ],
+      }),
+    ).to.deep.equal(['3', '6']);
+  });
+
   it('should return false for an unchecked checkbox despite a truthy value attribute', () => {
     // An unchecked Drupal checkbox: #checked is false, but the checkbox
     // return value ("1") is present in attributes.value and #default_value.

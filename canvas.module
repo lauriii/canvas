@@ -11,8 +11,10 @@
 ini_set('assert.active', 1);
 
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\OptionsSource\OptionsSourceManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropSource\FieldStorageDefinition;
+use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
@@ -48,6 +50,19 @@ function canvas_load_allowed_values_for_component_prop(FieldStorageDefinitionInt
   // UX using fields.
   $source = $component->getComponentSource();
   assert($source instanceof JsonSchemaPropsComponentSourceBase);
+
+  // Options from site data.
+  // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+  $options_source = $source->getOptionsSourceForExplicitInputProp($prop_name);
+  if ($options_source !== NULL) {
+    try {
+      return \Drupal::service(OptionsSourceManager::class)->createFromPropSchema($options_source)->getOptions();
+    }
+    catch (PluginException) {
+      // The module that provides the source was uninstalled.
+      return [];
+    }
+  }
 
   return $source->getOptionsForExplicitInputEnumProp($prop_name);
 }

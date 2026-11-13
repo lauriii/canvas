@@ -176,5 +176,19 @@ function hook_canvas_content_operation(EntityInterface $entity): array {
 }
 
 /**
+ * Alter the sources of options for component props.
+ *
+ * @param array<string, array<string, mixed>> $definitions
+ *   The options source plugin definitions, keyed by plugin ID.
+ *
+ * @see \Drupal\canvas\OptionsSource\OptionsSourceManager
+ * @see docs/user/src/content/docs/sdc-components/options-from-site-data.mdx
+ */
+function hook_canvas_options_source_info_alter(array &$definitions): void {
+  // Hide the view source from code component developers and SDCs.
+  unset($definitions['view']);
+}
+
+/**
  * @} End of "addtogroup hooks".
  */

@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactSelect, { components } from 'react-select';
-import { ChevronDownIcon, Cross2Icon } from '@radix-ui/react-icons';
+import { Cross2Icon } from '@radix-ui/react-icons';
 
+import {
+  ClearIndicator,
+  DropdownIndicator,
+  Option,
+  useLabelId,
+} from '@/components/form/components/reactSelectParts';
+import {
+  formatTreeOptionLabel,
+  noOptionsMessage,
+} from '@/components/form/components/treeOptionLabel';
 import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils';
 
 import type {
   ActionMeta,
-  ClearIndicatorProps,
-  DropdownIndicatorProps,
   MultiValue,
   MultiValueRemoveProps,
 } from 'react-select';
@@ -39,17 +47,6 @@ export interface DrupalSelectMultivalueFormProps {
 type ReactSelectOption = { value: string; label: string };
 
 /**
- * Custom dropdown indicator using Radix ChevronDownIcon.
- */
-const DropdownIndicator = (
-  props: DropdownIndicatorProps<ReactSelectOption, true>,
-) => (
-  <components.DropdownIndicator {...props}>
-    <ChevronDownIcon width={20} height={20} />
-  </components.DropdownIndicator>
-);
-
-/**
  * Custom multi-value remove button using Radix Cross2Icon.
  */
 const MultiValueRemove = (
@@ -58,17 +55,6 @@ const MultiValueRemove = (
   <components.MultiValueRemove {...props}>
     <Cross2Icon width={10} height={10} />
   </components.MultiValueRemove>
-);
-
-/**
- * Custom clear indicator using Radix Cross2Icon.
- */
-const ClearIndicator = (
-  props: ClearIndicatorProps<ReactSelectOption, true>,
-) => (
-  <components.ClearIndicator {...props}>
-    <Cross2Icon width={12} height={12} />
-  </components.ClearIndicator>
 );
 
 /**
@@ -86,8 +72,9 @@ const HiddenSelect: React.FC<{
     },
   );
 
-  // Ensure value is always an array for multiple select.
-  const selectValue = nativeSelectProps.value;
+  // Ensure value is always an array for multiple select. Read it before a2p,
+  // which joins arrays with spaces (intended for CSS classes).
+  const selectValue = attributes.value ?? nativeSelectProps.value;
   const normalizedValue = Array.isArray(selectValue)
     ? selectValue
     : selectValue
@@ -188,8 +175,7 @@ const DrupalSelectMultivalueForm = ({
     el.dispatchEvent(changeEvent);
   };
 
-  const fieldLabel = String(attributes['data-field-label'] || '');
-  const placeholderText = `Select ${fieldLabel}`;
+  const labelledBy = useLabelId(attributes.id);
 
   return (
     <div className={styles.container}>
@@ -208,14 +194,18 @@ const DrupalSelectMultivalueForm = ({
         options={reactSelectOptions}
         value={localSelectedValues}
         onChange={handleChange}
-        placeholder={placeholderText}
-        aria-label={placeholderText}
+        placeholder="Choose…"
+        aria-labelledby={labelledBy}
         classNamePrefix="canvas-select"
         closeMenuOnSelect={false}
-        noOptionsMessage={() => 'No selection'}
+        noOptionsMessage={noOptionsMessage}
+        // Keep chosen options in the menu, so nested options stay a tree.
+        hideSelectedOptions={false}
+        formatOptionLabel={formatTreeOptionLabel}
         components={{
           DropdownIndicator,
           MultiValueRemove,
+          Option,
           ClearIndicator,
           IndicatorSeparator: () => null,
         }}

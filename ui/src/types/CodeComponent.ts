@@ -1,5 +1,15 @@
 import type derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 
+/**
+ * Options from site data, as `x-canvas-options`.
+ *
+ * @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+ */
+export type CodeComponentOptionsSource = { source: string } & Record<
+  string,
+  unknown
+>;
+
 export interface DataFetch {
   id: string;
   data: any;
@@ -101,6 +111,7 @@ export interface CodeComponentProp {
   'x-canvas-color-folders'?: string[];
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
+  'x-canvas-options'?: CodeComponentOptionsSource;
   allowMultiple?: boolean;
   valueMode?: ValueMode;
   limitedCount?: number;
@@ -111,6 +122,7 @@ export interface CodeComponentProp {
     'x-formatting-context'?: string;
     'x-allowed-entity-type-id'?: string;
     'x-allowed-bundle'?: string;
+    'x-canvas-options'?: CodeComponentOptionsSource;
     $ref?: string;
     enum?: (string | number)[];
     'meta:enum'?: Record<
@@ -157,6 +169,7 @@ export interface CodeComponentPropSerialized {
   'x-formatting-context'?: string;
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
+  'x-canvas-options'?: CodeComponentOptionsSource;
   maxItems?: number;
   items?: {
     type: 'string' | 'integer' | 'number' | 'boolean' | 'object';
@@ -165,6 +178,7 @@ export interface CodeComponentPropSerialized {
     'x-formatting-context'?: string;
     'x-allowed-entity-type-id'?: string;
     'x-allowed-bundle'?: string;
+    'x-canvas-options'?: CodeComponentOptionsSource;
     $ref?: string;
     enum?: (string | number)[];
     'meta:enum'?: Record<

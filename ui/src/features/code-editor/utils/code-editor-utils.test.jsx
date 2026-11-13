@@ -210,6 +210,42 @@ describe('Code editor utilities', () => {
     });
   });
 
+  it('round-trips props with options from site data', () => {
+    const serialized = {
+      category: {
+        title: 'Category',
+        type: 'string',
+        'x-canvas-options': {
+          source: 'entity',
+          entity_type: 'taxonomy_term',
+          bundles: ['tags'],
+        },
+      },
+    };
+    const [prop] = deserializeProps(serialized);
+    expect(prop.derivedType).toBe('siteOptions');
+    expect(serializeProps([prop])).toEqual(serialized);
+  });
+
+  it('round-trips multiple-value props with options from site data', () => {
+    const serialized = {
+      topics: {
+        title: 'Topics',
+        type: 'array',
+        items: {
+          type: 'string',
+          'x-canvas-options': {
+            source: 'entity',
+            entity_type: 'taxonomy_term',
+          },
+        },
+      },
+    };
+    const [prop] = deserializeProps(serialized);
+    expect(prop.derivedType).toBe('siteOptions');
+    expect(serializeProps([prop])).toEqual(serialized);
+  });
+
   describe('deserialize props', () => {
     it('of type text', () => {
       const result = deserializeProps([

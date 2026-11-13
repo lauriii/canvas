@@ -46,6 +46,7 @@ import { extensionsApi } from '@/services/extensions';
 import { headlessComponentSyncApi } from '@/services/headlessComponentSync';
 import { headlessFrontendsApi } from '@/services/headlessFrontends';
 import { notificationsApi } from '@/services/notificationsApi';
+import { optionsSourcesApi } from '@/services/optionsSourcesApi';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { pageVariantsApi } from '@/services/pageVariants';
 import { patternApi } from '@/services/patterns';
@@ -175,6 +176,7 @@ const rootReducer = combineSlices(
   publishReviewSlice,
   contentApi,
   contentEntityReferenceApi,
+  optionsSourcesApi,
   codeEditorSlice,
   previewSlice,
   queryErrorSlice,
@@ -269,6 +271,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pendingChangesApi.middleware,
         contentApi.middleware,
         contentEntityReferenceApi.middleware,
+        optionsSourcesApi.middleware,
         rtkQueryErrorHandler, // Add the error handling middleware
       );
     },

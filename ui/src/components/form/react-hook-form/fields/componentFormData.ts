@@ -247,6 +247,22 @@ export function getPropsValues(
   const propsValues = Object.entries(
     formStateToObject(formState, selectedComponent),
   ).reduce((carry: PropsValues, [key, value]) => {
+    // Options from site data have no `enum` that rules out the empty option of
+    // options widgets, so drop it here, like values outside an `enum` below.
+    // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::EMPTY_VALUE
+    // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+    const schema = fieldData[key]?.jsonSchema;
+    if ((schema?.items ?? schema)?.['x-canvas-options']) {
+      if (value === '_none') {
+        const resolved = { ...selectedModel.resolved };
+        delete resolved[key as keyof ComponentModel['resolved']];
+        selectedModel.resolved = resolved;
+        return carry;
+      }
+      if (Array.isArray(value)) {
+        value = value.filter((item) => item !== '_none');
+      }
+    }
     if (key in transformConfig) {
       let fieldTransforms = transformConfig[key];
       // Internally to formStateToObject we make use of the `qs` npm package and
