@@ -79,6 +79,52 @@ describe('IframeSwapper', () => {
     expect(setIsReloading).toHaveBeenLastCalledWith(false);
   });
 
+  it('swaps in a document once when it starts loading while another waits to hydrate', async () => {
+    const store = makeStore();
+    store.dispatch(setHtml(page('initial'), previewEditCount()));
+    const { container } = render(
+      <Provider store={store}>
+        <Swapper />
+      </Provider>,
+    );
+    await waitFor(() => expect(setIsReloading).toHaveBeenLastCalledWith(false));
+
+    act(() => {
+      store.dispatch(setHtml(page('next'), previewEditCount()));
+    });
+    const loadingFrame = container.querySelector<HTMLIFrameElement>(
+      'iframe[data-canvas-swap-active="false"]',
+    )!;
+    // jsdom doesn't load srcdoc.
+    const { body } = document.implementation.createHTMLDocument();
+    body.innerHTML = '<template data-astro-template></template>';
+    vi.spyOn(loadingFrame, 'contentDocument', 'get').mockReturnValue(
+      body.ownerDocument,
+    );
+    act(() => {
+      loadingFrame.dispatchEvent(new Event('load'));
+    });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(loadingFrame.dataset.canvasSwapActive).toBe('false');
+
+    // A newer render starts loading in that iframe while it waits.
+    act(() => {
+      store.dispatch(setHtml(page('newer'), previewEditCount()));
+    });
+    act(() => {
+      loadingFrame.dispatchEvent(new Event('load'));
+    });
+    body.firstElementChild!.remove();
+    await waitFor(() =>
+      expect(loadingFrame.dataset.canvasSwapActive).toBe('true'),
+    );
+    // The wait of the render it replaced doesn't swap it out again.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(loadingFrame.dataset.canvasSwapActive).toBe('true');
+    expect(loadingFrame.srcdoc).toContain('newer');
+    expect(setIsReloading).toHaveBeenLastCalledWith(false);
+  });
+
   it('compares a render with the one shown, not with an older one it skipped', async () => {
     const instances = (...texts: string[]) =>
       texts
