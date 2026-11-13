@@ -125,6 +125,45 @@ describe('IframeSwapper', () => {
     expect(setIsReloading).toHaveBeenLastCalledWith(false);
   });
 
+  it('swaps in a loaded document once its islands have hydrated', async () => {
+    const store = makeStore();
+    store.dispatch(setHtml(page('initial'), previewEditCount()));
+    const { container } = render(
+      <Provider store={store}>
+        <Swapper />
+      </Provider>,
+    );
+    await waitFor(() => expect(setIsReloading).toHaveBeenLastCalledWith(false));
+
+    act(() => {
+      store.dispatch(setHtml(page('next'), previewEditCount()));
+    });
+    const loadingFrame = container.querySelector<HTMLIFrameElement>(
+      'iframe[data-canvas-swap-active="false"]',
+    )!;
+    // jsdom doesn't load srcdoc. An island with no slots has no <template>.
+    // One that failed to hydrate isn't waited for.
+    const { body } = document.implementation.createHTMLDocument();
+    body.innerHTML =
+      '<canvas-island ssr></canvas-island><canvas-island ssr data-hydration-failed></canvas-island>';
+    vi.spyOn(loadingFrame, 'contentDocument', 'get').mockReturnValue(
+      body.ownerDocument,
+    );
+    act(() => {
+      loadingFrame.dispatchEvent(new Event('load'));
+    });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    // Not shown yet, but rendered, so the island is laid out as it hydrates.
+    expect(loadingFrame.dataset.canvasSwapActive).toBe('false');
+    expect(loadingFrame.style.display).toBe('block');
+
+    body.firstElementChild!.removeAttribute('ssr');
+    await waitFor(() =>
+      expect(loadingFrame.dataset.canvasSwapActive).toBe('true'),
+    );
+    expect(loadingFrame.style.display).toBe('');
+  });
+
   it('compares a render with the one shown, not with an older one it skipped', async () => {
     const instances = (...texts: string[]) =>
       texts

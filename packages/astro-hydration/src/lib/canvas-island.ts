@@ -2,6 +2,7 @@ import { decodeSerializedProps } from './decode-serialized-props';
 
 interface AstroIslandElement extends HTMLElement {
   attributeChangedCallback(): void;
+  handleHydrationError(error: unknown): void;
 }
 
 interface AstroIslandElementConstructor {
@@ -168,6 +169,13 @@ interface CanvasIslandElement extends AstroIslandElement {
         element.removeAttribute('ssr');
         element.dispatchEvent(new CustomEvent('astro:hydrate'));
       };
+    }
+    handleHydrationError(error: unknown) {
+      // An island that failed to hydrate stays marked ssr, like one that is
+      // yet to hydrate. This mark tells them apart, for example for the
+      // Canvas UI, which shows a preview once its islands have hydrated.
+      this.setAttribute('data-hydration-failed', '');
+      super.handleHydrationError(error);
     }
     attributeChangedCallback() {
       // Add the ssr attribute back so we can re-hydrate when props change.

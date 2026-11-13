@@ -116,8 +116,6 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         // in-place update only reaches documents that have finished parsing.
         applyHeadStyles(iframe, headStylesRef.current);
 
-        iframe.style.display = '';
-
         const loadedSrcDocument = loadingSrcDocumentRef.current;
         const swap = () => {
           swappedSrcDocumentRef.current = loadedSrcDocument;
@@ -136,16 +134,21 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           // The shown preview has been edited since this one was requested: it
           // is newer, and the render of the edit is on its way.
           if (isPreviewEditedSince(editsAtLoadRef.current)) {
+            iframe.style.display = '';
             setIsReloading(false);
             return;
           }
-          // Find all <template>s pending hydration by Astro. Once hydration is complete, there should be no pending templates remaining.
-          const pendingTemplates = iframe?.contentDocument?.querySelectorAll(
-            'template[data-astro-template]',
+          // Find what Astro has yet to hydrate: the <template>s of slots, and
+          // the islands themselves, which are marked `ssr` until they have
+          // rendered. An island with no slots has no <template>, and renders
+          // nothing until it is hydrated. One that failed to hydrate stays
+          // marked `ssr`.
+          const pending = iframe?.contentDocument?.querySelectorAll(
+            'template[data-astro-template], canvas-island[ssr]:not([data-hydration-failed])',
           ).length;
 
-          // Ensure there are no pending templates (non-hydrated astro-islands) before swapping in the iframe.
-          if (pendingTemplates === 0) {
+          // Ensure nothing is pending hydration before swapping in the iframe.
+          if (pending === 0) {
             swap();
           } else if (Date.now() - startTime < 1000) {
             // If the hydration still hasn't finished and 1 second hasn't yet elapsed, try again after the next animation frame.
@@ -159,8 +162,10 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           }
         };
 
-        // Continuously monitor the iframe content for non-hydrated templates every 'tick'.
-        // Only swap the iframe once all templates are hydrated or 1 second has elapsed.
+        // Continuously monitor the iframe content for pending hydration every 'tick'.
+        // Only swap the iframe once everything is hydrated or 1 second has elapsed.
+        // The iframe stays rendered until then (display: block, set when it
+        // started loading), so its components are laid out as they hydrate.
         requestAnimationFrame(checkIFrameContent);
       },
       [setIsReloading],
@@ -205,6 +210,11 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     useEffect(() => {
       whichActiveRef.current = whichActive;
       activeSrcDocumentRef.current = swappedSrcDocumentRef.current;
+      // Only an iframe that is loading is rendered while it isn't the active
+      // one.
+      iFrameRefs.current.forEach((frame) =>
+        frame?.style.removeProperty('display'),
+      );
       setIsReloading(false);
     }, [getIFrames, setIsReloading, whichActive]);
 

@@ -4,10 +4,26 @@ import { decodeSerializedProps } from './decode-serialized-props';
 
 const loadModule = async () => {
   if (customElements.get('astro-island') === undefined) {
-    customElements.define('astro-island', class extends HTMLElement {});
+    customElements.define(
+      'astro-island',
+      class extends HTMLElement {
+        handleHydrationError() {}
+      },
+    );
   }
   await import('./canvas-island');
 };
+
+describe('canvas-island', () => {
+  it('marks an island that failed to hydrate', async () => {
+    await loadModule();
+    const island = document.createElement('canvas-island') as HTMLElement & {
+      handleHydrationError(error: unknown): void;
+    };
+    island.handleHydrationError(new Error());
+    expect(island.hasAttribute('data-hydration-failed')).toBe(true);
+  });
+});
 
 describe('decodeSerializedProps', () => {
   it('decodes JSON-serialized props back to their original shapes', async () => {
