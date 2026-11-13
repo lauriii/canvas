@@ -421,7 +421,7 @@ enum JsonSchemaType: string {
         // selection to a single bundle via the `default` selection handler.
         // @see docs/shape-matching.md#3.2.3
         // @see \Drupal\canvas\ComponentMetadataRequirementsChecker
-        JsonSchemaObjectRef::isContentEntityReference($schema)
+        JsonSchemaObjectRef::isContentEntityReferenceObject($schema)
           && \array_key_exists('x-allowed-entity-type-id', $shape->schema) => new StorablePropShape(
             shape: $shape,
             fieldTypeProp: new FieldTypePropExpression('entity_reference', 'entity'),

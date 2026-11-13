@@ -40,7 +40,6 @@ use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
-use Drupal\options\Plugin\Field\FieldType\ListItemBase;
 use Drupal\text\Plugin\Field\FieldType\TextItemBase;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -203,18 +202,6 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
       if (self::isConsideredIrrelevant($entity_type_def, $field_definition->getName())) {
         continue;
       }
-      // Skip multi-valued fields, for the same reason: the picker composes
-      // delta-less expressions, which on a multi-valued field resolve to a
-      // delta-keyed array of values (or entities) — not yet supported at
-      // render time, and rejected by storage.
-      // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiValuedFieldNotSupportedConstraint
-      // @todo https://git.drupalcode.org/project/canvas/-/work_items/3589536
-      if (
-        $field_definition->getFieldStorageDefinition()->getCardinality() !== 1
-        && !\is_a($field_definition->getItemDefinition()->getClass(), ListItemBase::class, TRUE)
-      ) {
-        continue;
-      }
       // Skip fields the current user cannot view (e.g., the user entity's
       // `pass` field denies view access to non-admins). Same defensive catch
       // as the bundle-level access check above for handlers that dereference
@@ -236,11 +223,11 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
     }
 
     $cacheability->addCacheTags($entity_type_def->getListCacheTags());
-    // The field list — the per-field decision to skip multi-valued references,
-    // and the target bundles a reference can be browsed into — derive from
-    // field definitions. Both the cardinality (field storage config) and target
-    // bundles (field config) can change, so depend on the tag invalidated
-    // whenever field definitions change.
+    // The field list — which fields are pickable, and the target bundles a
+    // reference can be browsed into — derive from field definitions. Both the
+    // field storage (e.g. cardinality) and the target bundles (field config)
+    // can change, so depend on the tag invalidated whenever field definitions
+    // change.
     // @see \Drupal\Core\Field\FieldStorageDefinitionListener::onFieldStorageDefinitionUpdate()
     // @see \Drupal\Core\Field\FieldConfigBase::postSave()
     $cacheability->addCacheTags(['entity_field_info']);

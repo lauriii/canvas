@@ -26,16 +26,67 @@ enum JsonSchemaObjectRef: string {
   /**
    * Whether the given JSON schema for a prop is a content-entity-reference.
    *
+   * This matches both cardinalities: a single reference and a list of
+   * references.
+   *
    * @param JsonSchema $prop_schema
    *   The JSON schema for a component prop.
    *
    * @return bool
+   *
+   * @see ::isContentEntityReferenceObject()
+   * @see ::isContentEntityReferenceObjectList()
    */
   public static function isContentEntityReference(array $prop_schema): bool {
+    return self::isContentEntityReferenceObject($prop_schema)
+      || self::isContentEntityReferenceObjectList($prop_schema);
+  }
+
+  /**
+   * Whether the given JSON schema for a prop is a single reference.
+   *
+   * This only matches `type: object`. A list of references does not match.
+   *
+   * @param JsonSchema $prop_schema
+   *   The JSON schema for a component prop.
+   *
+   * @return bool
+   *
+   * @see ::isContentEntityReference()
+   * @see ::isContentEntityReferenceObjectList()
+   */
+  public static function isContentEntityReferenceObject(array $prop_schema): bool {
     $normalized = PropShape::normalizePropSchema($prop_schema);
     return ($normalized['type'] === 'object'
       && \array_key_exists('$ref', $normalized)
       && $normalized['$ref'] === self::ContentEntityReference->value);
+  }
+
+  /**
+   * Whether the given JSON schema for a prop is a list of references.
+   *
+   * A list of references is a `type: array` prop. Its `items` schema is a
+   * single reference.
+   *
+   * @param JsonSchema $prop_schema
+   *   The JSON schema for a component prop.
+   *
+   * @return bool
+   *
+   * @see ::isContentEntityReference()
+   * @see ::isContentEntityReferenceObject()
+   */
+  public static function isContentEntityReferenceObjectList(array $prop_schema): bool {
+    $normalized = PropShape::normalizePropSchema($prop_schema);
+    if ($normalized['type'] !== 'array') {
+      return FALSE;
+    }
+    // A list of references has one schema for all its items. It must also
+    // declare `type`, because the check below requires it.
+    $items = $normalized['items'] ?? NULL;
+    return \is_array($items)
+      && \array_key_exists('type', $items)
+      && self::isContentEntityReferenceObject($items);
   }
 
   /**

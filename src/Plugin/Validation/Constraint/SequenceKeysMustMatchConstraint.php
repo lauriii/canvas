@@ -40,6 +40,13 @@ final class SequenceKeysMustMatchConstraint extends SequenceDependentConstraintB
    * target sequence passes the filter only if all listed keys exist on it and
    * each of their cast primitive values equals the expected value.
    *
+   * A key can be a dotted path to a key in a nested mapping, for example
+   * `items.$ref`. The element does not pass the filter if a parent of the
+   * nested key is absent or is not a mapping.
+   *
+   * Instead of one set of conditions, this can be a list of condition sets. The
+   * element passes the filter if at least one of the sets passes.
+   *
    * For example:
    * @code
    * ['status' => TRUE]
@@ -49,6 +56,20 @@ final class SequenceKeysMustMatchConstraint extends SequenceDependentConstraintB
    * [
    *   'type' => 'object',
    *   '$ref' => 'json-schema-definitions://canvas.module/content-entity-reference',
+   * ]
+   * @endcode
+   * or, with a dotted key and a list of two condition sets:
+   * @code
+   * [
+   *   [
+   *     'type' => 'object',
+   *     '$ref' => 'json-schema-definitions://canvas.module/content-entity-reference',
+   *   ],
+   *   [
+   *     'type' => 'array',
+   *     'items.type' => 'object',
+   *     'items.$ref' => 'json-schema-definitions://canvas.module/content-entity-reference',
+   *   ],
    * ]
    * @endcode
    */

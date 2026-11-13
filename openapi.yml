@@ -3749,7 +3749,7 @@ paths:
             expression strings rooted at the original entity.
       responses:
         '200':
-          description: Array of field descriptors, each with its pickable properties. Internal and multi-valued fields are omitted.
+          description: Array of field descriptors, each with its pickable properties. Internal fields are omitted.
           content:
             application/json:
               schema:

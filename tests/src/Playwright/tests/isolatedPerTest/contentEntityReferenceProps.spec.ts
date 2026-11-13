@@ -2,11 +2,29 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
+
+// @cspell:ignore cerlist
 
 const COMPONENT_CODE = [
   'const Component = ({ author }) => (',
   '  <div>Author: {author?.name}</div>',
+  ');',
+  'export default Component;',
+].join('\n');
+
+// The preview renders this code before the `related` prop exists, and while it
+// is still a single reference prop: in both cases `related` is undefined.
+const LIST_COMPONENT_CODE = [
+  'const Component = ({ related }) => (',
+  '  <section>',
+  '    <h2>Related</h2>',
+  '    <ul aria-label="Related content">',
+  '      {related?.map((item, index) => (',
+  '        <li key={index}>{item.label}</li>',
+  '      ))}',
+  '    </ul>',
+  '  </section>',
   ');',
   'export default Component;',
 ].join('\n');
@@ -115,9 +133,24 @@ function bundleSection(
     .filter({ has: page.getByRole('checkbox') });
 }
 
+// Creates a News Item node through the node form and returns its ID.
+async function createNewsItem(page: Page, title: string): Promise<number> {
+  await page.goto('/node/add/news_item');
+  await page.getByLabel('Title', { exact: true }).fill(title);
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(
+    page.getByRole('contentinfo', { name: 'Status message' }),
+  ).toContainText(`${title} has been created.`);
+  const match = new URL(page.url()).pathname.match(/^\/node\/(\d+)$/);
+  expect(match).not.toBeNull();
+  return Number(match![1]);
+}
+
 test.describe('Content entity reference props', () => {
   // The dialog only lists entity types the user can view, so grant the editor
-  // the permissions needed to see User and Content.
+  // the permissions needed to see User, and to create and delete the News Item
+  // nodes that the tests reference. The editor inherits "access content" from
+  // the authenticated role, so the permissions form does not allow to check it.
   test.beforeEach(async ({ drupal }) => {
     await drupal.loginAsAdmin();
     // The user_picture field and node.body storage the module depends on come
@@ -131,7 +164,11 @@ test.describe('Content entity reference props', () => {
     ]);
     await drupal.addPermissions({
       role: 'editor',
-      permissions: ['access content', 'access user profiles'],
+      permissions: [
+        'access user profiles',
+        'create news_item content',
+        'delete any news_item content',
+      ],
     });
     await drupal.logout();
   });
@@ -427,6 +464,156 @@ test.describe('Content entity reference props', () => {
           },
         ),
       ).toHaveAttribute('data-state', 'checked');
+    });
+  });
+
+  test('Authors, sources and renders a content entity reference list prop', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    const titles = {
+      first: 'First news item',
+      second: 'Second news item',
+      third: 'Third news item',
+    };
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+
+    const nids = await test.step('Create three News Item nodes', async () => {
+      const first = await createNewsItem(page, titles.first);
+      const second = await createNewsItem(page, titles.second);
+      const third = await createNewsItem(page, titles.third);
+      return { first, second, third };
+    });
+
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
+    await canvas.createCodeComponent('CerList', LIST_COMPONENT_CODE);
+
+    const propForm = await canvas.addCodeComponentProp(
+      'related',
+      'Content entity reference',
+    );
+
+    await test.step('Allow up to three values and pick Content / News Item with its title', async () => {
+      const allowMultiple = propForm.getByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      await allowMultiple.check();
+      await expect(allowMultiple).toBeChecked();
+
+      // The limited count starts at 2, the minimum for a list prop.
+      await selectFromDropdown(propForm, 'Unlimited', 'Limited');
+      const count = propForm.getByRole('spinbutton');
+      await expect(count).toHaveValue('2');
+      await propForm.getByRole('button', { name: 'Increase count' }).click();
+      await expect(count).toHaveValue('3');
+
+      const autoSave = page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes('/canvas/api/v0/config/auto-save/js_component/') &&
+          response.request().method() === 'PATCH' &&
+          (response.request().postData() ?? '').includes('news_item'),
+      );
+      await chooseTarget(propForm, 'Content', 'News Item');
+      expect((await autoSave).ok()).toBe(true);
+    });
+
+    await test.step('Publish the component and add it to the components', async () => {
+      // A list prop with examples fails validation, so the publish succeeds
+      // only when the list prop has no examples.
+      await canvas.publishAllChanges(['CerList', 'Global CSS']);
+      await canvas.saveCodeComponent('js.cerlist');
+    });
+
+    await test.step('Pick two nodes in reverse creation order', async () => {
+      // Load the editor again. After a publish from the code editor, the next
+      // auto-save can fail with a 409 conflict, see #3592289.
+      await canvas.openCanvas(canvasPage);
+      await canvas.openLibraryPanel();
+      await canvas.addComponent({ id: 'js.cerlist' });
+
+      const relatedField = page
+        .getByTestId('canvas-contextual-panel')
+        .locator('[data-canvas-multiple-values="true"]')
+        .filter({
+          has: page.getByRole('heading', { name: 'related', exact: true }),
+        });
+      // The limited count of 3 gives three rows.
+      await expect(
+        relatedField.getByRole('button', { name: /^Edit related:/ }),
+      ).toHaveCount(3);
+
+      await canvas.editMultiValueProp(
+        'related',
+        `${titles.third} (${nids.third})`,
+        0,
+        'entity-reference',
+      );
+      await canvas.editMultiValueProp(
+        'related',
+        `${titles.first} (${nids.first})`,
+        1,
+        'entity-reference',
+      );
+
+      // The list keeps the picked order, and the empty third row adds no item.
+      await canvas.testInPreviewFrame('canvas-island', async (islands) => {
+        await expect(
+          islands
+            .getByRole('list', { name: 'Related content' })
+            .getByRole('listitem'),
+        ).toHaveText([titles.third, titles.first]);
+      });
+    });
+
+    await test.step('The published page lists the nodes in the picked order', async () => {
+      await canvas.publishAllChanges(['Untitled page']);
+      await page.goto(`/page/${canvasPage.entity_id}`);
+      await expect(
+        page
+          .locator('canvas-island')
+          .getByRole('list', { name: 'Related content' })
+          .getByRole('listitem'),
+      ).toHaveText([titles.third, titles.first]);
+    });
+
+    await test.step('A deleted node is removed from the published page', async () => {
+      await page.goto(`/node/${nids.third}/delete`);
+      await page.getByRole('button', { name: 'Delete', exact: true }).click();
+      await expect(
+        page.getByRole('contentinfo', { name: 'Status message' }),
+      ).toContainText(`${titles.third} has been deleted.`);
+
+      await page.goto(`/page/${canvasPage.entity_id}`);
+      await expect(
+        page
+          .locator('canvas-island')
+          .getByRole('list', { name: 'Related content' })
+          .getByRole('listitem'),
+      ).toHaveText([titles.first]);
+    });
+
+    await test.step('A single content entity reference prop receives one object', async () => {
+      // "News listing" reads `label` from its single `featuredNews` prop. A
+      // list value has no `label` key, so the heading shows only for an object.
+      await canvas.openCanvas(canvasPage);
+      await canvas.openLibraryPanel();
+      await canvas.addComponent({
+        id: 'js.canvas_test_code_components_news_listing',
+      });
+      await canvas.editComponentProp(
+        'featuredNews',
+        `${titles.second} (${nids.second})`,
+      );
+      await canvas.testInPreviewFrame('canvas-island', async (islands) => {
+        await expect(islands.getByRole('heading', { level: 3 })).toHaveText(
+          titles.second,
+        );
+      });
     });
   });
 });

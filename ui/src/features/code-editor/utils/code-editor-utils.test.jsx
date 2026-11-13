@@ -16,6 +16,7 @@ import {
   deserializeSlots,
   formatToValidImportName,
   getPropValuesForPreview,
+  serializeDataDependencies,
   serializeProps,
   serializeRequired,
   serializeSlots,
@@ -534,6 +535,36 @@ describe('Code editor preview utilities', () => {
     });
   });
 
+  it('leaves out a single content entity reference prop, and gives an empty list for a list', () => {
+    const $ref =
+      'json-schema-definitions://canvas.module/content-entity-reference';
+    const result = getPropValuesForPreview(
+      [
+        {
+          id: 'cer-single',
+          name: 'Author',
+          type: 'object',
+          $ref,
+          example: '',
+          derivedType: 'contentEntityReference',
+        },
+        {
+          id: 'cer-list',
+          name: 'Related',
+          type: 'array',
+          items: { type: 'object', $ref },
+          example: [],
+          allowMultiple: true,
+          derivedType: 'contentEntityReference',
+        },
+      ],
+      null,
+    );
+    expect(result.author).toBeUndefined();
+    expect(result.related).toEqual([]);
+    expect(JSON.parse(JSON.stringify(result))).toEqual({ related: [] });
+  });
+
   it('handles empty props when extracting values for preview', () => {
     const result = getPropValuesForPreview([], null);
     expect(result).toEqual({});
@@ -981,6 +1012,68 @@ describe('deserializeCodeComponent', () => {
       required: ['title'],
     });
     expect(result.required).toEqual([result.props[0].id]);
+  });
+
+  describe('round-trips a list content entity reference prop', () => {
+    const CONTENT_ENTITY_REFERENCE_REF =
+      'json-schema-definitions://canvas.module/content-entity-reference';
+    const expressions = ['ℹ︎␜entity:node:article␝title␞␟value'];
+
+    it.each([
+      {
+        label: 'unlimited',
+        maxItems: undefined,
+        expectedValueMode: 'unlimited',
+        expectedLimitedCount: 1,
+      },
+      {
+        label: 'limited',
+        maxItems: 3,
+        expectedValueMode: 'limited',
+        expectedLimitedCount: 3,
+      },
+    ])('$label', ({ maxItems, expectedValueMode, expectedLimitedCount }) => {
+      const serializedProp = {
+        title: 'Authors',
+        type: 'array',
+        items: { type: 'object', $ref: CONTENT_ENTITY_REFERENCE_REF },
+        ...(maxItems && { maxItems }),
+      };
+      const result = deserializeCodeComponent({
+        props: {
+          authors: {
+            ...serializedProp,
+            // The server adds the target to `items` for list props.
+            items: {
+              ...serializedProp.items,
+              'x-allowed-entity-type-id': 'node',
+              'x-allowed-bundle': 'article',
+            },
+          },
+        },
+        dataDependencies: { entityFields: { authors: expressions } },
+      });
+
+      const [prop] = result.props;
+      expect(prop.derivedType).toBe('contentEntityReference');
+      expect(prop.type).toBe('object');
+      expect(prop.allowMultiple).toBe(true);
+      expect(prop.$ref).toBe(CONTENT_ENTITY_REFERENCE_REF);
+      expect(prop['x-allowed-entity-type-id']).toBe('node');
+      expect(prop['x-allowed-bundle']).toBe('article');
+      expect(prop.entityFieldExpressions).toEqual(expressions);
+      expect(prop.example).toEqual([]);
+      expect(prop.valueMode).toBe(expectedValueMode);
+      expect(prop.limitedCount).toBe(expectedLimitedCount);
+
+      // The `x-allowed-*` keys are not written back: the server adds them.
+      expect(serializeProps(result.props)).toEqual({
+        authors: serializedProp,
+      });
+      expect(
+        serializeDataDependencies(result.props, result.dataDependencies),
+      ).toEqual({ entityFields: { authors: expressions } });
+    });
   });
 });
 

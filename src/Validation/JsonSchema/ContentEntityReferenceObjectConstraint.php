@@ -73,7 +73,7 @@ final class ContentEntityReferenceObjectConstraint extends ObjectConstraint {
    *   a content-entity-reference).
    */
   public static function validateMetadataSchema(array $prop_schema, string $prop_name): array {
-    if (!JsonSchemaObjectRef::isContentEntityReference($prop_schema)) {
+    if (!JsonSchemaObjectRef::isContentEntityReferenceObject($prop_schema)) {
       return [];
     }
     $messages = [];
@@ -98,7 +98,7 @@ final class ContentEntityReferenceObjectConstraint extends ObjectConstraint {
         && $schema->type === 'object'
         && $schema->{'$ref'} === JsonSchemaObjectRef::ContentEntityReference->value;
     }
-    return \is_array($schema) && JsonSchemaObjectRef::isContentEntityReference($schema);
+    return \is_array($schema) && JsonSchemaObjectRef::isContentEntityReferenceObject($schema);
   }
 
   /**

@@ -925,27 +925,61 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * The picker omits unsupported multi-valued fields, but keeps supported lists.
+   * The picker offers multi-valued fields.
    *
-   * Delta-less expressions on most multi-valued fields still resolve to
-   * delta-keyed arrays, which are not supported end-to-end. The exception is
-   * the supported list field family, which Canvas intentionally allows through
-   * this picker and validation path.
+   * A multi-valued field resolves to a list of values (a leaf pick) or a list
+   * of payload objects (a reference pick), so leaves are pickable and a
+   * multi-cardinality reference field can be browsed into, like a single-valued
+   * one.
    *
-   * @see \Drupal\canvas\Plugin\Validation\Constraint\MultiValuedFieldNotSupportedConstraint
-   * @todo Update in https://git.drupalcode.org/project/canvas/-/work_items/3589536
+   * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::listFields()
    */
-  public function testFieldsEndpointOmitsUnsupportedMultiValuedFieldsButKeepsSupportedLists(): void {
+  public function testFieldsEndpointOffersMultiValuedFields(): void {
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
     $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
     $by_name = \array_column(self::decodeResponse($response)['data'], NULL, 'name');
 
-    self::assertArrayNotHasKey('field_related', $by_name);
-    // Single-valued fields are unaffected.
+    // An unlimited-cardinality reference field is offered with its leaf
+    // properties, and carries browse metadata like a single-valued reference.
+    self::assertArrayHasKey('field_related', $by_name);
+    $related = $by_name['field_related'];
+    self::assertTrue($related['hasChildren']);
+    self::assertSame('node', $related['targetEntityType']);
+    self::assertSame(['page'], \array_keys($related['targetBundles']));
+    $related_props_by_name = \array_column($related['properties'], NULL, 'name');
+    self::assertArrayHasKey('target_id', $related_props_by_name);
+    self::assertArrayNotHasKey('entity', $related_props_by_name);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝field_related␞␟target_id',
+      $related_props_by_name['target_id']['expression'],
+    );
+    // The browse expression is delta-less: it resolves to one payload object
+    // per referenced entity.
+    $page = $related['targetBundles']['page'];
+    $parent = 'ℹ︎␜entity:node:article␝field_related␞␟entity␜␜entity:node:page␝title␞␟value';
+    self::assertSame($parent, $page['labelExpression']);
+    $href = $page['links'][CanvasUriDefinitions::LINK_REL_TYPED_DATA_BROWSER]['href'];
+    self::assertSame('/canvas/api/v0/ui/content-entity-reference/node/page?parent=' . \urlencode($parent), $href);
+
+    // Following the browse link resolves, and offers the target's fields.
+    $descend = $this->request(Request::create($href));
+    self::assertSame(Response::HTTP_OK, $descend->getStatusCode());
+    $page_fields = \array_column(self::decodeResponse($descend)['data'], NULL, 'name');
+    self::assertArrayHasKey('title', $page_fields);
+    self::assertSame(
+      'ℹ︎␜entity:node:article␝field_related␞␟entity␜␜entity:node:page␝title␞␟value',
+      \array_column($page_fields['title']['properties'], NULL, 'name')['value']['expression'],
+    );
+
+    // Single-valued fields are unaffected, and the option-list field remains
+    // present.
     self::assertArrayHasKey('field_image', $by_name);
-    // Supported multi-valued scalar lists remain available.
     self::assertArrayHasKey('field_keywords', $by_name);
+
+    // The cacheability depends on field definitions, as for every other field.
+    self::assertContains('entity_field_info', $response->getCacheableMetadata()->getCacheTags());
   }
 
   /**
@@ -1055,6 +1089,7 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
       'field_keywords',
       'field_link',
       'field_media',
+      'field_related',
       'field_text',
       'field_text_long',
       'field_text_with_summary',

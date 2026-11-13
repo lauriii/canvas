@@ -64,6 +64,9 @@ final class SequenceKeysMustMatchConstraintValidator extends SequenceDependentCo
   /**
    * Filter callback for applying `$constraint->conditions` to target elements.
    *
+   * When `$constraint->conditions` is a list of condition sets, an element
+   * passes the filter if at least one of the sets matches.
+   *
    * @see \Drupal\canvas\Plugin\Validation\Constraint\SequenceKeysMustMatchConstraint::$conditions
    */
   private static function filter(mixed $mapping, SequenceKeysMustMatchConstraint $constraint): bool {
@@ -73,25 +76,80 @@ final class SequenceKeysMustMatchConstraintValidator extends SequenceDependentCo
       throw new \LogicException('SequenceKeysMustMatchConstraint conditions can only target sequences containing mappings.');
     }
 
-    $elements = $mapping->getElements();
-    foreach ($constraint->conditions as $expected_key => $expected_value) {
-      if (!\in_array($expected_key, $mapping->getValidKeys(), TRUE)) {
-        throw new \LogicException(\sprintf('Condition key "%s" is not a valid key of the target sequence item.', $expected_key));
-      }
-      if (!\array_key_exists($expected_key, $elements)) {
+    $condition_sets = \array_is_list($constraint->conditions) ? $constraint->conditions : [$constraint->conditions];
+    return \array_any($condition_sets, fn (array $conditions): bool => self::matches($mapping, $conditions));
+  }
+
+  /**
+   * Checks whether a mapping meets all conditions of a single condition set.
+   *
+   * A condition key can be a dotted path, such as `items.$ref`. Such a key
+   * targets a nested mapping. The conditions are not met when a parent of the
+   * nested key is absent or is not a mapping.
+   *
+   * @param \Drupal\Core\Config\Schema\Mapping $mapping
+   *   The mapping to check.
+   * @param array<string, scalar|null> $conditions
+   *   A single condition set: condition keys with their expected primitive
+   *   values.
+   *
+   * @return bool
+   *   TRUE if the mapping meets all conditions, FALSE otherwise.
+   */
+  private static function matches(Mapping $mapping, array $conditions): bool {
+    foreach ($conditions as $expected_key => $expected_value) {
+      $parents = \explode('.', (string) $expected_key);
+      $key = \array_pop($parents);
+
+      $target = self::getNestedMapping($mapping, $parents);
+      if ($target === NULL) {
         return FALSE;
       }
 
-      if (!$elements[$expected_key] instanceof PrimitiveInterface) {
+      if (!\in_array($key, $target->getValidKeys(), TRUE)) {
+        // A nested mapping can lack the key. An unknown top-level key is an
+        // error in the condition itself.
+        if ($parents !== []) {
+          return FALSE;
+        }
+        throw new \LogicException(\sprintf('Condition key "%s" is not a valid key of the target sequence item.', $expected_key));
+      }
+
+      $elements = $target->getElements();
+      if (!\array_key_exists($key, $elements)) {
+        return FALSE;
+      }
+      if (!$elements[$key] instanceof PrimitiveInterface) {
         throw new \LogicException('Only primitive values can be used in SequenceKeysMustMatchConstraint conditions.');
       }
-      if ($elements[$expected_key]->getCastedValue() !== $expected_value) {
+      if ($elements[$key]->getCastedValue() !== $expected_value) {
         return FALSE;
       }
     }
 
     // All conditions were met.
     return TRUE;
+  }
+
+  /**
+   * Walks down nested mappings.
+   *
+   * @param \Drupal\Core\Config\Schema\Mapping $mapping
+   *   The mapping to start from.
+   * @param string[] $parents
+   *   The keys to follow, from the outermost to the innermost.
+   *
+   * @return \Drupal\Core\Config\Schema\Mapping|null
+   *   The innermost mapping, or NULL if a parent is absent or is not a mapping.
+   */
+  private static function getNestedMapping(Mapping $mapping, array $parents): ?Mapping {
+    foreach ($parents as $parent) {
+      $mapping = $mapping->getElements()[$parent] ?? NULL;
+      if (!$mapping instanceof Mapping) {
+        return NULL;
+      }
+    }
+    return $mapping;
   }
 
 }

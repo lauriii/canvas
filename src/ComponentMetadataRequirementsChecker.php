@@ -71,17 +71,22 @@ final class ComponentMetadataRequirementsChecker {
         $messages[] = \sprintf('Prop "%s" has an empty enum value in items.', $prop_name);
       }
 
+      // A content-entity-reference prop is a single reference or a list of
+      // references. The rules below apply to both forms.
+      $is_content_entity_reference_list = JsonSchemaObjectRef::isContentEntityReferenceObjectList($prop);
+      $is_content_entity_reference_prop = JsonSchemaObjectRef::isContentEntityReference($prop);
+
       // Required props must have examples — except content-entity-reference
       // props, for which `examples` are explicitly unsupported (see below).
       $is_required_prop = \in_array($prop_name, $required_props, TRUE);
-      if ($is_required_prop && !isset($prop['examples'][0]) && !JsonSchemaObjectRef::isContentEntityReference($prop)) {
+      if ($is_required_prop && !isset($prop['examples'][0]) && !$is_content_entity_reference_prop) {
         $messages[] = \sprintf('Prop "%s" is required, but does not have example value', $prop_name);
       }
 
       // Content-entity-reference props must not carry `examples`: the
       // referenced entity is resolved at runtime from
       // `dataDependencies.entityFields`, so an example value is meaningless.
-      if (JsonSchemaObjectRef::isContentEntityReference($prop) && \array_key_exists('examples', $prop)) {
+      if ($is_content_entity_reference_prop && \array_key_exists('examples', $prop)) {
         $messages[] = \sprintf('Prop "%s" is a content-entity-reference prop and must not have examples.', $prop_name);
       }
 
@@ -179,15 +184,21 @@ final class ComponentMetadataRequirementsChecker {
       // "object" constraint, but it only fires when validating prop *values*
       // (ComponentValidator::validateProps), not at metadata-derivation time —
       // hence the explicit static call below.
+      // Because these props must be optional, `minItems` is never allowed on a
+      // list of references (see the `minItems` rules above).
       // @see docs/shape-matching.md#3.2.3
       // @see \Drupal\canvas\CanvasServiceProvider::alter()
       // @see \Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint
-      if (JsonSchemaObjectRef::isContentEntityReference($prop)) {
+      if ($is_content_entity_reference_prop) {
         if (\in_array($prop_name, $required_props, TRUE)) {
           $messages[] = \sprintf('Prop "%s" is required, but content-entity-reference props must be optional.', $prop_name);
           continue;
         }
-        $schema_errors = ContentEntityReferenceObjectConstraint::validateMetadataSchema($prop, $prop_name);
+        // For a list of references, each item is one reference. Thus, the
+        // `x-allowed-*` keys are on `items`.
+        // @see \Drupal\canvas\Entity\JavaScriptComponent::toSdcDefinition()
+        $reference_schema = $is_content_entity_reference_list ? $prop['items'] : $prop;
+        $schema_errors = ContentEntityReferenceObjectConstraint::validateMetadataSchema($reference_schema, $prop_name);
         if (!empty($schema_errors)) {
           $messages = [...$messages, ...$schema_errors];
           continue;

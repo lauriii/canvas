@@ -300,6 +300,14 @@ export function parsePropValueForPreview(
     );
   }
 
+  // A single content entity reference prop has no example. A live render
+  // leaves it out of the props when it has no value, so the preview does too:
+  // `JSON.stringify()` drops `undefined`.
+  // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::getExplicitInput()
+  if (prop.derivedType === 'contentEntityReference' && prop.type === 'object') {
+    return undefined;
+  }
+
   switch (prop.type) {
     case 'integer':
       return Number(prop.example);

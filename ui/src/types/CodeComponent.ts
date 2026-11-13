@@ -213,7 +213,8 @@ export type CodeComponentPropPreviewValue =
   | CodeComponentPropVideoExample[]
   | CodeComponentPropDocumentExample[]
   | ResolvedColorProp
-  | null;
+  | null
+  | undefined;
 
 export interface AssetLibrary {
   id: string;

@@ -513,16 +513,74 @@ promoted_article:
   x-allowed-bundle: article
 ```
 
+Up to three Node entities of the "article" content type, in the order the Content Author picked them:
+```yaml
+featured_articles:
+  type: array
+  # Optional: if omitted, the list allows an unlimited number of content entity references.
+  maxItems: 3
+  items:
+    type: object
+    $ref: json-schema-definitions://canvas.module/content-entity-reference
+    x-allowed-entity-type-id: node
+    x-allowed-bundle: article
+```
+
+The value a code component receives depends on the form of the prop:
+- A single reference resolves to an object, or `null` when nothing is picked or the entity was deleted.
+- A list of references resolves to an ordered array of the same objects: empty when nothing is picked, with deleted
+  entities left out.
+
+Each of these objects carries a `__type` key set to the bundle of the entity, and a `__url` key set to its canonical
+URL (`null` when its entity type has no canonical URL). A list is never truncated to `maxItems` at render time: matching
+only offers sources whose cardinality is a subset, so no value is omitted.
+
+The payload object has one key per field that the code component developer picked in `dataDependencies.entityFields`,
+next to `__type` and `__url`. For a news item with picks on `title` and `field_image`:
+
+```json
+{"__type": "news_item", "__url": "/node/1", "title": "Flood", "field_image": …}
+```
+
+What a key holds depends on how many picks the field has, of which kind, and on the field's cardinality. A pick is
+`↠` (a property of the field item: `alt↠alt`) or `↝` (follows the reference into the referenced entity:
+`src↝entity␜␜entity:file␝uri␞␟url`).
+
+| Picks on the field | Single-cardinality field | Multiple-cardinality field, in field item order |
+|---|---|---|
+| 1 `↠` pick: `alt↠alt` | `"dog"` | `["dog", "cat"]` |
+| >=2 picks, at least one `↠`: `{alt↠alt,caption↝entity␜␜entity:file␝field_caption␞␟value}` | `{"alt": "dog", "caption": "A good dog"}` | `[{"alt": "dog", "caption": "A good dog"}, {"alt": "cat", "caption": "A fine cat"}]` |
+| only `↝` picks: `name↝entity␜␜entity:taxonomy_term:tags␝name␞␟value` | `{"__type": "tags", "__url": "/taxonomy/term/1", "name": "Weather"}` | `[{"__type": "tags", "__url": "/taxonomy/term/1", "name": "Weather"}, {"__type": "tags", "__url": "/taxonomy/term/2", "name": "Local"}]` |
+
+`__type` and `__url` are on objects that *are* an entity: the payload object, and the objects in the third row. An
+object in the second row is a field item, which has no bundle and no URL, so it has neither, even if some of its keys
+come from a referenced entity.
+
+For a deleted referenced entity, the keys that need that entity are left out:
+- In the second row, the object for the deleted entity stays, with only its `↠` keys.
+- In the third row, no keys are left. In a list, the object is left out. For a single-cardinality field, the key holds
+  an empty array (`[]`).
+
+⚠️ Still to be built:
+- @todo An inaccessible referenced entity renders the component instance as an error; treat it like a deleted entity instead (`null` for a single reference, left out of a list): https://git.drupalcode.org/project/canvas/-/work_items/3592326
+- @todo A deleted entity in a multi-valued reference field of `dataDependencies.entityFields` fails the evaluation; leave it out of the nested list instead: https://git.drupalcode.org/project/canvas/-/work_items/3592322
+- @todo An object with no keys left for a single-cardinality field gives an empty array (`[]`); give `null` instead: https://git.drupalcode.org/project/canvas/-/work_items/3592323
+
 ##### Sources
 
 A `content-entity-reference` prop can be populated by any of these `prop source`s:
 
 - **Static pick** (`\Drupal\canvas\PropSource\StaticPropSource`): the Site Builder picks a specific entity at edit time,
-  stored as `unstructured data` via a `conjured field`.
+  stored as `unstructured data` via a `conjured field`. For a list of references, the Site Builder picks up to
+  `maxItems` entities (unlimited when `maxItems` is absent) through the same `conjured field`.
 - **Host-entity reference field** (`\Drupal\canvas\PropSource\EntityFieldPropSource`): when the host entity has an
   entity reference `base field` or `bundle field` whose target entity type and bundle match the prop's
   `x-allowed-entity-type-id` and `x-allowed-bundle`, the referenced entity populates the prop. Suggested by
-  `\Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher`.
+  `\Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher`, which also enforces the field's cardinality, using the
+  same rule as for other `type: array` props: a single reference matches only single-valued fields; a list of
+  references matches only multi-valued fields that fit in it. A field with cardinality N fits a list with `maxItems` of
+  N or more; an unlimited field fits only an unlimited list (no `maxItems`), and an unlimited list accepts only an
+  unlimited field. Thus, the prop can always show all the values of the field.
 - **Host entity itself** (`\Drupal\canvas\PropSource\HostEntityPropSource`): when the host entity rendering the
   component is itself a valid target for the prop (its entity type and bundle satisfy the prop's
   `x-allowed-entity-type-id` and `x-allowed-bundle`), the prop can be populated with the host entity directly. The
@@ -535,6 +593,7 @@ A `content-entity-reference` prop can be populated by any of these `prop source`
   (or the prop's target entity type has no bundles). At render time, the prop receives the host entity object, which
   is then projected through the prop's `dataDependencies.entityFields` expressions to produce the
   JS-component-facing value.
+  Never suggested for a list of references: the host entity is a single entity.
 
 ##### Projection (code components only)
 

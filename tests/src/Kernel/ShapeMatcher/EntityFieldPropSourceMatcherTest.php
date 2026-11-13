@@ -976,6 +976,9 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
    *
    * @param array<string, string> $constraints
    *   The `x-allowed-entity-type-id` (and optionally `x-allowed-bundle`).
+   * @param array{type?: 'array', maxItems?: int<2, max>} $list_schema
+   *   Empty for a single content-entity-reference prop. Otherwise, the
+   *   array-level keys of a list of content-entity-references prop.
    * @param list<string> $expected_present
    *   Host-entity reference field names that MUST be matched.
    * @param list<string> $expected_absent
@@ -984,7 +987,7 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
    * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchContentEntityReferenceShape()
    */
   #[DataProvider('provideContentEntityReferencePropMatches')]
-  public function testContentEntityReferencePropMatching(array $constraints, array $expected_present, array $expected_absent): void {
+  public function testContentEntityReferencePropMatching(array $constraints, array $list_schema, array $expected_present, array $expected_absent): void {
     // Referenceable bundles for the bundled target cases.
     NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
     NodeType::create(['type' => 'news_item', 'name' => 'News item'])->save();
@@ -995,13 +998,21 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
     // - field_ref_news     → node:news_item            (bundled, news_item-only)
     // - field_ref_multi    → node:[article, news_item] (bundled, multi-bundle)
     // - field_ref_any_node → node                      (no target_bundles)
+    // - field_ref_news_3   → node:news_item            (cardinality 3)
+    // - field_ref_news_all → node:news_item            (unlimited cardinality)
     $this->createEntityReferenceField('node', 'foo', 'field_ref_user', 'Referenced user', 'user', 'default', [], cardinality: 1);
     $this->createEntityReferenceField('node', 'foo', 'field_ref_article', 'Referenced article', 'node', 'default', ['target_bundles' => ['article']], cardinality: 1);
     $this->createEntityReferenceField('node', 'foo', 'field_ref_news', 'Referenced news item', 'node', 'default', ['target_bundles' => ['news_item']], cardinality: 1);
     $this->createEntityReferenceField('node', 'foo', 'field_ref_multi', 'Referenced multi', 'node', 'default', ['target_bundles' => ['article', 'news_item']], cardinality: 1);
     $this->createEntityReferenceField('node', 'foo', 'field_ref_any_node', 'Referenced any node', 'node', 'default', [], cardinality: 1);
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_news_3', 'Referenced news items (3)', 'node', 'default', ['target_bundles' => ['news_item']], cardinality: 3);
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_news_all', 'Referenced news items (all)', 'node', 'default', ['target_bundles' => ['news_item']], cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
-    $prop_shape = PropShape::normalize(JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray() + $constraints);
+    $prop_schema = JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray() + $constraints;
+    if ($list_schema) {
+      $prop_schema = $list_schema + ['items' => $prop_schema];
+    }
+    $prop_shape = PropShape::normalize($prop_schema);
     $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
     \assert($matcher instanceof EntityFieldPropSourceMatcher);
     $matches = $matcher->match(FALSE, $prop_shape, 'node', 'foo');
@@ -1140,8 +1151,9 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
   public static function provideContentEntityReferencePropMatches(): \Generator {
     yield 'bundleless target (user)' => [
       'constraints' => ['x-allowed-entity-type-id' => 'user'],
+      'list_schema' => [],
       'expected_present' => ['field_ref_user'],
-      'expected_absent' => ['field_ref_article', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node'],
+      'expected_absent' => ['field_ref_article', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node', 'field_ref_news_3', 'field_ref_news_all'],
     ];
     // Strict single-bundle equality: only a host field whose referenceable
     // bundles set is exactly `[$x_allowed_bundle]` qualifies. A multi-bundle
@@ -1155,13 +1167,35 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
     // only for bundle-less target entity types (asserted at runtime).
     yield 'bundled target (node:article)' => [
       'constraints' => ['x-allowed-entity-type-id' => 'node', 'x-allowed-bundle' => 'article'],
+      'list_schema' => [],
       'expected_present' => ['field_ref_article'],
-      'expected_absent' => ['field_ref_user', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node'],
+      'expected_absent' => ['field_ref_user', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node', 'field_ref_news_3', 'field_ref_news_all'],
     ];
+    // Strict cardinality: a single prop matches only a cardinality-1 field, and
+    // a list prop matches only a multi-valued field.
+    // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::fieldCardinalityMatchesJsonSchemaCardinality()
     yield 'bundled target (node:news_item)' => [
       'constraints' => ['x-allowed-entity-type-id' => 'node', 'x-allowed-bundle' => 'news_item'],
+      'list_schema' => [],
       'expected_present' => ['field_ref_news'],
-      'expected_absent' => ['field_ref_user', 'field_ref_article', 'field_ref_multi', 'field_ref_any_node'],
+      'expected_absent' => ['field_ref_user', 'field_ref_article', 'field_ref_multi', 'field_ref_any_node', 'field_ref_news_3', 'field_ref_news_all'],
+    ];
+    // An unlimited list matches only an unlimited field.
+    // @todo Consider matching an unlimited list prop (no `maxItems`) against fields with a limited cardinality too, not only FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, in https://www.drupal.org/i/3522718
+    yield 'list of bundled targets (node:news_item), unlimited' => [
+      'constraints' => ['x-allowed-entity-type-id' => 'node', 'x-allowed-bundle' => 'news_item'],
+      'list_schema' => ['type' => 'array'],
+      'expected_present' => ['field_ref_news_all'],
+      'expected_absent' => ['field_ref_user', 'field_ref_article', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node', 'field_ref_news_3'],
+    ];
+    // A list with a maximum matches a field with a lower cardinality. It does
+    // not match an unlimited field: that field can hold more entities than the
+    // list.
+    yield 'list of bundled targets (node:news_item), maxItems 5' => [
+      'constraints' => ['x-allowed-entity-type-id' => 'node', 'x-allowed-bundle' => 'news_item'],
+      'list_schema' => ['type' => 'array', 'maxItems' => 5],
+      'expected_present' => ['field_ref_news_3'],
+      'expected_absent' => ['field_ref_user', 'field_ref_article', 'field_ref_news', 'field_ref_multi', 'field_ref_any_node', 'field_ref_news_all'],
     ];
   }
 

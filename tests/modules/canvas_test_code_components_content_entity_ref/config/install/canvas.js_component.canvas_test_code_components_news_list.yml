@@ -1,0 +1,66 @@
+uuid: d5840886-f231-432b-9b08-e87a6e1e9b10
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.news_item
+  module:
+    - node
+machineName: canvas_test_code_components_news_list
+name: 'News list'
+required: {  }
+props:
+  heading:
+    type: string
+    title: Heading
+    examples:
+      - 'Related news'
+  newsItems:
+    type: array
+    items:
+      type: object
+      $ref: 'json-schema-definitions://canvas.module/content-entity-reference'
+    title: 'News items'
+slots: {  }
+js:
+  original: |-
+    const NewsList = ({ heading, newsItems }) => (
+      <section>
+        <h2>{heading}</h2>
+        <ul>
+          {(newsItems ?? []).map(({ label, path }, index) => (
+            <li key={index}>
+              <a href={path}>{label}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+    export default NewsList;
+  compiled: |
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    const NewsList = ({ heading, newsItems })=>/*#__PURE__*/ _jsxs("section", {
+            children: [
+                /*#__PURE__*/ _jsx("h2", {
+                    children: heading
+                }),
+                /*#__PURE__*/ _jsx("ul", {
+                    children: (newsItems !== null && newsItems !== void 0 ? newsItems : []).map(({ label, path }, index)=>/*#__PURE__*/ _jsx("li", {
+                            children: /*#__PURE__*/ _jsx("a", {
+                                href: path,
+                                children: label
+                            })
+                        }, index))
+                })
+            ]
+        });
+    export default NewsList;
+css:
+  original: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
+dataDependencies:
+  entityFields:
+    newsItems:
+      - 'ℹ︎␜entity:node:news_item␝path␞␟alias'
+      - 'ℹ︎␜entity:node:news_item␝title␞␟value'

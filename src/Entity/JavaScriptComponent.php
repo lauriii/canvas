@@ -796,14 +796,24 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       if (!$target instanceof BetterEntityDataDefinition) {
         continue;
       }
-      $definition['props']['properties'][$prop_name]['x-allowed-entity-type-id'] = $target->getEntityTypeId();
+      $allowed_target = ['x-allowed-entity-type-id' => $target->getEntityTypeId()];
       if ($target->getEntityType()->hasKey('bundle')) {
         $bundles = $target->getBundles();
         \assert(\is_array($bundles));
         // When the expression targets `entity:node:article`, $bundles is
         // guaranteed to be `['article']` — invariantly a single bundle, per the
         // EntityFieldExpressionsSameTarget constraint.
-        $definition['props']['properties'][$prop_name]['x-allowed-bundle'] = reset($bundles);
+        $allowed_target['x-allowed-bundle'] = reset($bundles);
+      }
+      // Each item in a list of references is one reference. Thus, the keys go
+      // into `items` for a list, and into the prop itself otherwise.
+      // ::getContentEntityReferenceProps() never returns a prop that already
+      // has these keys, so the `+=` operator adds all of them.
+      if ($this->isContentEntityReferenceObjectListProp($prop_name)) {
+        $definition['props']['properties'][$prop_name]['items'] += $allowed_target;
+      }
+      else {
+        $definition['props']['properties'][$prop_name] += $allowed_target;
       }
     }
     return $definition;
@@ -1019,10 +1029,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
   /**
    * Gets the subset of this code component's props that reference entities.
    *
+   * This includes both forms of content-entity-reference props: a single
+   * reference (`type: object`) and a list of references (`type: array`).
+   *
    * @return array<string, array>
    *   Keys are prop names; values are the full prop definitions.
    *
    * @see ::getEntityFieldExpressions()
+   * @see ::isContentEntityReferenceObjectListProp()
    */
   public function getContentEntityReferenceProps(): array {
     // Compare by normalized shape, not raw prop definition: key order,
@@ -1035,8 +1049,38 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     $entity_reference_prop_shape = PropShape::normalizePropSchema(JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray());
     return array_filter(
       $this->getProps() ?? [],
-      fn (array $prop_def) => PropShape::normalizePropSchema($prop_def) === $entity_reference_prop_shape,
+      function (array $prop_def) use ($entity_reference_prop_shape): bool {
+        $normalized = PropShape::normalizePropSchema($prop_def);
+        if (JsonSchemaObjectRef::isContentEntityReferenceObjectList($prop_def)) {
+          // For a list of references, compare the `items` schema the same way.
+          // Next to `items`, only the keys that set the cardinality can occur.
+          // Validation still rejects `minItems`, because content-entity-
+          // reference props must be optional.
+          // @see \Drupal\canvas\ComponentMetadataRequirementsChecker::check()
+          $other_keys = \array_diff(\array_keys($normalized), ['type', 'items', 'maxItems', 'minItems']);
+          return empty($other_keys)
+            && PropShape::normalizePropSchema($normalized['items']) === $entity_reference_prop_shape;
+        }
+        return $normalized === $entity_reference_prop_shape;
+      },
     );
+  }
+
+  /**
+   * Whether a content-entity-reference prop is a list of references.
+   *
+   * @param string $content_entity_reference_prop_name
+   *   A prop returned by ::getContentEntityReferenceProps().
+   *
+   * @return bool
+   *   TRUE for a list of references (`type: array`). FALSE for a single
+   *   reference (`type: object`), and for any other prop.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::isContentEntityReferenceObjectList()
+   */
+  public function isContentEntityReferenceObjectListProp(string $content_entity_reference_prop_name): bool {
+    $prop_def = $this->getContentEntityReferenceProps()[$content_entity_reference_prop_name] ?? NULL;
+    return \is_array($prop_def) && JsonSchemaObjectRef::isContentEntityReferenceObjectList($prop_def);
   }
 
   /**

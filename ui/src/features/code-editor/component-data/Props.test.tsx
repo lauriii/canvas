@@ -21,8 +21,14 @@ import {
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
 import { createDisplayArray } from '@/features/code-editor/utils/arrayPropUtils';
-import { serializeProps } from '@/features/code-editor/utils/utils';
-import { type CodeComponentPropImageExample } from '@/types/CodeComponent';
+import {
+  deserializeCodeComponent,
+  serializeProps,
+} from '@/features/code-editor/utils/utils';
+import {
+  type CodeComponentPropImageExample,
+  type CodeComponentSerialized,
+} from '@/types/CodeComponent';
 
 import Props, { REQUIRED_EXAMPLE_ERROR_MESSAGE } from './Props';
 
@@ -2481,6 +2487,15 @@ describe('props in code editor', () => {
       });
     });
 
+    it('shows allow multiple checkbox for content entity reference prop type', async () => {
+      await addProp('Content entity reference', 'Authors');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeInTheDocument();
+      });
+    });
+
     it('shows allow multiple checkbox for text list prop type', async () => {
       await addProp('List: text', 'Categories');
       const propId = selectCodeComponentProperty('props')(store.getState())[0]
@@ -3509,6 +3524,139 @@ describe('props in code editor', () => {
       });
     });
 
+    describe('content entity reference prop with multiple values', () => {
+      const CONTENT_ENTITY_REFERENCE_REF =
+        'json-schema-definitions://canvas.module/content-entity-reference';
+
+      const enableMultipleValues = async () => {
+        await addProp('Content entity reference', 'Authors');
+        fireEvent.click(
+          await screen.findByRole('checkbox', {
+            name: 'Allow multiple values',
+          }),
+        );
+        return selectCodeComponentProperty('props')(store.getState())[0].id;
+      };
+
+      it('serializes an unlimited list without examples', async () => {
+        await enableMultipleValues();
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.type).toBe('array');
+          expect(prop.items).toEqual({
+            type: 'object',
+            $ref: CONTENT_ENTITY_REFERENCE_REF,
+          });
+          expect(prop.example).toEqual([]);
+          expect(prop.valueMode).toBe('unlimited');
+        });
+
+        const props = selectCodeComponentProperty('props')(store.getState());
+        // No `examples`, `maxItems` or `minItems`.
+        expect(serializeProps(props)).toEqual({
+          authors: {
+            title: 'Authors',
+            type: 'array',
+            items: { type: 'object', $ref: CONTENT_ENTITY_REFERENCE_REF },
+          },
+        });
+        // The prop stays optional.
+        expect(
+          screen.queryByRole('switch', { name: 'Required' }),
+        ).not.toBeInTheDocument();
+        expect(
+          selectCodeComponentProperty('required')(store.getState()),
+        ).toEqual([]);
+      });
+
+      it('serializes a limited list without examples when the count changes', async () => {
+        const propId = await enableMultipleValues();
+
+        await userEvent.click(
+          document.getElementById(`prop-value-mode-${propId}`)!,
+        );
+        await userEvent.click(
+          await screen.findByRole('option', { name: 'Limited' }),
+        );
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0];
+          expect(prop.valueMode).toBe('limited');
+          expect(prop.limitedCount).toBe(2);
+          expect(prop.example).toEqual([]);
+        });
+
+        await userEvent.click(
+          screen.getByRole('button', { name: 'Increase count' }),
+        );
+        await userEvent.click(
+          screen.getByRole('button', { name: 'Increase count' }),
+        );
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0];
+          expect(prop.limitedCount).toBe(4);
+          expect(prop.example).toEqual([]);
+        });
+
+        await userEvent.click(
+          screen.getByRole('button', { name: 'Decrease count' }),
+        );
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0];
+          expect(prop.limitedCount).toBe(3);
+          expect(prop.example).toEqual([]);
+        });
+
+        const props = selectCodeComponentProperty('props')(store.getState());
+        // No `examples` or `minItems`.
+        expect(serializeProps(props)).toEqual({
+          authors: {
+            title: 'Authors',
+            type: 'array',
+            items: { type: 'object', $ref: CONTENT_ENTITY_REFERENCE_REF },
+            maxItems: 3,
+          },
+        });
+        expect(
+          screen.queryByRole('switch', { name: 'Required' }),
+        ).not.toBeInTheDocument();
+      });
+
+      it('restores a single-value prop when disabling multiple values', async () => {
+        await enableMultipleValues();
+        fireEvent.click(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        );
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            store.getState(),
+          )[0];
+          expect(prop.allowMultiple).toBe(false);
+          expect(prop.type).toBe('object');
+          expect(prop.items).toBeUndefined();
+        });
+
+        const props = selectCodeComponentProperty('props')(store.getState());
+        expect(serializeProps(props)).toEqual({
+          authors: {
+            title: 'Authors',
+            type: 'object',
+            $ref: CONTENT_ENTITY_REFERENCE_REF,
+          },
+        });
+      });
+    });
+
     it('adds multiple date values in unlimited mode', async () => {
       await addProp('Date and time', 'EventDates');
       const checkbox = await screen.findByRole('checkbox', {
@@ -4363,6 +4511,70 @@ describe('props in code editor', () => {
             expect(prop.example).toHaveLength(2);
           }
         });
+      });
+    });
+
+    describe('content entity reference prop with multiple values', () => {
+      it('reloads a limited multi-value content entity reference prop', async () => {
+        const { props } = deserializeCodeComponent({
+          props: {
+            authors: {
+              title: 'Authors',
+              type: 'array',
+              items: {
+                type: 'object',
+                $ref: 'json-schema-definitions://canvas.module/content-entity-reference',
+                'x-allowed-entity-type-id': 'node',
+                'x-allowed-bundle': 'article',
+              },
+              maxItems: 3,
+            },
+          },
+          dataDependencies: {
+            entityFields: { authors: ['ℹ︎␜entity:node:article␝title␞␟value'] },
+          },
+        } as unknown as CodeComponentSerialized);
+        const savedPropId = props[0].id;
+        const storeWithSavedProp = makeStore({
+          codeEditor: {
+            ...initialState,
+            codeComponent: {
+              ...initialState.codeComponent,
+              status: true,
+              props,
+            },
+            initialPropIds: [savedPropId],
+          },
+        });
+
+        render(<Wrapper store={storeWithSavedProp} />);
+
+        await waitFor(() => {
+          const prop = selectCodeComponentProperty('props')(
+            storeWithSavedProp.getState(),
+          )[0];
+          expect(prop.derivedType).toBe('contentEntityReference');
+          expect(prop.allowMultiple).toBe(true);
+          expect(prop.valueMode).toBe('limited');
+          expect(prop.limitedCount).toBe(3);
+          expect(prop.example).toEqual([]);
+        });
+
+        expect(
+          screen.getByRole('checkbox', { name: 'Allow multiple values' }),
+        ).toBeChecked();
+        const countInput = document.getElementById(
+          `prop-limited-count-${savedPropId}`,
+        ) as HTMLInputElement;
+        expect(countInput.value).toBe('3');
+        expect(
+          screen.queryByRole('switch', { name: 'Required' }),
+        ).not.toBeInTheDocument();
+        // The target comes from the `x-allowed-*` keys inside `items`.
+        expect(await screen.findByText('Entity Type:')).toBeInTheDocument();
+        expect(screen.getByText('node')).toBeInTheDocument();
+        expect(screen.getByText('article')).toBeInTheDocument();
+        expect(screen.getByText('Entity fields (1)')).toBeInTheDocument();
       });
     });
 
