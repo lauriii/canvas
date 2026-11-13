@@ -1,0 +1,19 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Enum with icons for unknown values
+props:
+  type: object
+  properties:
+    align:
+      title: 'Alignment'
+      type: string
+      enum:
+        - left
+        - right
+      meta:enum:
+        left: Left
+        right: Right
+      x-canvas-enum-icons:
+        left: text-align-left
+        center: text-align-center
+      examples:
+        - left
