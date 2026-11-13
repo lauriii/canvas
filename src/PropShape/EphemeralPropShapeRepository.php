@@ -37,6 +37,17 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
    */
   private ?CacheableMetadata $nestedCacheability = NULL;
 
+  /**
+   * Whether looked-up prop shapes are recorded in $seen.
+   *
+   * Sub-property lookups made while composing a custom object shape are
+   * implementation details, not component prop shapes, and must not pollute
+   * the unique prop shape discovery.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeObjectPropsStorablePropShape()
+   */
+  private bool $recordSeen = TRUE;
+
   public function __construct(
     private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
@@ -59,8 +70,11 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
   /**
    * {@inheritdoc}
    */
-  public function getStorablePropShape(PropShape $shape): ?StorablePropShape {
+  public function getStorablePropShape(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null {
     $candidate = $this->getCandidateStorablePropShape($shape);
+    if ($candidate instanceof ObjectPropsStorablePropShape) {
+      return $candidate;
+    }
     // When this resolution is nested inside another, the outer prop shape
     // inherits everything this one depends on.
     // @see ::$nestedCacheability
@@ -68,9 +82,25 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
     return $candidate->toStorablePropShape();
   }
 
-  public function getCandidateStorablePropShape(PropShape $shape): CandidateStorablePropShape {
-    $this->seen[$shape->uniquePropSchemaKey()] = $shape;
-    ksort($this->seen);
+  /**
+   * {@inheritdoc}
+   */
+  public function getStorablePropShapeForSubProperty(PropShape $shape): StorablePropShape|ObjectPropsStorablePropShape|null {
+    $record_seen = $this->recordSeen;
+    $this->recordSeen = FALSE;
+    try {
+      return $this->getStorablePropShape($shape);
+    }
+    finally {
+      $this->recordSeen = $record_seen;
+    }
+  }
+
+  public function getCandidateStorablePropShape(PropShape $shape): CandidateStorablePropShape|ObjectPropsStorablePropShape {
+    if ($this->recordSeen) {
+      $this->seen[$shape->uniquePropSchemaKey()] = $shape;
+      ksort($this->seen);
+    }
 
     // Collect the cacheability of the nested prop shapes resolved to compute
     // this one's storable prop shape.
@@ -86,10 +116,29 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
       // `$ref` altogether. Try to find a field type storage again, but then the
       // decision relies solely on the final (fully resolved) JSON schema.
       $json_schema_type = JsonSchemaType::from($shape->schema['type']);
-      $storable_prop_shape = JsonSchemaType::from($shape->schema['type'])->computeStorablePropShape($shape, $this);
+      // Custom object shapes ("groups") do not participate in the
+      // candidate/alter flow themselves: each sub-property's storable shape
+      // already went through it, when it was resolved through this
+      // repository. The composite is only used when no field-type-based UX
+      // exists — a hook_canvas_storable_prop_shape_alter() implementation
+      // providing a compound field type (e.g. datetime_range for the
+      // date-range shape) takes precedence.
+      // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+      $composite_storable_prop_shape = NULL;
+      $storable_prop_shape = $json_schema_type->computeStorablePropShape($shape, $this);
+      if ($storable_prop_shape instanceof ObjectPropsStorablePropShape) {
+        $composite_storable_prop_shape = $storable_prop_shape;
+        $storable_prop_shape = NULL;
+      }
       if ($storable_prop_shape === NULL) {
         $resolved_prop_shape = PropShape::normalize($shape->resolvedSchema);
-        $storable_prop_shape = $json_schema_type->computeStorablePropShape($resolved_prop_shape, $this);
+        $resolved_storable_prop_shape = $json_schema_type->computeStorablePropShape($resolved_prop_shape, $this);
+        if ($resolved_storable_prop_shape instanceof ObjectPropsStorablePropShape) {
+          $composite_storable_prop_shape ??= $resolved_storable_prop_shape;
+        }
+        else {
+          $storable_prop_shape = $resolved_storable_prop_shape;
+        }
       }
 
       $alterable = $storable_prop_shape
@@ -119,6 +168,12 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
     // @todo DX: validate that the field type exists.
     // @todo DX: validate that the field prop exists.
     // @todo DX: validate that the field widget exists.
+
+    // Fall back to the composite for custom object shapes when neither the
+    // default flow nor an alter implementation provided a field-type-based UX.
+    if ($composite_storable_prop_shape !== NULL && $alterable->toStorablePropShape() === NULL) {
+      return $composite_storable_prop_shape;
+    }
 
     return $alterable;
   }

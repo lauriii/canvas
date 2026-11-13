@@ -14,6 +14,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
+use Drupal\canvas\PropShape\ObjectPropsStorablePropShape;
 use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
@@ -980,7 +981,6 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   public static function getExpectedUnstorablePropShapes(): array {
     return [
       'type=array&items[type]=integer&minItems=2' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
-      'type=object&$ref=json-schema-definitions://canvas.module/date-range' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
       'type=object&$ref=json-schema-definitions://canvas.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       'type=integer&multipleOf=12' => new PropShape(['type' => 'integer', 'multipleOf' => 12]),
       'type=string&format=duration' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Duration->value]),
@@ -1017,6 +1017,46 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Custom object shapes ("groups"): composed per-sub-property shapes.
+   *
+   * The `date-range` shape has no compound field type in this test
+   * environment (no hook_canvas_storable_prop_shape_alter() implementation
+   * provides one), so it composes its two `format: date` sub-properties.
+   * The `shoe-icon` shape remains unstorable: its `size` and `color`
+   * sub-properties use enums containing the empty string.
+   *
+   * @return array<string, \Drupal\canvas\PropShape\ObjectPropsStorablePropShape>
+   *
+   * @see docs/adr/0021-object-props-in-code-components.md
+   */
+  public static function getExpectedCompositeStorablePropShapes(): array {
+    $date_sub_shape = new StorablePropShape(
+      shape: new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Date->value]),
+      fieldTypeProp: new FieldTypePropExpression('datetime', 'value'),
+      fieldWidget: 'datetime_default',
+      fieldStorageSettings: [
+        'datetime_type' => DateTimeItem::DATETIME_TYPE_DATE,
+      ],
+    );
+    return [
+      'type=object&$ref=json-schema-definitions://canvas.module/date-range' => new ObjectPropsStorablePropShape(
+        shape: PropShape::normalize([
+          'type' => 'object',
+          'properties' => [
+            'from' => ['type' => 'string', 'format' => 'date'],
+            'to' => ['type' => 'string', 'format' => 'date'],
+          ],
+          'required' => ['from', 'to'],
+        ]),
+        subShapes: [
+          'from' => $date_sub_shape,
+          'to' => $date_sub_shape,
+        ],
+      ),
+    ];
+  }
+
+  /**
  * Tests storable prop shapes.
  */
   #[Depends('testUniquePropShapeDiscovery')]
@@ -1034,9 +1074,13 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     }
 
     $unstorable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof PropShape);
+    $composite_storable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof ObjectPropsStorablePropShape);
     $unique_storable_prop_shapes = array_filter($unique_storable_prop_shapes, fn ($s) => $s instanceof StorablePropShape);
 
     $this->assertEquals(static::getExpectedStorablePropShapes(), $unique_storable_prop_shapes);
+
+    // Custom object shapes ("groups") compose their sub-properties' shapes.
+    $this->assertEquals(static::getExpectedCompositeStorablePropShapes(), $composite_storable_prop_shapes);
 
     // ⚠️ No field type + widget yet for these! For some that is fine though.
     $this->assertEquals(static::getExpectedUnstorablePropShapes(), $unstorable_prop_shapes);
@@ -1357,8 +1401,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     \assert($repository instanceof PropShapeRepositoryInterface);
     // A prop shape no field type can store: cached as NULL.
     $non_storable_shape = PropShape::normalize([
-      'type' => 'object',
-      'properties' => ['x' => ['type' => 'string']],
+      'type' => 'string',
+      'format' => JsonSchemaStringFormat::Duration->value,
     ]);
     self::assertNull($repository->getStorablePropShape($non_storable_shape));
     // End of the request: the cache is written, including the NULL.
