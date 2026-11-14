@@ -35,6 +35,7 @@ import {
   usePostTemplateLayoutMutation,
 } from '@/services/componentAndLayout';
 import {
+  noteLayoutRequestDue,
   selectUpdateComponentLoadingState,
   useQueuedPostPreviewMutation,
 } from '@/services/preview';
@@ -164,15 +165,19 @@ const Preview: React.FC = () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
+        noteLayoutRequestDue(false);
       }
 
       if (isAjaxing()) {
+        // A prop edit sent meanwhile is overwritten by this request.
+        noteLayoutRequestDue(true);
         pollingIntervalRef.current = setInterval(() => {
           if (!isAjaxing()) {
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current);
               pollingIntervalRef.current = null;
             }
+            noteLayoutRequestDue(false);
             sendPreviewRequest(context);
           }
         }, 50);
@@ -216,6 +221,7 @@ const Preview: React.FC = () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
+        noteLayoutRequestDue(false);
       }
     };
   }, []);

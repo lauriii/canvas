@@ -22,7 +22,11 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
-import { previewApi, useQueuedPostPreviewMutation } from '@/services/preview';
+import {
+  noteLayoutRequestDue,
+  previewApi,
+  useQueuedPostPreviewMutation,
+} from '@/services/preview';
 
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
 
@@ -44,7 +48,7 @@ const layout: RegionNode[] = [
 ];
 
 /** Settles the held requests, in the order they were sent. */
-let respond: Array<(body: unknown) => void> = [];
+let respond: Array<(body: unknown, status?: number) => void> = [];
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -57,9 +61,10 @@ describe('updateComponent', () => {
         return new Response('token');
       }
       return new Promise<Response>((resolve) => {
-        respond.push((body) =>
+        respond.push((body, status = 200) =>
           resolve(
             new Response(JSON.stringify(body), {
+              status,
               headers: { 'Content-Type': 'application/json' },
             }),
           ),
@@ -89,13 +94,18 @@ describe('updateComponent', () => {
       );
       await flush();
       const index = respond.length - 1;
-      return async () => {
-        respond[index]({
-          html: `<p>${text}</p>`,
-          layout,
-          model: { [uuid]: { resolved: { text } } },
-          autoSaves: {},
-        });
+      return async (status = 200) => {
+        respond[index](
+          status === 200
+            ? {
+                html: `<p>${text}</p>`,
+                layout,
+                model: { [uuid]: { resolved: { text } } },
+                autoSaves: {},
+              }
+            : { errors: ['Invalid value'] },
+          status,
+        );
         await request;
         await flush();
       };
@@ -300,7 +310,7 @@ describe('updateComponent', () => {
     expect(selectUpdatePreview(store.getState())).toBe(false);
   });
 
-  it('ignores the response to a prop edit when a later edit of the component was sent', async () => {
+  it('ignores the response to a prop edit when the response to a later edit of the component was applied', async () => {
     const { store, patch, isStale } = setup();
     // Each keystroke is shown in the preview, then sent.
     notePreviewEdit();
@@ -315,6 +325,43 @@ describe('updateComponent', () => {
       resolved: { text: 'ab' },
     });
     expect(isStale()).toBe(false);
+  });
+
+  it('applies the response to a prop edit when a later edit of the component fails', async () => {
+    const { store, patch } = setup();
+    const settleA = await patch('a');
+    const settleAb = await patch('ab');
+    await settleA();
+    await settleAb(422);
+    expect(selectModel(store.getState())[C]).toEqual({
+      resolved: { text: 'a' },
+    });
+    expect(selectPreviewHtml(store.getState())).toBe('<p>a</p>');
+  });
+
+  it('keeps a move whose render waits to be sent when a prop edit response arrives', async () => {
+    const { store, patch } = setup();
+    const old = { [C]: { resolved: { text: 'old' } } };
+    store.dispatch(
+      setInitialLayoutModel({ layout, model: old, updatePreview: false }),
+    );
+    // The render of a move waits for a Drupal AJAX request.
+    const moved = structuredClone(layout);
+    store.dispatch(
+      setLayoutModel({ layout: moved, model: old, updatePreview: true }),
+    );
+    noteLayoutRequestDue(true);
+    try {
+      const settlePatch = await patch('new');
+      await settlePatch();
+    } finally {
+      noteLayoutRequestDue(false);
+    }
+    expect(selectLayout(store.getState())).toBe(moved);
+    expect(selectModel(store.getState())[C]).toEqual({
+      resolved: { text: 'new' },
+    });
+    expect(selectUpdatePreview(store.getState())).toBe(true);
   });
 
   it('ignores the render of a template layout answered after a later one', async () => {

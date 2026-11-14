@@ -77,17 +77,27 @@ export const noteLayoutRequest = () => {
   };
 };
 
-// The last prop edit sent for each component.
+// Whether a request with the layout and model in the store waits to be sent,
+// e.g. until a Drupal AJAX request has completed.
+let layoutRequestDue = false;
+
+/** Notes whether a request with the layout and model waits to be sent. */
+export const noteLayoutRequestDue = (due: boolean) => {
+  layoutRequestDue = due;
+};
+
+// The last prop edit of each component whose response was applied.
 let componentUpdates = 0;
-const lastComponentUpdate = new Map<string, number>();
+const lastAppliedComponentUpdate = new Map<string, number>();
 
 /**
  * Notes that a prop edit (PATCH) is sent.
  *
  * The prop value reaches the model in the store only with the response. A
- * request with the layout and model that is on its way now, queued, or sent
- * before then doesn't have it, and may overwrite it on the server. The
- * response then may have the layout from before that request's edit.
+ * request with the layout and model that is on its way now, queued, waiting
+ * to be sent, or sent before then doesn't have it, and may overwrite it on
+ * the server. The response then may have the layout from before that
+ * request's edit.
  *
  * @param componentInstanceUuid
  *   The edited component.
@@ -95,24 +105,34 @@ const lastComponentUpdate = new Map<string, number>();
  *   Returns the store's state.
  *
  * @return
- *   Functions that tell, once the response has arrived, whether a later prop
- *   edit of the component was sent (so this response has an older value), and
- *   whether the response was overtaken by a request with the layout and model,
- *   or by an edit of the layout that is yet to be sent.
+ *   Functions that tell, once the response has arrived, whether the response
+ *   to a later prop edit of the component was applied already (so this one
+ *   has an older value), and whether the response was overtaken by a request
+ *   with the layout and model, or by an edit of the layout.
  */
 export const noteComponentUpdate = (
   componentInstanceUuid: string,
   getState: () => unknown,
 ) => {
   const update = ++componentUpdates;
-  lastComponentUpdate.set(componentInstanceUuid, update);
   const layout = () => (getState() as RootState).layoutModel.present.layout;
   const layoutAtUpdate = layout();
   const requestsAtUpdate = layoutRequests;
-  const busy = layoutRequestsInFlight > 0 || pendingPreviewArg !== null;
+  const busy =
+    layoutRequestsInFlight > 0 ||
+    pendingPreviewArg !== null ||
+    layoutRequestDue;
   return {
-    isSuperseded: () =>
-      lastComponentUpdate.get(componentInstanceUuid) !== update,
+    // Called once, when the response is applied unless this returns true.
+    isSuperseded: () => {
+      if (
+        update < (lastAppliedComponentUpdate.get(componentInstanceUuid) ?? 0)
+      ) {
+        return true;
+      }
+      lastAppliedComponentUpdate.set(componentInstanceUuid, update);
+      return false;
+    },
     isOvertaken: () =>
       busy || layoutRequests > requestsAtUpdate || layout() !== layoutAtUpdate,
   };
@@ -305,7 +325,7 @@ export const previewApi = createApi({
         dispatch(setSnapshotHTML(''));
         dispatch(setSnapshotTitle(''));
         if (isSuperseded()) {
-          // The response to the later edit has the later value.
+          // The response to a later edit, with the later value, was applied.
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           return;
         }
