@@ -1083,6 +1083,19 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
     self::assertSame([], \array_filter($expressions, fn (string $e): bool => \str_contains($e, 'field_zip_download')));
   }
 
+  /**
+   * Tests that the video embed shape matches no entity fields.
+   *
+   * @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchEntityPropsForObject()
+   */
+  public function testVideoEmbedShapeMatchesNoEntityFields(): void {
+    $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
+    \assert($matcher instanceof EntityFieldPropSourceMatcher);
+
+    // Entity fields provide no embed URL, so none may populate this shape.
+    self::assertSame([], $matcher->match(FALSE, JsonSchemaObjectRef::VideoEmbed->asPropShape(), 'node', 'foo'));
+  }
+
   public function testMultiValuedStringListMatchesArrayOfStrings(): void {
     $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
     \assert($matcher instanceof EntityFieldPropSourceMatcher);

@@ -196,6 +196,32 @@ image:
 {% include 'canvas:image' with image only %}
 ```
 
+### Video Embed
+
+A video on a video sharing site. The Content Creator pastes the URL of the
+video, such as a YouTube or Vimeo URL. The URL must be from a provider that
+Drupal core's "Remote video" media source allows.
+
+`src` is the URL of an iframe that plays the video. Drupal core renders the
+provider's embed code in that iframe, so the component never renders it. In
+`examples`, use the URL of the video page as `src`.
+
+**Schema Definition:**
+```yaml
+video:
+  title: 'Video'
+  $ref: json-schema-definitions://canvas.module/video-embed
+  type: object
+  examples:
+    - src: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ'
+```
+
+**Twig Usage:**
+```twig
+<iframe src="{{ video.src }}" title="{{ title }}" allowfullscreen
+  style="aspect-ratio: 16 / 9; width: 100%; border: 0"></iframe>
+```
+
 ### Date
 
 Date picker input for selecting dates.
