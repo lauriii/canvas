@@ -32,6 +32,20 @@
   border-radius: 4px;
   box-shadow: inset 0 0 0 1px var(--slate-5) !important;
 }
+.withUnit {
+  position: relative;
+}
+/* Over the end of the input, so that a click on the unit reaches the input. */
+.unit {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 8px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: var(--slate-11);
+  font-size: var(--font-size-2);
+}
 .autocompleteWrap {
   position: relative;
   /* Add the magnifier icon to the wrapper so it does not conflict with the

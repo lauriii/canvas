@@ -151,6 +151,8 @@ final class PropShape {
     unset($normalized_prop_schema['x-canvas-color-folders']);
     // Option icons only affect the component instance form.
     unset($normalized_prop_schema['x-canvas-enum-icons']);
+    // The unit of a number only affects the component instance form.
+    unset($normalized_prop_schema['x-canvas-unit']);
     // Where the widgets of a custom object prop show only affects the
     // component instance form.
     unset($normalized_prop_schema['x-canvas-object-display']);

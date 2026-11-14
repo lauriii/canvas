@@ -199,6 +199,18 @@ final class ComponentMetadataRequirementsChecker {
         }
       }
 
+      // Validation for x-canvas-unit: the unit that the component instance form
+      // shows next to a number input, such as "px". A prop with an `enum` gets
+      // a select, which has no place for it.
+      // @see ui/src/components/form/components/TextField.tsx
+      if (\array_key_exists('x-canvas-unit', $prop)) {
+        $unit = $prop['x-canvas-unit'];
+        if (!\in_array($prop_types[0] ?? NULL, ['number', 'integer'], TRUE) || \array_key_exists('enum', $prop) || !\is_string($unit) || \trim($unit) === '' || \mb_strlen($unit) > 8) {
+          $messages[] = \sprintf('"x-canvas-unit" on prop "%s" requires a number or integer prop without "enum", and must be a non-empty string of at most 8 characters, such as "px".', $prop_name);
+          continue;
+        }
+      }
+
       // Validation for x-canvas-object-display: whether the component instance
       // form shows the widgets of a single-value custom object prop ("group")
       // in a popover or in the form itself. The items of a multi-value group

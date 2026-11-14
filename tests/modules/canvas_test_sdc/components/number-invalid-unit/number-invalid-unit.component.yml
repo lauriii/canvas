@@ -1,0 +1,26 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Number with invalid units
+props:
+  type: object
+  properties:
+    width:
+      title: 'Width'
+      type: integer
+      x-canvas-unit: kilometers
+      examples:
+        - 100
+    label:
+      title: 'Label'
+      type: string
+      x-canvas-unit: px
+      examples:
+        - Hello
+    columns:
+      title: 'Columns'
+      type: integer
+      enum:
+        - 2
+        - 3
+      x-canvas-unit: col
+      examples:
+        - 2

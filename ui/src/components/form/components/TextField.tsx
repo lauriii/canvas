@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import clsx from 'clsx';
 
 import { a2p } from '@/local_packages/utils';
@@ -15,11 +16,23 @@ const TextField = ({
   className?: string;
   attributes?: Attributes;
 }) => {
+  const props = a2p(attributes);
+  // The unit of a number prop, such as "px": an SDC sets it with
+  // `x-canvas-unit`. It shows at the end of the input and is the input's
+  // accessible description. The value stays the bare number.
+  // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+  const unit = props['data-canvas-unit'];
+  const unitId = useId();
   return (
-    <div className={styles.wrap}>
+    <div className={clsx(styles.wrap, unit && styles.withUnit)}>
       <input
         autoComplete="off"
-        {...a2p(attributes)}
+        {...props}
+        {...(unit && {
+          'aria-describedby': clsx(props['aria-describedby'], unitId),
+          // Keep the value and the spin buttons clear of the unit.
+          style: { paddingInlineEnd: `calc(${unit.length}ch + 14px)` },
+        })}
         className={clsx(styles.root, className)}
         ref={(element) => {
           if (element) {
@@ -31,6 +44,11 @@ const TextField = ({
           }
         }}
       />
+      {unit && (
+        <span id={unitId} className={styles.unit}>
+          {unit}
+        </span>
+      )}
     </div>
   );
 };
