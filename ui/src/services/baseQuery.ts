@@ -1,5 +1,6 @@
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+import { setMaintenanceMessage } from '@/features/error-handling/queryErrorSlice';
 import { fetchCsrfToken, forgetCsrfToken } from '@/utils/csrf';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
@@ -170,13 +171,39 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
       templateViewMode,
     );
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
-    const result = await defaultQuery(newArg, api, extraOptions);
+    let result = await defaultQuery(newArg, api, extraOptions);
     // The cached CSRF token is stale if the session changed. Drupal rejects
     // the request before handling it, so it is safe to send again. Read the
     // response status: a 403 with an HTML body is a parsing error.
     if (api.type === 'mutation' && result.meta?.response?.status === 403) {
       forgetCsrfToken(baseUrl);
-      return defaultQuery(newArg, api, extraOptions);
+      result = await defaultQuery(newArg, api, extraOptions);
+    }
+    // Drupal responds with HTTP 503 and a plain text or HTML maintenance
+    // message when the site is in maintenance mode. The message is
+    // configurable, so it can be empty or happen to be valid JSON: rely on the
+    // content type rather than on whether the body parses. A 503 with a JSON
+    // content type is not maintenance mode (for example, the artifact upload
+    // lock), so it is returned as a regular error.
+    // @see \Drupal\Core\EventSubscriber\MaintenanceModeSubscriber::onMaintenanceModeRequest()
+    // @see \Drupal\canvas\Controller\ApiArtifactController
+    const { error, meta } = result;
+    const status =
+      error?.status === 'PARSING_ERROR' ? error.originalStatus : error?.status;
+    const contentType = meta?.response?.headers.get('Content-Type') ?? '';
+    if (error && status === 503 && !contentType.includes('json')) {
+      const { data } = error;
+      api.dispatch(
+        setMaintenanceMessage(
+          typeof data === 'string' && data ? data : 'Site under maintenance.',
+        ),
+      );
+      // Intentionally never settle. Drupal has ended the session, and
+      // MaintenanceModeOverlay leaves the page once the site is back online.
+      // In-flight callers must not run their error handling (error
+      // boundaries, toasts, optimistic update rollbacks), so code after an
+      // `await` on this request, including `finally` blocks, never runs.
+      return new Promise<never>(() => {});
     }
     return result;
   };
