@@ -8,6 +8,7 @@ props:
       type: string
       title: Size
       description: Pick one size.
+      x-canvas-group: Appearance
       enum:
         - small
         - medium
@@ -22,6 +23,7 @@ props:
       type: array
       title: Colors
       description: Pick one or more colors.
+      x-canvas-advanced: true
       items:
         type: string
         enum:

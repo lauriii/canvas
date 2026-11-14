@@ -64,6 +64,7 @@ use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
+use Drupal\Core\Security\Attribute\TrustedCallback;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Url;
@@ -332,6 +333,8 @@ final class Layers {
         Selector::classname(EmptyTargetEntityProviderInterface::class),
         Selector::classname(Pattern::class),
         Selector::classname(PropVisibilityCondition::class),
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::preRenderPropSections()
+        Selector::classname(TrustedCallback::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
         self::usesConstraintViolationValueObjects(),
         // For the translatability of inputs.

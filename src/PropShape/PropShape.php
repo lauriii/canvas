@@ -154,6 +154,9 @@ final class PropShape {
     // Where the widgets of a custom object prop show only affects the
     // component instance form.
     unset($normalized_prop_schema['x-canvas-object-display']);
+    // The section of a prop only affects the component instance form.
+    unset($normalized_prop_schema['x-canvas-group']);
+    unset($normalized_prop_schema['x-canvas-advanced']);
     // Visibility conditions only affect the component instance form.
     // @see \Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition
     unset($normalized_prop_schema[PropVisibilityCondition::KEY]);
