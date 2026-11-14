@@ -9,5 +9,6 @@ props:
       type: integer
       title: Count
       description: A required integer value.
+      x-canvas-unit: pcs
       examples:
         - 42
