@@ -130,6 +130,16 @@ const CardSelect = ({
       ArrowDown: COLUMNS,
       ArrowUp: -COLUMNS,
     }[event.key];
+    // The editor deletes the selected component on Backspace or Delete while
+    // a button has focus: these keys go back to the search box.
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.stopPropagation();
+      event.currentTarget
+        .closest(`.${styles.popover}`)
+        ?.querySelector<HTMLElement>('input')
+        ?.focus();
+      return;
+    }
     if (!step) {
       return;
     }
