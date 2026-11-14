@@ -148,6 +148,9 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
+    // Where the widgets of a custom object prop show only affects the
+    // component instance form.
+    unset($normalized_prop_schema['x-canvas-object-display']);
 
     // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
     // prop's declared `type` (and then dedupes) so Twig can defer rendering

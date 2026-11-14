@@ -160,6 +160,22 @@ final class ComponentMetadataRequirementsChecker {
         }
       }
 
+      // Validation for x-canvas-object-display: whether the component instance
+      // form shows the widgets of a single-value custom object prop ("group")
+      // in a popover or in the form itself. The items of a multi-value group
+      // are always rows with a popover.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
+      if (\array_key_exists('x-canvas-object-display', $prop) || ($is_array_prop_type && \array_key_exists('x-canvas-object-display', $prop['items'] ?? []))) {
+        if ($prop_types !== ['object'] || !\is_array($prop['properties'] ?? NULL)) {
+          $messages[] = \sprintf('"x-canvas-object-display" on prop "%s" requires a single-value object prop with "properties".', $prop_name);
+          continue;
+        }
+        if (!\in_array($prop['x-canvas-object-display'], ['inline', 'popover'], TRUE)) {
+          $messages[] = \sprintf('"x-canvas-object-display" on prop "%s" must be "inline" or "popover".', $prop_name);
+          continue;
+        }
+      }
+
       // Validation for x-canvas-color-folders.
       if (\array_key_exists('x-canvas-color-folders', $prop)) {
         $folders = $prop['x-canvas-color-folders'];

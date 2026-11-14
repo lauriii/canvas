@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Canvas Stark override of the widgets of an inline group prop.
+ *
+ * This wraps the sub-property widgets of a single-value custom object
+ * ("group") prop with `x-canvas-object-display: inline`, so the client can
+ * present them as one group in the form, below the group label.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the containing element.
+ * - children: The rendered child elements of the container.
+ *
+ * @see template_preprocess_container()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
+ *
+ * @ingroup themeable
+ */
+#}
+<drupal-canvas-object-props-inline attributes="{{ attributes }}">{{ children }}</drupal-canvas-object-props-inline>

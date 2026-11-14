@@ -508,3 +508,28 @@ export const DrupalObjectPropsItem = ({
     </Popover.Root>
   );
 };
+
+/**
+ * The widgets of a single-value group prop with
+ * `x-canvas-object-display: inline`.
+ *
+ * Renders the sub-property widgets in the form, below the group label, instead
+ * of in the popover of a row. A rule along their left edge groups them.
+ *
+ * @see themes/canvas_stark/templates/form/container--canvas-object-props-inline.html.twig
+ */
+export const DrupalObjectPropsInline = ({
+  children,
+  attributes = {},
+}: {
+  children?: ReactNode;
+  attributes?: Attributes;
+}) => (
+  <div
+    role="group"
+    aria-label={String(attributes['data-item-label'] || 'Item')}
+    className={styles.inline}
+  >
+    {children}
+  </div>
+);
