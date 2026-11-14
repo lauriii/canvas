@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
+import { ReactReduxContext } from 'react-redux';
 import {
   isRouteErrorResponse,
   useAsyncError,
@@ -9,6 +10,7 @@ import {
 import ErrorAlert from '@/components/error/ErrorAlert';
 import ErrorCard from '@/components/error/ErrorCard';
 import ErrorPage from '@/components/error/ErrorPage';
+import { selectMaintenanceMessage } from '@/features/error-handling/queryErrorSlice';
 import { usePostLogEntryMutation } from '@/services/log';
 import { getDrupalSettings } from '@/utils/drupal-globals';
 
@@ -27,10 +29,18 @@ const ErrorBoundary: React.FC<{
   children: React.ReactNode;
 }> = ({ title, resetButtonText, onReset, variant = 'card', children }) => {
   const [postLogEntryMutation] = usePostLogEntryMutation();
+  // Read the store from context directly: main.tsx renders this boundary
+  // outside the Redux Provider.
+  const store = useContext(ReactReduxContext)?.store;
 
   return (
     <ReactErrorBoundary
       fallbackRender={({ error, resetErrorBoundary }) => {
+        // Requests fail while the site is in maintenance mode, and
+        // MaintenanceModeOverlay explains why.
+        if (store && selectMaintenanceMessage(store.getState())) {
+          return null;
+        }
         const status = error?.status || error?.data?.status;
         let message =
           error.message ||

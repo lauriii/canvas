@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { setMaintenanceMessage } from '@/features/error-handling/queryErrorSlice';
 import {
   baseQuery,
   extractEntityParams,
@@ -117,5 +118,169 @@ describe('baseQuery', () => {
 
     expect(result.data).toEqual({ saved: true });
     expect(sentTokens).toEqual(['stale-token', 'new-token']);
+  });
+
+  // Drupal's maintenance mode response: the configured message, which may be
+  // empty or happen to be valid JSON, as plain text (or an HTML page).
+  it.each([
+    ['a message', 'Back soon.', 'text/plain; charset=UTF-8', 'Back soon.'],
+    [
+      'an empty message',
+      '',
+      'text/plain; charset=UTF-8',
+      'Site under maintenance.',
+    ],
+    [
+      'a message that is valid JSON',
+      '"Back soon."',
+      'text/plain; charset=UTF-8',
+      'Back soon.',
+    ],
+    [
+      'an HTML page',
+      '<p>Back soon.</p>',
+      'text/html; charset=UTF-8',
+      '<p>Back soon.</p>',
+    ],
+  ])(
+    'flags maintenance mode on HTTP 503 with %s',
+    async (_label, body, contentType, expectedMessage) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async () =>
+            new Response(body, {
+              status: 503,
+              headers: { 'Content-Type': contentType },
+            }),
+        ),
+      );
+      const dispatch = vi.fn();
+      const api = {
+        dispatch,
+        getState: () => ({ configuration: { baseUrl: 'http://localhost/' } }),
+        signal: new AbortController().signal,
+        abort: vi.fn(),
+        type: 'query',
+        endpoint: 'test',
+        extra: undefined,
+      } as unknown as BaseQueryApi;
+      // The request never settles, so wait for the dispatch instead.
+      void baseQuery('foo', api, {});
+      await vi.waitFor(() =>
+        expect(dispatch).toHaveBeenCalledWith(
+          setMaintenanceMessage(expectedMessage),
+        ),
+      );
+      vi.unstubAllGlobals();
+    },
+  );
+
+  it('returns a regular error on HTTP 503 with a JSON body', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ message: 'Busy.' }, { status: 503 })),
+    );
+    const dispatch = vi.fn();
+    const api = {
+      dispatch,
+      getState: () => ({ configuration: { baseUrl: 'http://localhost/' } }),
+      signal: new AbortController().signal,
+      abort: vi.fn(),
+      type: 'query',
+      endpoint: 'test',
+      extra: undefined,
+    } as unknown as BaseQueryApi;
+    const result = await baseQuery('foo', api, {});
+    expect(result.error).toMatchObject({
+      status: 503,
+      data: { message: 'Busy.' },
+    });
+    expect(dispatch).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('baseQuery with a stale CSRF token', () => {
+  const baseUrl = 'http://localhost/';
+  const api = (dispatch: () => void) =>
+    ({
+      dispatch,
+      getState: () => ({ configuration: { baseUrl } }),
+      signal: new AbortController().signal,
+      abort: vi.fn(),
+      type: 'mutation',
+      endpoint: 'test',
+      extra: undefined,
+    }) as unknown as BaseQueryApi;
+
+  // Responds to token requests with a new token each time, and to other
+  // requests with the given responses in order. Returns the token each of
+  // those requests was sent with.
+  const stubFetch = (...responses: Response[]) => {
+    const sentTokens: Array<string | null> = [];
+    let tokenCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const request = input instanceof Request ? input : new Request(input);
+        if (request.url === `${baseUrl}session/token`) {
+          tokenCount += 1;
+          return new Response(`token-${tokenCount}`);
+        }
+        sentTokens.push(request.headers.get('X-CSRF-Token'));
+        return responses.shift();
+      }),
+    );
+    return sentTokens;
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    forgetCsrfToken(baseUrl);
+  });
+
+  it('retries once with a new token, then flags maintenance mode on HTTP 503', async () => {
+    const sentTokens = stubFetch(
+      Response.json({ message: 'Invalid CSRF token.' }, { status: 403 }),
+      new Response('Back soon.', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
+      }),
+    );
+    const dispatch = vi.fn();
+    const settled = vi.fn();
+
+    void Promise.resolve(baseQuery('foo', api(dispatch), {})).then(
+      settled,
+      settled,
+    );
+
+    await vi.waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith(
+        setMaintenanceMessage('Back soon.'),
+      ),
+    );
+    expect(sentTokens).toEqual(['token-1', 'token-2']);
+    // The request never settles.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(settled).not.toHaveBeenCalled();
+  });
+
+  it('retries once with a new token, then returns a JSON HTTP 503 as a regular error', async () => {
+    const sentTokens = stubFetch(
+      Response.json({ message: 'Invalid CSRF token.' }, { status: 403 }),
+      Response.json({ message: 'Busy.' }, { status: 503 }),
+    );
+    const dispatch = vi.fn();
+
+    const result = await baseQuery('foo', api(dispatch), {});
+
+    expect(result.error).toMatchObject({
+      status: 503,
+      data: { message: 'Busy.' },
+    });
+    expect(sentTokens).toEqual(['token-1', 'token-2']);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });

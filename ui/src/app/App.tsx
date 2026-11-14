@@ -13,6 +13,7 @@ import { Box, Callout, Flex } from '@radix-ui/themes';
 import AiPanel from '@/components/aiExtension/AiPanel';
 import DevTools from '@/components/devTools/DevTools';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
+import MaintenanceModeOverlay from '@/components/MaintenanceModeOverlay';
 import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
@@ -153,6 +154,9 @@ const App: React.FC = () => {
             {getCanvasSettings()?.devMode && <NotificationToastManager />}
           </DndContext>
         </ErrorBoundary>
+        {/* Outside the error boundary, so it shows even when a failed request
+            replaces the app with the error alert. */}
+        <MaintenanceModeOverlay />
       </div>
     </div>
   );

@@ -1,0 +1,28 @@
+/* Blurs the editor, instead of the default dark overlay. */
+:global(.rt-BaseDialogOverlay):has(.content) {
+  --color-overlay: color-mix(in sRGB, var(--color-background) 80%, transparent);
+
+  backdrop-filter: blur(16px);
+}
+
+/* The message sits directly on the overlay, without a dialog panel. */
+.content {
+  text-align: center;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.spinner {
+  width: var(--space-5);
+  height: var(--space-5);
+  animation: spin 800ms linear infinite;
+  border: 2px solid var(--gray-a5);
+  border-top-color: var(--gray-11);
+  border-radius: 50%;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
