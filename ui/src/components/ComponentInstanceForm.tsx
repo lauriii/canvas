@@ -10,12 +10,16 @@ import { Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
-import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
+import {
+  getPropsValues,
+  staleGroupItemNames,
+} from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import FormSkeleton from '@/components/FormSkeleton';
 import { FORM_TYPES } from '@/features/form/constants';
 import {
   clearFieldValues,
+  removeFieldValue,
   selectFormValues,
 } from '@/features/form/formStateSlice';
 import {
@@ -101,6 +105,7 @@ const ComponentInstanceFormRenderer: React.FC<
     );
 
   const patchComponent = usePatchComponent();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (error) {
@@ -186,6 +191,21 @@ const ComponentInstanceFormRenderer: React.FC<
       const { updates, formId } = detail;
       // We only care about the component instance form, not the entity form.
       if (formId === 'component_instance_form') {
+        // A group item that the rebuilt list no longer has leaves the form
+        // state as well. Otherwise, the next change of another field puts the
+        // removed item back into the stored value.
+        const staleNames = staleGroupItemNames(
+          Object.keys(formState),
+          Object.keys(updates),
+        );
+        if (staleNames.length > 0) {
+          dispatch(
+            removeFieldValue({
+              formId: FORM_TYPES.COMPONENT_INSTANCE_FORM,
+              fieldName: staleNames,
+            }),
+          );
+        }
         // Apply transforms for form state.
         const transforms = persistentTransforms.current ?? {};
         const { propsValues: values, selectedModel } = getPropsValues(

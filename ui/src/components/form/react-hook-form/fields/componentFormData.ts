@@ -118,6 +118,39 @@ export const formStateToObject = (
 };
 
 /**
+ * Finds the form state of group items that a rebuilt item list no longer has.
+ *
+ * Every item of a multi-value group has a `groupName.delta._weight` field, so
+ * the weights among the rebuilt fields tell which items of a group remain.
+ *
+ * @param {string[]} formStateNames
+ *   The names of all form elements in the form state.
+ * @param {string[]} rebuiltNames
+ *   The names of the form elements that an AJAX response rebuilt.
+ *
+ * @return {string[]}
+ *   The names in the form state that belong to removed items.
+ */
+export const staleGroupItemNames = (
+  formStateNames: string[],
+  rebuiltNames: string[],
+): string[] => {
+  // The start of the names of every remaining item: `…[groupName.delta.`.
+  const items = rebuiltNames
+    .filter((name) => /\.\d+\._weight\]$/.test(name))
+    .map((name) => name.slice(0, -'_weight]'.length));
+  const groups = [...new Set(items.map((item) => item.replace(/\d+\.$/, '')))];
+  return formStateNames.filter((name) =>
+    groups.some(
+      (group) =>
+        name.startsWith(group) &&
+        /^\d+\./.test(name.slice(group.length)) &&
+        !items.some((item) => name.startsWith(item)),
+    ),
+  );
+};
+
+/**
  * Analyzes a form state and returns an object that organizes the form
  * information in multiple ways to satisfy different use cases.
  *
