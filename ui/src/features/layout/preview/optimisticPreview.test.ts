@@ -6,8 +6,12 @@ import {
   movePreviewComponent,
   OPTIMISTIC_CSS_ATTRIBUTE,
   PREVIEW_HEAD_STYLES_ID,
+  removePreviewComponent,
 } from '@/features/layout/preview/optimisticPreview';
-import { previewEditCount } from '@/features/layout/preview/previewEdits';
+import {
+  isPreviewLayoutEdited,
+  previewEditCount,
+} from '@/features/layout/preview/previewEdits';
 
 import type {
   ComponentNode,
@@ -59,6 +63,8 @@ describe('movePreviewComponent', () => {
       movePreviewComponent(doc, layout(component('b'), component('a')), 'b'),
     ).toBe(true);
     expect(text(doc)).toBe('B,A');
+    // So a render with the components elsewhere isn't shown in place.
+    expect(isPreviewLayoutEdited(doc)).toBe(true);
   });
 
   it('moves a component to the end of a region', () => {
@@ -99,6 +105,7 @@ describe('movePreviewComponent', () => {
     ).toBe(true);
     expect(doc.querySelector('p')).toBe(a);
     expect(previewEditCount()).toBe(edits);
+    expect(isPreviewLayoutEdited(doc)).toBe(false);
   });
 
   it('leaves the preview alone when markers are missing', () => {
@@ -132,6 +139,7 @@ describe('insertPreviewComponent', () => {
     ).not.toBeNull();
     expect(doc.body.innerHTML).toContain('<!-- canvas-start-n --><p>N</p>');
     expect(previewEditCount()).toBe(edits + 1);
+    expect(isPreviewLayoutEdited(doc)).toBe(true);
     // The CSS of another instance is there already.
     insertPreviewComponent(
       doc,
@@ -173,5 +181,15 @@ describe('insertPreviewComponent', () => {
       { default_markup: '<p>N</p>', css: '<style>p{}</style>' },
     );
     expect(doc.head.lastElementChild!.id).toBe(PREVIEW_HEAD_STYLES_ID);
+  });
+});
+
+describe('removePreviewComponent', () => {
+  it('removes the markup of a component with its markers', () => {
+    const doc = preview();
+    removePreviewComponent(doc, 'a');
+    expect(text(doc)).toBe('B');
+    expect(doc.body.innerHTML).not.toContain('canvas-start-a');
+    expect(isPreviewLayoutEdited(doc)).toBe(true);
   });
 });

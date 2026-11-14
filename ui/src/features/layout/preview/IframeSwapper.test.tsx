@@ -157,11 +157,14 @@ describe('IframeSwapper', () => {
     expect(loadingFrame.dataset.canvasSwapActive).toBe('false');
     expect(loadingFrame.style.display).toBe('block');
 
+    const warn = vi.spyOn(console, 'warn');
     body.firstElementChild!.removeAttribute('ssr');
     await waitFor(() =>
       expect(loadingFrame.dataset.canvasSwapActive).toBe('true'),
     );
     expect(loadingFrame.style.display).toBe('');
+    // Not swapped in by the one second limit.
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('compares a render with the one shown, not with an older one it skipped', async () => {
