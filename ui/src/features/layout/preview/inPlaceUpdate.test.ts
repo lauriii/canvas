@@ -201,6 +201,21 @@ describe('updateInPlace', () => {
     );
     expect(updateInPlace(doc, page(), page({ content: HEADING }))).toBe(false);
     expect(doc.documentElement.innerHTML).toBe(html);
+
+    // A component that failed to render has no markers, but is moved, too.
+    const FAILED = '<div data-component-uuid="failed">Failed to render</div>';
+    const failedFirst = page({ content: FAILED + HEADING + CARD });
+    const failedBetween = page({ content: HEADING + FAILED + CARD });
+    const failedLast = page({ content: HEADING + CARD + FAILED });
+    expect(
+      updateInPlace(preview(failedBetween), failedBetween, failedLast),
+    ).toBe(false);
+    expect(updateInPlace(preview(failedFirst), failedFirst, failedLast)).toBe(
+      false,
+    );
+    expect(updateInPlace(preview(failedLast), failedFirst, failedLast)).toBe(
+      true,
+    );
   });
 
   it('declines a render the preview was edited away from', () => {

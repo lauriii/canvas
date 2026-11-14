@@ -32,8 +32,19 @@ const COMPONENT_MARKER = new RegExp(
   'g',
 );
 
-// The markers of components, slots and regions, which tell where each is.
-const MARKER = /<!-- canvas-(?:slot-|region-)?(?:start|end)-.+? -->/g;
+// The markers of components, slots and regions, which tell where each is, and
+// the element printed instead of a component that failed to render, which
+// has no markers.
+// @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
+const MARKER =
+  /<!-- canvas-(?:slot-|region-)?(?:start|end)-.+? -->|<div [^>]*?\bdata-component-uuid="([^"]*)"/g;
+const failedMarker = (uuid: string) => `<failed ${uuid}>`;
+
+// Where the components, slots and regions of a render are.
+const markersOf = (html: string) =>
+  Array.from(html.matchAll(MARKER), ([text, failed]) =>
+    failed === undefined ? text : failedMarker(failed),
+  ).join('');
 
 // What the server renders in a slot or region with no components. Whether it
 // is there follows from where the components are, so it isn't a change to the
@@ -310,13 +321,24 @@ const markerOf = (node: Node) =>
     ? parseCanvasCommentMarker(node.nodeValue ?? '')
     : null;
 
-// The markers of a live preview document, as a render has them.
+// The markers of a live preview document, as markersOf() finds them in a
+// render.
 function liveMarkers(document: Document) {
-  const walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT);
+  const walker = document.createTreeWalker(
+    document,
+    NodeFilter.SHOW_COMMENT | NodeFilter.SHOW_ELEMENT,
+  );
   let markers = '';
   while (walker.nextNode()) {
-    if (markerOf(walker.currentNode)) {
-      markers += `<!-- ${walker.currentNode.nodeValue!.trim()} -->`;
+    const node = walker.currentNode;
+    const failed =
+      node.nodeType === Node.ELEMENT_NODE &&
+      (node as Element).localName === 'div' &&
+      (node as Element).getAttribute('data-component-uuid');
+    if (typeof failed === 'string') {
+      markers += failedMarker(failed);
+    } else if (markerOf(node)) {
+      markers += `<!-- ${node.nodeValue!.trim()} -->`;
     }
   }
   return markers;
@@ -388,11 +410,10 @@ export function updateInPlace(
   next: string,
 ): boolean {
   const updates = findInPlaceUpdates(previous, next);
-  const markers = next.match(MARKER)?.join('');
+  const markers = markersOf(next);
   // Whether the document may have instances elsewhere than the render does.
   const moved =
-    markers !== previous.match(MARKER)?.join('') ||
-    isPreviewLayoutEdited(document);
+    markers !== markersOf(previous) || isPreviewLayoutEdited(document);
   if (!updates || (moved && markers !== liveMarkers(document))) {
     return false;
   }
