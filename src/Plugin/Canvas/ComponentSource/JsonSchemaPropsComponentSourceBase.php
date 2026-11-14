@@ -1210,8 +1210,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
       // Options from site data.
       // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
-      $options_source = $this->getOptionsSourceForExplicitInputProp($sdc_prop_name);
-      if (($form[$sdc_prop_name]['widget']['#type'] ?? NULL) === 'select' && $options_source !== NULL) {
+      if (($form[$sdc_prop_name]['widget']['#type'] ?? NULL) === 'select' && ($options_source = $this->getOptionsSourceForExplicitInputProp($sdc_prop_name)) !== NULL) {
         $select = &$form[$sdc_prop_name]['widget'];
         // The UI offers search however many options there are today.
         $select['#attributes']['data-canvas-options-source'] = 'true';
