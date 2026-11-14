@@ -52,6 +52,7 @@ use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Security\Attribute\TrustedCallback;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
@@ -1099,7 +1100,74 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     if ($entity instanceof ContentTemplate) {
       $form['#after_build'][] = [static::class, 'moveSuggestionsToLabel'];
     }
+    // The collapsible section of each prop that is in one: the label of its
+    // `x-canvas-group`, or TRUE for `x-canvas-advanced`. Read from the raw
+    // component schema: the stored prop shape is the same in every section.
+    $sections = \array_filter(\array_map(
+      static fn (array $prop_schema): string|bool => !empty($prop_schema['x-canvas-advanced']) ? TRUE : $prop_schema['x-canvas-group'] ?? FALSE,
+      \array_intersect_key($component_schema['properties'] ?? [], $prop_field_definitions),
+    ));
+    if ($sections) {
+      $form['#canvas_prop_sections'] = $sections;
+      $form['#pre_render'][] = [static::class, 'preRenderPropSections'];
+    }
     return $form;
+  }
+
+  /**
+   * Moves the props that are in a section into collapsible sections.
+   *
+   * Props with the same `x-canvas-group` label render in a section headed by
+   * that label, in place of the first of them, open. Props with
+   * `x-canvas-advanced` render in an "Advanced" section after all other props,
+   * collapsed. The UI keeps the widgets of a collapsed section mounted.
+   *
+   * This runs right before rendering: until then every prop keeps its place in
+   * the form array, for form alters, validation and AJAX rebuilds.
+   *
+   * @param array $element
+   *   The component instance form, with the section of each prop in
+   *   `#canvas_prop_sections`.
+   *
+   * @return array
+   *   The component instance form, with the props in their sections.
+   *
+   * @see ui/src/components/form/components/Details.tsx
+   */
+  #[TrustedCallback]
+  public static function preRenderPropSections(array $element): array {
+    $section = static fn (string|TranslatableMarkup $title, bool $open): array => [
+      '#type' => 'details',
+      '#title' => $title,
+      '#open' => $open,
+      // The UI hides a section without visible props, and opens a section that
+      // has a prop with an invalid value.
+      '#attributes' => ['data-canvas-prop-section' => TRUE],
+    ];
+    $children = [];
+    $advanced = [];
+    foreach (Element::children($element, TRUE) as $key) {
+      $child = $element[$key];
+      unset($element[$key]);
+      $group = $element['#canvas_prop_sections'][$key] ?? NULL;
+      if ($group === TRUE) {
+        $advanced[$key] = $child;
+      }
+      elseif ($group !== NULL) {
+        // The prefix keeps the keys of sections apart from prop names.
+        $children["canvas_prop_section:$group"] ??= $section($group, TRUE);
+        $children["canvas_prop_section:$group"][$key] = $child;
+      }
+      else {
+        $children[$key] = $child;
+      }
+    }
+    if ($advanced) {
+      $children['canvas_prop_section_advanced'] = $section(new TranslatableMarkup('Advanced'), FALSE) + $advanced;
+    }
+    // The children are in the order to render them in.
+    $element['#sorted'] = TRUE;
+    return $element + $children;
   }
 
   public static function moveSuggestionsToLabel(array $element, FormStateInterface $form_state): array {

@@ -414,3 +414,8 @@ A prop with `x-canvas-visible-if` is shown only while its condition passes. See 
 - Hidden props keep their values. Only the form changes. A prop with an invalid value (`data-invalid-prop-value`) stays visible. Changes are announced in a `role="status"` region.
 - Drupal's `#states` is not used: it supports fewer tests, and is not applied to the React-rendered form.
 - Code components store conditions as JSON in config. `JavaScriptComponent::toSdcDefinition()` decodes them; `JavaScriptComponent::updateFromClientSide()` encodes them. The code editor's "Show only when…" builder is `ui/src/features/code-editor/component-data/forms/FormPropVisibility.tsx`.
+
+#### 3.5.5 Sections of props
+An SDC prop with `x-canvas-group: <label>` renders with the other props of that label in a collapsible section, in place of the first of them. Props with `x-canvas-advanced: true` render in an "Advanced" section after all other props, collapsed; a required prop cannot be advanced.
+- `JsonSchemaPropsComponentSourceBase::preRenderPropSections()` moves the props into `details` elements right before rendering, so form alters, validation and AJAX rebuilds see every prop in its original place.
+- `ui/src/components/form/components/Details.tsx` keeps the props of a collapsed section mounted, so they keep their values and are validated. It hides a section while none of its props shows, and opens a section that has a prop with an invalid value (`data-invalid-prop-value`).

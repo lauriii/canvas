@@ -33,6 +33,18 @@
   --content-height: var(--radix-collapsible-content-height);
 }
 
+/* A section of props of the component instance form. Only its height is
+ clipped: a mark next to the label of a prop can reach into the gutter of the
+ form. The props of a collapsed section stay mounted, so they are kept out of
+ the tab order and away from assistive technology. */
+[data-canvas-prop-section] > .detailsContent {
+  overflow: visible clip;
+
+  &[data-state="closed"] {
+    visibility: hidden;
+  }
+}
+
 .chevron {
   transition: transform 300ms ease-in-out;
   color: var(--slate-12);
@@ -54,10 +66,12 @@
 
 @keyframes slide-up {
   from {
+    visibility: visible;
     height: var(--content-height);
     opacity: 1;
   }
   to {
+    visibility: visible;
     height: 0;
     opacity: 0;
   }

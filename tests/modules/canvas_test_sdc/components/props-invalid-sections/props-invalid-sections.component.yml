@@ -1,0 +1,26 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Props in sections of the form that cannot work
+props:
+  type: object
+  required:
+    - heading
+  properties:
+    heading:
+      title: 'Heading'
+      type: string
+      x-canvas-advanced: true
+      examples:
+        - Hello
+    text:
+      title: 'Text'
+      type: string
+      x-canvas-group: ''
+    align:
+      title: 'Alignment'
+      type: string
+      x-canvas-advanced: 'yes'
+    width:
+      title: 'Width'
+      type: integer
+      x-canvas-group: Layout
+      x-canvas-advanced: true

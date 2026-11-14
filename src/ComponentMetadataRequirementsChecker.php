@@ -156,6 +156,27 @@ final class ComponentMetadataRequirementsChecker {
         }
       }
 
+      // Validation for x-canvas-group and x-canvas-advanced: the collapsible
+      // section of the component instance form that shows the prop.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::preRenderPropSections()
+      if (\array_key_exists('x-canvas-group', $prop) && (!\is_string($prop['x-canvas-group']) || \trim($prop['x-canvas-group']) === '')) {
+        $messages[] = \sprintf('"x-canvas-group" on prop "%s" must be a non-empty string: the label of its section.', $prop_name);
+        continue;
+      }
+      if (\array_key_exists('x-canvas-advanced', $prop)) {
+        $advanced_message = match (TRUE) {
+          !\is_bool($prop['x-canvas-advanced']) => '"x-canvas-advanced" on prop "%s" must be true or false.',
+          !$prop['x-canvas-advanced'] => NULL,
+          \array_key_exists('x-canvas-group', $prop) => 'Prop "%s" has both "x-canvas-group" and "x-canvas-advanced": remove one, because a prop shows in one section.',
+          $is_required_prop => 'Prop "%s" is required, so it cannot have "x-canvas-advanced": an author would miss it in the collapsed section.',
+          default => NULL,
+        };
+        if ($advanced_message !== NULL) {
+          $messages[] = \sprintf($advanced_message, $prop_name);
+          continue;
+        }
+      }
+
       // Validation for x-canvas-color-folders.
       if (\array_key_exists('x-canvas-color-folders', $prop)) {
         $folders = $prop['x-canvas-color-folders'];
