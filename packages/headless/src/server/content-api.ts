@@ -14,7 +14,7 @@ import { parsePreviewRequest, withPreviewContext } from '../preview-context';
 import { getSessionToken } from '../token';
 
 import type { DraftData } from '../draft-data';
-import type { PageResult } from '../page';
+import type { Cacheability, PageNotFound, PageResult } from '../page';
 import type { PreviewContext } from '../preview-context';
 
 /**
@@ -44,6 +44,52 @@ export async function fetchPage(
     fetchImpl?: typeof fetch;
   },
 ): Promise<PageResult | null> {
+  const { response, draftContext } = await requestPage(requestUri, options);
+  if (!response.ok) {
+    return null;
+  }
+  return toPageResult(await response.json(), draftContext);
+}
+
+/**
+ * Fetches a page as anonymous visitors see it (see fetchPage()), for caches
+ * keyed by path. A page anonymous visitors cannot see (403/404) is a
+ * PageNotFound with the error's cacheability; other errors throw, so that a
+ * cache does not keep a transient failure.
+ */
+export async function fetchPublishedPage(
+  requestUri: string,
+  options: { baseUrl: string; fetchImpl?: typeof fetch },
+): Promise<PageResult | PageNotFound> {
+  const { response } = await requestPage(requestUri, options);
+  if (response.status === 403 || response.status === 404) {
+    const problem = (await response
+      .json()
+      .catch(() => ({}))) as Partial<Cacheability>;
+    return {
+      notFound: true,
+      status: response.status,
+      // Sites predating cacheability in errors: Drupal invalidates
+      // 4xx-response when content is created or changed.
+      cacheTags: problem.cacheTags ?? ['4xx-response', 'http_response'],
+      cacheMaxAge: problem.cacheMaxAge ?? -1,
+    };
+  }
+  if (!response.ok) {
+    throw new Error(`The Canvas content API answered ${response.status}.`);
+  }
+  return toPageResult(await response.json(), null);
+}
+
+/**
+ * Requests a page from the content API. Returns the response, and the preview
+ * context to apply to the result when the request carried a live draft
+ * session.
+ */
+async function requestPage(
+  requestUri: string,
+  options: Parameters<typeof fetchPage>[1],
+): Promise<{ response: Response; draftContext: PreviewContext | null }> {
   const { baseUrl, draftData, componentPreviewId, fetchImpl = fetch } = options;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
@@ -85,33 +131,43 @@ export async function fetchPage(
     headers,
     cache: 'no-store',
   });
+  return { response, draftContext: liveDraft ? context : null };
+}
 
-  if (!response.ok) {
-    return null;
-  }
-  const raw = (await response.json()) as PageResult;
-  if (isPageRedirect(raw)) {
+/** Normalizes a content API result, adding preview state for a draft. */
+function toPageResult(
+  raw: PageResult,
+  draftContext: PreviewContext | null,
+): PageResult {
+  // Sites running a Canvas version that predates cache tags answer without
+  // them; nothing then expires on invalidation.
+  const page: PageResult = {
+    ...raw,
+    cacheTags: raw.cacheTags ?? [],
+    cacheMaxAge: raw.cacheMaxAge ?? -1,
+  };
+  if (isPageRedirect(page)) {
     // A local redirect remains inside this preview document. Keep its context
     // without adding frontend-only parameters to external destinations.
-    if (liveDraft && !raw.redirect.external) {
+    if (draftContext && !page.redirect.external) {
       return {
-        ...raw,
+        ...page,
         redirect: {
-          ...raw.redirect,
-          url: withPreviewContext(raw.redirect.url, context),
+          ...page.redirect,
+          url: withPreviewContext(page.redirect.url, draftContext),
         },
       };
     }
-    return raw;
+    return page;
   }
   // Sites running a Canvas version that predates the context API answer
   // without `context`; components then see missing context rather than
   // fabricated values.
   const result: PageResult = {
-    ...raw,
-    context: raw.context ?? { page: null, site: null },
+    ...page,
+    context: page.context ?? { page: null, site: null },
   };
-  if (liveDraft && result.route.managedByCanvas) {
+  if (draftContext && result.route.managedByCanvas) {
     return {
       ...result,
       content: {

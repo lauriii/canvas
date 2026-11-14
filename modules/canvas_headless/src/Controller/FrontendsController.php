@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_headless\Controller;
 
+use Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator;
 use Drupal\canvas_headless\FrontendUrl;
 use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,19 +24,30 @@ use Symfony\Component\HttpFoundation\Response;
  * order is the display order, and the first entry is the editor's default
  * preview frontend. PATCH replaces the whole list: the screen manages the
  * list as one unit (add, remove, reorder), so item-level operations would
- * only add failure modes.
+ * only add failure modes. Invalidated cache tags are announced to every
+ * frontend of the list; GET reports whether they arrive.
+ *
+ * @see \Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator
+ *
+ * @phpstan-type Frontend array{url: string, components: list<string>, cacheInvalidationStatus: array{state: 'ok'|'failing', lastSuccess: int, lastFailure: int|null, lastError: string|null}|null}
  */
 final class FrontendsController implements ContainerInjectionInterface {
 
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly FrontendCacheTagInvalidator $frontendCacheTagInvalidator,
+    private readonly AccountInterface $currentUser,
   ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get(ConfigFactoryInterface::class));
+    return new static(
+      $container->get(ConfigFactoryInterface::class),
+      $container->get(FrontendCacheTagInvalidator::class),
+      $container->get(AccountProxyInterface::class),
+    );
   }
 
   /**
@@ -49,7 +62,9 @@ final class FrontendsController implements ContainerInjectionInterface {
    * Returns the ordered list of frontends.
    */
   public function get(): JsonResponse {
-    return new JsonResponse(['frontends' => $this->currentList()]);
+    // The status names errors of the site's outgoing requests: it is for
+    // those who administer the list, not for everyone who previews.
+    return new JsonResponse(['frontends' => $this->currentList($this->currentUser->hasPermission('administer canvas headless frontends'))]);
   }
 
   /**
@@ -97,26 +112,54 @@ final class FrontendsController implements ContainerInjectionInterface {
       ->set('frontends', $frontends)
       ->save();
 
-    return new JsonResponse(['frontends' => $this->currentList()]);
+    return new JsonResponse(['frontends' => $this->currentList(TRUE)]);
+  }
+
+  /**
+   * Announces to one frontend, and reports whether it read the cache tags.
+   */
+  public function testCacheInvalidation(Request $request): JsonResponse {
+    $payload = json_decode($request->getContent(), TRUE);
+    $url = \is_array($payload) ? ($payload['url'] ?? NULL) : NULL;
+    $expire_all = \is_array($payload) ? ($payload['expireAll'] ?? FALSE) : NULL;
+    if (!\is_string($url) || !\is_bool($expire_all)) {
+      return new JsonResponse(['error' => 'The request body must contain a "url" string, and "expireAll" must be a boolean.'], Response::HTTP_BAD_REQUEST);
+    }
+    // Only configured frontends are contacted.
+    $base_url = FrontendUrl::fromConfig($url)?->baseUrl;
+    $configured = \array_map(static fn (array $frontend): ?string => FrontendUrl::fromConfig($frontend['url'])?->baseUrl, $this->currentList());
+    if ($base_url === NULL || !\in_array($base_url, $configured, TRUE)) {
+      return new JsonResponse(['error' => \sprintf('"%s" is not a configured frontend.', $url)], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+    return new JsonResponse($this->frontendCacheTagInvalidator->test($base_url, $expire_all));
   }
 
   /**
    * Reads the stored list, normalized for the response.
    *
-   * @return array<int, array{url: string, components: list<string>}>
-   *   The ordered frontends.
+   * @param bool $with_status
+   *   Whether to include the cache invalidation status.
+   *
+   * @return array
+   *   The ordered frontends. `cacheInvalidationStatus` is NULL unless it is
+   *   included and the frontend ever read announced cache tags.
+   *
+   * @phpstan-return list<Frontend>
    */
-  private function currentList(): array {
+  private function currentList(bool $with_status = FALSE): array {
     $stored = $this->configFactory->get('canvas_headless.settings')->get('frontends');
     if (!\is_array($stored)) {
       return [];
     }
+    // By canonical base URL, of the connected frontends.
+    $status = $with_status ? $this->frontendCacheTagInvalidator->getStatus() : [];
     $frontends = [];
     foreach ($stored as $item) {
       if (\is_array($item) && \is_string($item['url'] ?? NULL)) {
         $frontends[] = [
           'url' => $item['url'],
           'components' => $this->normalizeComponentIds($item['components'] ?? []),
+          'cacheInvalidationStatus' => $status[FrontendUrl::fromConfig($item['url'])->baseUrl ?? ''] ?? NULL,
         ];
       }
     }

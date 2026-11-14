@@ -154,12 +154,16 @@ paths:
                           favicon:
                             url: https://example.com/core/themes/olivero/favicon.ico
                             mimeType: image/vnd.microsoft.icon
+                    cacheTags: [node:12, config:user.role.anonymous, http_response]
+                    cacheMaxAge: -1
                 redirect:
                   value:
                     redirect:
                       external: false
                       url: /new-path
                       statusCode: 301
+                    cacheTags: [redirect_list, http_response]
+                    cacheMaxAge: -1
         '302':
           description: >-
             Non-cacheable, same-origin language negotiation transport redirect
@@ -241,6 +245,8 @@ paths:
                       id: '12'
                       uuid: 773942c6-3660-4c50-9a8d-e25966a69bff
                       langcode: en
+                    cacheTags: [node:12, http_response]
+                    cacheMaxAge: -1
         '400':
           $ref: '#/components/responses/ProblemDetailsResponse'
         '401':
@@ -251,6 +257,41 @@ paths:
           $ref: '#/components/responses/ProblemDetailsResponse'
         '500':
           $ref: '#/components/responses/ProblemDetailsResponse'
+      security: []
+
+  /canvas-headless/cache-invalidation:
+    post:
+      summary: Read announced invalidated cache tags
+      description: |
+        Returns the cache tags invalidated in one Drupal request, once. Drupal
+        announces the ID to every configured frontend, by sending the same JSON
+        body to `/api/canvas/revalidate` below the frontend URL. IDs expire
+        after five minutes. A frontend that does not read the tags within 30
+        seconds is told to expire everything later, by the tag `http_response`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
+      responses:
+        '200':
+          description: The invalidated cache tags.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [tags]
+                properties:
+                  tags:
+                    $ref: '#/components/schemas/CacheTags'
+        '404':
+          $ref: '#/components/responses/DrupalErrorResponse'
       security: []
 
   /canvas-headless/assertion:
@@ -415,6 +456,71 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
 
+  /canvas/api/v0/headless/frontends/cache-invalidation/test:
+    post:
+      summary: Test cache invalidation for a headless frontend
+      description: |
+        Announces to one configured frontend now, and waits up to five seconds
+        for the frontend to read the cache tags from Drupal. The announced tag
+        is one that no response carries, so nothing expires, unless the
+        frontend missed an earlier announcement or never read one: then the
+        tag is `http_response`, and the frontend expires everything. With
+        `expireAll`, the tag is always `http_response`.
+        Cookie authentication and an X-CSRF-Token request header are required.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: The URL of a configured frontend.
+                expireAll:
+                  type: boolean
+                  default: false
+                  description: Whether the frontend is told to expire everything.
+      responses:
+        '200':
+          description: The outcome of the test.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheInvalidationTestResult'
+              examples:
+                read:
+                  value:
+                    ok: true
+                    announced: true
+                    read: true
+                    message: The frontend received the announcement and read the cache tags.
+                notAnnounced:
+                  value:
+                    ok: false
+                    announced: false
+                    read: false
+                    message: The frontend answered HTTP 404.
+        '400':
+          description: Invalid payload shape.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '422':
+          description: The URL is not a configured frontend.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+
   /canvas/api/v0/headless/components/sync/start:
     post:
       summary: Start external component synchronization
@@ -530,7 +636,7 @@ components:
     CanvasContentResult:
       type: object
       additionalProperties: false
-      required: [content, head, route, context]
+      required: [content, head, route, context, cacheTags, cacheMaxAge]
       properties:
         content:
           oneOf:
@@ -543,6 +649,25 @@ components:
           $ref: '#/components/schemas/CanvasRouteContext'
         context:
           $ref: '#/components/schemas/CanvasContext'
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
+
+    CacheTags:
+      description: >-
+        The response's Drupal cache tags. Frontends tag cached results with
+        them, and expire it when Drupal announces the tags invalidated.
+      type: array
+      items:
+        type: string
+
+    CacheMaxAge:
+      description: >-
+        How many seconds the response may be cached; -1 for no limit. Like
+        `cacheTags`, it includes the cache contexts' dependencies.
+      type: integer
+      minimum: -1
 
     CanvasContext:
       description: >-
@@ -699,7 +824,7 @@ components:
     CanvasRedirectResult:
       type: object
       additionalProperties: false
-      required: [redirect]
+      required: [redirect, cacheTags, cacheMaxAge]
       properties:
         redirect:
           type: object
@@ -712,11 +837,15 @@ components:
               type: string
             statusCode:
               type: integer
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
 
     CanvasEntityResult:
       type: object
       additionalProperties: false
-      required: [content, managedByCanvas, entity]
+      required: [content, managedByCanvas, entity, cacheTags, cacheMaxAge]
       properties:
         content:
           oneOf:
@@ -727,6 +856,10 @@ components:
           type: boolean
         entity:
           $ref: '#/components/schemas/RoutedEntityRef'
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
 
     UnheadDocument:
       type: object
@@ -835,6 +968,62 @@ components:
           type: array
           items:
             type: string
+        cacheInvalidationStatus:
+          description: >-
+            Present in responses only. Whether invalidated cache tags, which
+            are announced to every frontend, arrive. Null until the frontend
+            has read announced cache tags once, and for users without the
+            `administer canvas headless frontends` permission.
+          readOnly: true
+          oneOf:
+            - $ref: '#/components/schemas/CacheInvalidationStatus'
+            - type: 'null'
+
+    CacheInvalidationStatus:
+      type: object
+      additionalProperties: false
+      required: [state, lastSuccess, lastFailure, lastError]
+      properties:
+        state:
+          type: string
+          enum: [ok, failing]
+          description: >-
+            `failing` after an announcement failed or was not read, until the
+            frontend has read an announcement that expires everything; `ok`
+            otherwise.
+        lastSuccess:
+          type: integer
+          description: Unix time the frontend last read announced cache tags.
+        lastFailure:
+          oneOf:
+            - type: integer
+            - type: 'null'
+          description: Unix time of the last failure.
+        lastError:
+          oneOf:
+            - type: string
+            - type: 'null'
+          description: The error of the last failure, if none succeeded since.
+
+    CacheInvalidationTestResult:
+      type: object
+      additionalProperties: false
+      required: [ok, announced, read, message]
+      properties:
+        ok:
+          type: boolean
+          description: Whether the frontend read the announced cache tags.
+        announced:
+          type: boolean
+          description: Whether the frontend accepted the announcement.
+        read:
+          type: boolean
+          description: >-
+            Whether the frontend read the announced cache tags from Drupal
+            within five seconds.
+        message:
+          type: string
+          description: The outcome, for display.
 
     FrontendsPayload:
       type: object
@@ -986,6 +1175,12 @@ components:
         instance:
           type: string
           format: uri-reference
+        cacheTags:
+          description: Present on 403 and 404 responses.
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          description: Present on 403 and 404 responses.
+          $ref: '#/components/schemas/CacheMaxAge'
 
   responses:
     # Only the content API converts errors to Problem Details.

@@ -9,6 +9,7 @@
 
 export { nextDraftAdapter, NEXT_DRAFT_MODE_COOKIE_NAME } from './adapter';
 export {
+  createCacheInvalidationRouteHandler,
   createDraftRouteHandlers,
   type DraftRouteHandlers,
 } from './route-handlers';
@@ -17,11 +18,13 @@ export {
   type ComponentMetadataHandlerOptions,
 } from './component-metadata';
 export { toNextMetadata } from './head';
+export { cacheCanvasTags } from './cache';
 export {
   disableDraftMode,
   enableDraftMode,
   fetchEntity,
   fetchPage,
+  fetchPublishedPage,
   getClient,
   getDraftClient,
   getDraftConfig,
@@ -37,8 +40,10 @@ export {
   getDraftEditorOrigin,
   getSessionToken,
   isDraftSessionExpired,
+  isPageNotFound,
   isPageRedirect,
   type AccessToken,
+  type Cacheability,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
   type CanvasContext,
@@ -48,6 +53,7 @@ export {
   type EntityResult,
   type Page,
   type PageHead,
+  type PageNotFound,
   type PageRedirect,
   type PageResult,
 } from '@drupal-canvas/headless';

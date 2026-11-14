@@ -138,6 +138,44 @@ loads `.env` during dev/build, with process values taking precedence; restart
 dev after edits. Supply production environment values separately and restart the
 server after changes. Rebuild/redeploy if the bundler or host embeds them.
 
+## Caching published pages
+
+Fetch a page for a path-keyed cache with `fetchPublishedPage(path)`, which reads
+no cookies. A page anonymous visitors cannot see is a `PageNotFound`
+(`isPageNotFound()`). Results carry `cacheTags` and `cacheMaxAge`: tag what you
+cache with them, for example a CDN's `Cache-Tag` response header, and keep it
+for at most the max-age. TanStack Start has no tag cache of its own, so the app
+supplies the purge. Mount the invalidation route:
+
+```ts
+// src/routes/api/canvas.revalidate.ts
+import { createCacheInvalidationRouteHandler } from '@drupal-canvas/headless-tanstack-start';
+import { createFileRoute } from '@tanstack/react-router';
+
+export const Route = createFileRoute('/api/canvas/revalidate')({
+  server: {
+    handlers: createCacheInvalidationRouteHandler({
+      invalidate: (tags) => purgeCdnTags(tags),
+    }),
+  },
+});
+```
+
+The route must be mounted at `/api/canvas/revalidate` under the frontend URL
+registered in Canvas: Drupal announces to that path only. Nothing is turned on
+in Drupal. Drupal announces invalidated cache tags to `/api/canvas/revalidate`
+under every frontend registered in Canvas (see the
+[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
+To confirm that the route works, change content in Drupal and check that the
+cached page updates. Or hover **Ready** in the frontend's row on the Canvas
+**Headless frontends** screen. Once the frontend has received an update, the
+tooltip shows when the last one arrived.
+
+Pass `defer` (for example a platform's `waitUntil`) to answer Drupal before the
+tags are read. A read that fails then is logged and expires nothing. Drupal
+detects tags that are not read within 30 seconds, and then announces
+`http_response`, which expires everything.
+
 ## Data access
 
 `getClient()` returns the draft-aware JSON:API client; `fetchPage()` fetches

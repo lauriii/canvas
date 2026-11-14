@@ -95,9 +95,20 @@ export interface DrupalRoute {
 export type CanvasContext = CanvasContextData;
 
 /**
+ * How long a result may be cached, and what invalidates it; see
+ * createCacheInvalidationHandler().
+ */
+export interface Cacheability {
+  /** Drupal cache tags. */
+  cacheTags: string[];
+  /** Seconds the result may be cached; -1 for no limit. */
+  cacheMaxAge: number;
+}
+
+/**
  * Drupal's resolved-and-rendered answer for a request URI.
  */
-export interface Page {
+export interface Page extends Cacheability {
   content: CanvasComponentTreeElement | null;
   head: PageHead;
   route: DrupalRoute;
@@ -105,7 +116,7 @@ export interface Page {
 }
 
 /** A redirect Drupal resolved before routed content. */
-export interface PageRedirect {
+export interface PageRedirect extends Cacheability {
   redirect: {
     external: boolean;
     url: string;
@@ -113,12 +124,30 @@ export interface PageRedirect {
   };
 }
 
+/**
+ * A page anonymous visitors cannot see, from fetchPublishedPage(): Drupal
+ * answered 404, or 403 for content that exists but is not public.
+ */
+export interface PageNotFound extends Cacheability {
+  notFound: true;
+  status: 403 | 404;
+}
+
 /** Drupal's content or redirect result for one frontend request URI. */
 export type PageResult = Page | PageRedirect;
 
 /** Distinguishes redirect results without inspecting framework state. */
-export function isPageRedirect(result: PageResult): result is PageRedirect {
+export function isPageRedirect(
+  result: PageResult | PageNotFound,
+): result is PageRedirect {
   return 'redirect' in result;
+}
+
+/** Distinguishes a page anonymous visitors cannot see (403/404). */
+export function isPageNotFound(
+  result: PageResult | PageNotFound,
+): result is PageNotFound {
+  return 'notFound' in result;
 }
 
 /**
