@@ -66,11 +66,16 @@ const NumberSlider = ({
   const value = Number(attributes.value);
   // Room for the unit that the number input shows, if any.
   // @see TextField
-  const unitLength = `${attributes['data-canvas-unit'] ?? ''}`.length;
+  const unit = `${attributes['data-canvas-unit'] ?? ''}`;
 
   return (
     <Flex align="center" gap="3">
-      <div ref={fieldRef} style={{ flex: `0 0 calc(5rem + ${unitLength}ch)` }}>
+      <div
+        ref={fieldRef}
+        style={{
+          flex: `0 0 calc(5rem + ${unit ? `${unit.length}ch + 14px` : '0px'})`,
+        }}
+      >
         {children}
       </div>
       <Slider

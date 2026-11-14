@@ -191,9 +191,9 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>srcSetCandidateTemplate</code> prop, with the shape <code>{"type":"string","format":"uri-template","x-required-variables":["width"]}</code>.',
       ],
       'sdc.canvas_test_sdc.number-invalid-unit' => [
-        '"x-canvas-unit" on prop "width" requires a number or integer prop without "enum", and must be a non-empty string of at most 8 characters, such as "px".',
-        '"x-canvas-unit" on prop "label" requires a number or integer prop without "enum", and must be a non-empty string of at most 8 characters, such as "px".',
-        '"x-canvas-unit" on prop "columns" requires a number or integer prop without "enum", and must be a non-empty string of at most 8 characters, such as "px".',
+        '"x-canvas-unit" on prop "width" requires a number or integer prop without "enum" or "x-canvas-options", and must be a non-empty string of at most 8 characters, such as "px".',
+        '"x-canvas-unit" on prop "label" requires a number or integer prop without "enum" or "x-canvas-options", and must be a non-empty string of at most 8 characters, such as "px".',
+        '"x-canvas-unit" on prop "columns" requires a number or integer prop without "enum" or "x-canvas-options", and must be a non-empty string of at most 8 characters, such as "px".',
       ],
       'sdc.canvas_test_sdc.object-invalid-display' => [
         '"x-canvas-object-display" on prop "heading" requires a single-value object prop with "properties".',
