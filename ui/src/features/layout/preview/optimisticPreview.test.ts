@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { NodeType } from '@/features/layout/layoutModelSlice';
 import {
@@ -77,18 +77,25 @@ describe('movePreviewComponent', () => {
     expect(doc.body.lastElementChild!.textContent).toBe('A');
   });
 
-  it('moves a component into an empty slot and hides its placeholder', () => {
+  it('moves a component into an empty slot and out of it, and syncs its placeholder', () => {
     const doc = preview();
+    const placeholder = () =>
+      doc.querySelector('div > .canvas--slot-empty-placeholder');
     movePreviewComponent(
       doc,
       layout(component('b'), withSlot(component('a'))),
       'a',
     );
     expect(doc.querySelector('div > p')!.textContent).toBe('A');
-    expect(
-      doc.querySelector<HTMLElement>('.canvas--slot-empty-placeholder')!.style
-        .display,
-    ).toBe('none');
+    expect(placeholder()).toBeNull();
+
+    // As the server renders it once the slot is empty again.
+    movePreviewComponent(
+      doc,
+      layout(component('a'), component('b'), withSlot()),
+      'a',
+    );
+    expect(placeholder()).not.toBeNull();
   });
 
   it("doesn't touch a component that is shown in place already", () => {
@@ -171,6 +178,31 @@ describe('insertPreviewComponent', () => {
     );
   });
 
+  it('keeps the placeholder of a slot a Canvas island is added to until the island has hydrated', async () => {
+    vi.useFakeTimers();
+    try {
+      const doc = preview();
+      const placeholder = () =>
+        doc.querySelector('div > .canvas--slot-empty-placeholder');
+      insertPreviewComponent(
+        doc,
+        layout(component('a'), component('b'), withSlot(component('n'))),
+        'n',
+        { default_markup: '<canvas-island ssr></canvas-island>', css: '' },
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      expect(placeholder()).not.toBeNull();
+
+      doc
+        .querySelector('canvas-island')!
+        .dispatchEvent(new CustomEvent('astro:hydrate'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(placeholder()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('adds CSS before the styles kept last', () => {
     const doc = preview();
     doc.head.innerHTML = `<style id="${PREVIEW_HEAD_STYLES_ID}"></style>`;
@@ -191,5 +223,15 @@ describe('removePreviewComponent', () => {
     expect(text(doc)).toBe('B');
     expect(doc.body.innerHTML).not.toContain('canvas-start-a');
     expect(isPreviewLayoutEdited(doc)).toBe(true);
+  });
+
+  it('shows the placeholder of the region or slot it leaves empty', () => {
+    const doc = preview();
+    removePreviewComponent(doc, 'a');
+    removePreviewComponent(doc, 'b');
+    removePreviewComponent(doc, 'c');
+    expect(doc.body.innerHTML).toBe(
+      '<!-- canvas-region-start-content --><div class="canvas--region-empty-placeholder"></div><!-- canvas-region-end-content -->',
+    );
   });
 });

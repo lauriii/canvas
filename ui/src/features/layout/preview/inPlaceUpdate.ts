@@ -6,13 +6,14 @@ import {
   parseCanvasCommentMarker,
 } from '@drupal-canvas/preview-geometry';
 
-import { OPTIMISTIC_CSS_ATTRIBUTE } from '@/features/layout/preview/optimisticPreview';
+import {
+  OPTIMISTIC_CSS_ATTRIBUTE,
+  syncPlaceholders,
+} from '@/features/layout/preview/optimisticPreview';
 import {
   isPreviewLayoutEdited,
   notePreviewRendered,
 } from '@/features/layout/preview/previewEdits';
-
-import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
 
 /**
  * The new markup of a component instance that changed between renders.
@@ -364,40 +365,6 @@ function liveMarkers(document: Document) {
 }
 
 /**
- * Shows the placeholder of a slot or region if it has nothing in it, as the
- * server renders it, and removes it otherwise.
- */
-function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
-  if (start.parentNode !== end.parentNode) {
-    return;
-  }
-  const className =
-    type === 'region'
-      ? CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS
-      : CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS;
-  let empty = true;
-  let placeholder: HTMLElement | null = null;
-  for (let node = start.nextSibling; node && node !== end;) {
-    if ((node as Element).classList?.contains(className)) {
-      placeholder = node as HTMLElement;
-    } else if (markerOf(node) || node.nodeType === Node.ELEMENT_NODE) {
-      // A component that failed to render has no markers.
-      empty = false;
-    }
-    node = node.nextSibling;
-  }
-  if (!empty) {
-    placeholder?.remove();
-  } else if (placeholder) {
-    placeholder.style.display = '';
-  } else {
-    placeholder = end.ownerDocument!.createElement('div');
-    placeholder.className = className;
-    end.parentNode!.insertBefore(placeholder, end);
-  }
-}
-
-/**
  * Shows a new render in a live preview document without loading it.
  *
  * Only the component instances whose own markup changed are replaced, with
@@ -446,9 +413,7 @@ export function updateInPlace(
     .querySelectorAll(`[${OPTIMISTIC_CSS_ATTRIBUTE}]`)
     .forEach((el) => el.remove());
   if (moved) {
-    discoverCanvasBoundaries(document, { templateMarkers: false })
-      .filter(({ type }) => type !== 'component')
-      .forEach(syncEmptyPlaceholder);
+    syncPlaceholders(document);
   }
   return true;
 }

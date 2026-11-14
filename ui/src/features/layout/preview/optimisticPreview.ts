@@ -3,6 +3,7 @@ import {
   CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
   discoverCanvasBoundaries,
   formatCanvasCommentMarker,
+  parseCanvasCommentMarker,
 } from '@drupal-canvas/preview-geometry';
 
 import { NodeType } from '@/features/layout/layoutModelSlice';
@@ -41,47 +42,75 @@ export const findBoundary = (
 ) => boundaries.find((b) => b.type === type && b.id === id);
 
 /**
- * Returns the nodes from one node to another sibling, both included.
- *
- * Empty if the second node doesn't follow the first one.
+ * Shows the placeholder of a slot or region if it has nothing in it, as the
+ * server renders it, and removes it otherwise.
  */
-export function siblingsBetween(start: Node, end: Node): Node[] {
-  const nodes: Node[] = [];
-  for (let n: Node | null = start; n; n = n.nextSibling) {
-    nodes.push(n);
-    if (n === end) return nodes;
+function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
+  if (start.parentNode !== end.parentNode) {
+    return;
   }
-  return [];
+  const className =
+    type === 'region'
+      ? CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS
+      : CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS;
+  let empty = true;
+  let placeholder: HTMLElement | null = null;
+  for (let node = start.nextSibling; node && node !== end;) {
+    if ((node as Element).classList?.contains(className)) {
+      placeholder = node as HTMLElement;
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE ||
+      (node.nodeType === Node.COMMENT_NODE &&
+        parseCanvasCommentMarker(node.nodeValue ?? ''))
+    ) {
+      // A component that failed to render has no markers.
+      empty = false;
+    }
+    node = node.nextSibling;
+  }
+  if (!empty) {
+    placeholder?.remove();
+  } else if (placeholder) {
+    placeholder.style.display = '';
+  } else {
+    placeholder = end.ownerDocument!.createElement('div');
+    placeholder.className = className;
+    end.parentNode!.insertBefore(placeholder, end);
+  }
 }
 
 /**
- * Hides the placeholder of an empty slot or region.
+ * Shows the placeholder of each slot and region in the preview that has
+ * nothing in it, as the server renders it, and removes the others.
  *
- * @param container
- *   The slot or region.
- * @param undo
- *   Collects functions that show the placeholder again.
+ * @param document
+ *   The preview document.
  */
-export function hidePlaceholders(
-  container: CanvasBoundary,
-  undo: Array<() => void> = [],
-) {
-  siblingsBetween(container.start, container.end).forEach((node) => {
-    if (
-      node.nodeType === Node.ELEMENT_NODE &&
-      (node as HTMLElement).matches(
-        `.${CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}, .${CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS}`,
-      )
-    ) {
-      const el = node as HTMLElement;
-      const display = el.style.display;
-      el.style.display = 'none';
-      undo.push(() => {
-        el.style.display = display;
-      });
-    }
-  });
+export function syncPlaceholders(document: Document) {
+  discoverCanvasBoundaries(document, { templateMarkers: false })
+    .filter(({ type }) => type !== 'component')
+    .forEach(syncEmptyPlaceholder);
 }
+
+// Resolves once each Canvas island in a list has hydrated, or failed to, but
+// within a second, as a preview swap waits for them (see IframeSwapper).
+const islandsHydrated = (islands: Element[]) =>
+  Promise.race([
+    Promise.all(
+      islands
+        .filter((island) => island.hasAttribute('ssr'))
+        .map(
+          (island) =>
+            new Promise((resolve) => {
+              island.addEventListener('astro:hydrate', resolve, { once: true });
+              island.addEventListener('astro:hydration-error', resolve, {
+                once: true,
+              });
+            }),
+        ),
+    ),
+    new Promise((resolve) => setTimeout(resolve, 1000)),
+  ]);
 
 /**
  * Returns the document of the preview iframe that is currently shown.
@@ -102,7 +131,6 @@ function findPosition(
   uuid: string,
 ): {
   anchor: Node & { parentNode: ParentNode };
-  container?: CanvasBoundary;
   find: (type: string, id: string) => CanvasBoundary | undefined;
 } | null {
   const parent = findParent(layout, uuid);
@@ -113,29 +141,13 @@ function findPosition(
   const find = (type: string, id: string) => findBoundary(boundaries, type, id);
   const next =
     parent.components[parent.components.findIndex((c) => c.uuid === uuid) + 1];
-  const container = find(
-    parent.nodeType === NodeType.Region ? 'region' : 'slot',
-    parent.id,
-  );
-  const anchor = next ? find('component', next.uuid)?.start : container?.end;
+  const anchor = next
+    ? find('component', next.uuid)?.start
+    : find(parent.nodeType === NodeType.Region ? 'region' : 'slot', parent.id)
+        ?.end;
   return anchor?.parentNode
-    ? { anchor: anchor as Node & { parentNode: ParentNode }, container, find }
+    ? { anchor: anchor as Node & { parentNode: ParentNode }, find }
     : null;
-}
-
-function insertBefore(
-  anchor: Node & { parentNode: ParentNode },
-  node: Node,
-  container?: CanvasBoundary,
-) {
-  anchor.parentNode.insertBefore(node, anchor);
-  // The container is no longer empty.
-  // ponytail: the container a moved component leaves isn't given a placeholder
-  // when it becomes empty; it is added when the server-rendered preview is
-  // shown, shortly after (see updateInPlace in inPlaceUpdate.ts).
-  if (container) {
-    hidePlaceholders(container);
-  }
 }
 
 /**
@@ -173,7 +185,11 @@ export function movePreviewComponent(
   const range = document.createRange();
   range.setStartBefore(moved.start);
   range.setEndAfter(moved.end);
-  insertBefore(position.anchor, range.extractContents(), position.container);
+  position.anchor.parentNode.insertBefore(
+    range.extractContents(),
+    position.anchor,
+  );
+  syncPlaceholders(document);
   notePreviewEdit(document);
   return true;
 }
@@ -220,7 +236,17 @@ export function insertPreviewComponent(
   template.innerHTML = defaultUuid
     ? markup.default_markup.replaceAll(defaultUuid, uuid)
     : marker('start', uuid) + markup.default_markup + marker('end', uuid);
-  insertBefore(position.anchor, template.content, position.container);
+  const islands = Array.from(
+    template.content.querySelectorAll('canvas-island'),
+  );
+  position.anchor.parentNode.insertBefore(template.content, position.anchor);
+  // A Canvas island is empty until it has hydrated. The placeholder of the
+  // slot it was added to keeps its height until then.
+  if (islands.length) {
+    islandsHydrated(islands).then(() => syncPlaceholders(document));
+  } else {
+    syncPlaceholders(document);
+  }
   notePreviewEdit(document);
   return true;
 }
@@ -276,6 +302,7 @@ export function removePreviewComponent(document: Document, uuid: string) {
     range.setStartBefore(removed.start);
     range.setEndAfter(removed.end);
     range.deleteContents();
+    syncPlaceholders(document);
     notePreviewEdit(document);
   }
 }
