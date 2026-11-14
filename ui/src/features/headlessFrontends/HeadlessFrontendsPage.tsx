@@ -9,6 +9,7 @@ import ErrorCard from '@/components/error/ErrorCard';
 import {
   useGetFrontendsQuery,
   useSetFrontendsMutation,
+  useTestCacheInvalidationMutation,
 } from '@/services/headlessFrontends';
 import { setCanvasHeadlessFrontends } from '@/utils/drupal-globals';
 
@@ -25,9 +26,25 @@ import type {
 
 import styles from './HeadlessFrontends.module.css';
 
+// The app's toasts are sized for a word or two. The messages here are
+// sentences that say what to fix, so they wrap and stay longer.
+const MESSAGE_TOAST = {
+  style: {
+    width: 'max-content',
+    maxWidth: 'min(480px, 90vw)',
+    height: 'auto',
+    whiteSpace: 'normal',
+    padding: 'var(--space-2) var(--space-3)',
+    textAlign: 'center',
+  },
+  duration: 8000,
+} as const;
+
 const HeadlessFrontendsPage = () => {
   const { data: storedFrontends, isLoading, error } = useGetFrontendsQuery();
   const [setFrontends, { isLoading: isSaving }] = useSetFrontendsMutation();
+  const [testCacheInvalidation, { isLoading: isTesting }] =
+    useTestCacheInvalidationMutation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(false);
   const [frontendToRemove, setFrontendToRemove] =
@@ -46,6 +63,8 @@ const HeadlessFrontendsPage = () => {
       id: frontend.url,
       url: frontend.url,
       status: statuses[frontend.url] ?? 'checking',
+      cacheInvalidation: frontend.cacheInvalidation,
+      cacheInvalidationStatus: frontend.cacheInvalidationStatus,
     }),
   );
 
@@ -62,18 +81,31 @@ const HeadlessFrontendsPage = () => {
       list.map((frontend) => ({
         url: frontend.url,
         components: storedFrontendsByUrl.get(frontend.url)?.components ?? [],
+        cacheInvalidation: frontend.cacheInvalidation,
       })),
     ).unwrap();
     setCanvasHeadlessFrontends(savedFrontends.map((frontend) => frontend.url));
   };
 
   const handleAdd = async (url: string) => {
-    await saveList([...frontends, { id: url, url, status: 'checking' }]);
+    await saveList([
+      ...frontends,
+      {
+        id: url,
+        url,
+        status: 'checking',
+        cacheInvalidation: false,
+        cacheInvalidationStatus: null,
+      },
+    ]);
   };
 
   const handleReorder = (oldIndex: number, newIndex: number) => {
     void saveList(arrayMove(frontends, oldIndex, newIndex)).catch(() => {
-      toast.error('The frontend order could not be saved. Please try again.');
+      toast.error(
+        'The frontend order could not be saved. Please try again.',
+        MESSAGE_TOAST,
+      );
     });
   };
 
@@ -87,12 +119,58 @@ const HeadlessFrontendsPage = () => {
       setStatuses(({ [frontendToRemove?.url ?? '']: _, ...rest }) => rest);
       setFrontendToRemove(null);
     } catch {
-      toast.error('The frontend could not be removed. Please try again.');
+      toast.error(
+        'The frontend could not be removed. Please try again.',
+        MESSAGE_TOAST,
+      );
     }
   };
 
   const handleStatusChange = (id: string, status: ConnectionStatus) => {
     setStatuses((current) => ({ ...current, [id]: status }));
+  };
+
+  const handleTestCacheInvalidation = async (
+    url: string,
+    expireAll: boolean,
+  ) => {
+    try {
+      const result = await testCacheInvalidation({ url, expireAll }).unwrap();
+      if (result.ok) {
+        toast.success(result.message, MESSAGE_TOAST);
+      } else {
+        toast.error(result.message, MESSAGE_TOAST);
+      }
+    } catch {
+      toast.error(
+        'Cache invalidation could not be tested. Please try again.',
+        MESSAGE_TOAST,
+      );
+    }
+  };
+
+  const handleCacheInvalidationChange = async (
+    id: string,
+    enabled: boolean,
+  ) => {
+    try {
+      await saveList(
+        frontends.map((item) =>
+          item.id === id ? { ...item, cacheInvalidation: enabled } : item,
+        ),
+      );
+    } catch {
+      toast.error(
+        'The cache invalidation setting could not be saved. Please try again.',
+        MESSAGE_TOAST,
+      );
+      return;
+    }
+    // The switch stays on whatever the result: the test only tells whether the
+    // frontend is ready to receive announcements.
+    if (enabled) {
+      await handleTestCacheInvalidation(id, false);
+    }
   };
 
   return (
@@ -153,6 +231,13 @@ const HeadlessFrontendsPage = () => {
                   )
                 }
                 onStatusChange={handleStatusChange}
+                onCacheInvalidationChange={(id, enabled) =>
+                  void handleCacheInvalidationChange(id, enabled)
+                }
+                onTestCacheInvalidation={(id, expireAll) =>
+                  void handleTestCacheInvalidation(id, expireAll)
+                }
+                isTesting={isTesting}
                 onOpenSetupGuide={() => setIsSetupGuideOpen(true)}
                 disabled={isSaving}
               />

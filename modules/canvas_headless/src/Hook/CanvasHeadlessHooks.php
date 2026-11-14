@@ -6,6 +6,7 @@ namespace Drupal\canvas_headless\Hook;
 
 use Drupal\canvas\Controller\CanvasController;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator;
 use Drupal\canvas_headless\FrontendUrl;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
@@ -42,7 +43,29 @@ class CanvasHeadlessHooks {
     private readonly RouteMatchInterface $routeMatch,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RequestStack $requestStack,
+    private readonly FrontendCacheTagInvalidator $frontendCacheTagInvalidator,
   ) {}
+
+  /**
+   * Announces a cache rebuild to the frontends: it expires everything.
+   *
+   * Tags invalidated before the rebuild are lost with the replaced container,
+   * and the new container may never be destructed (drupal_rebuild()), so the
+   * announcement is immediate.
+   */
+  #[Hook('rebuild')]
+  public function rebuild(): void {
+    $this->frontendCacheTagInvalidator->invalidateTags(['http_response']);
+    $this->frontendCacheTagInvalidator->destruct();
+  }
+
+  /**
+   * Tells frontends that missed an announcement to expire everything.
+   */
+  #[Hook('cron')]
+  public function cron(): void {
+    $this->frontendCacheTagInvalidator->retryFailed();
+  }
 
   /**
    * Lets field expressions read the exact entity authorized by a preview route.

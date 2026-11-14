@@ -2,9 +2,31 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { baseQuery } from './baseQuery';
 
+export interface CacheInvalidationStatus {
+  state: 'ok' | 'failing' | 'idle';
+  // Unix timestamps, in seconds.
+  lastSuccess: number | null;
+  lastFailure: number | null;
+  lastError: string | null;
+  failures: number;
+}
+
 export interface StoredFrontend {
   url: string;
   components: string[];
+  cacheInvalidation: boolean;
+  // Null while cache invalidation is off for the frontend.
+  cacheInvalidationStatus: CacheInvalidationStatus | null;
+}
+
+// What a save sends: the status is reported by Drupal, never stored.
+export type FrontendInput = Omit<StoredFrontend, 'cacheInvalidationStatus'>;
+
+export interface CacheInvalidationTestResult {
+  ok: boolean;
+  announced: boolean;
+  read: boolean;
+  message: string;
 }
 
 interface FrontendsResponse {
@@ -24,7 +46,7 @@ export const headlessFrontendsApi = createApi({
     // Replaces the whole list; its order is the display order. The cache is
     // patched optimistically so reordering does not snap back while the save
     // is in flight, and rolled back if the save fails.
-    setFrontends: builder.mutation<StoredFrontend[], StoredFrontend[]>({
+    setFrontends: builder.mutation<StoredFrontend[], FrontendInput[]>({
       query: (frontends) => ({
         url: '/canvas/api/v0/headless/frontends',
         method: 'PATCH',
@@ -36,7 +58,14 @@ export const headlessFrontendsApi = createApi({
           headlessFrontendsApi.util.updateQueryData(
             'getFrontends',
             undefined,
-            () => frontends,
+            (current) =>
+              frontends.map((frontend) => ({
+                ...frontend,
+                cacheInvalidationStatus: frontend.cacheInvalidation
+                  ? (current.find((item) => item.url === frontend.url)
+                      ?.cacheInvalidationStatus ?? null)
+                  : null,
+              })),
           ),
         );
         try {
@@ -47,8 +76,24 @@ export const headlessFrontendsApi = createApi({
       },
       invalidatesTags: [{ type: 'HeadlessFrontends', id: 'LIST' }],
     }),
+    // Announces to one frontend and waits for it to read the cache tags. The
+    // list is refetched afterwards because the test changes the status.
+    testCacheInvalidation: builder.mutation<
+      CacheInvalidationTestResult,
+      { url: string; expireAll?: boolean }
+    >({
+      query: (body) => ({
+        url: '/canvas/api/v0/headless/frontends/cache-invalidation/test',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'HeadlessFrontends', id: 'LIST' }],
+    }),
   }),
 });
 
-export const { useGetFrontendsQuery, useSetFrontendsMutation } =
-  headlessFrontendsApi;
+export const {
+  useGetFrontendsQuery,
+  useSetFrontendsMutation,
+  useTestCacheInvalidationMutation,
+} = headlessFrontendsApi;

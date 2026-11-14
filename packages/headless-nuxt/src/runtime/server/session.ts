@@ -1,6 +1,11 @@
-import { getCookie } from 'h3';
-import { isDraftSessionExpired, isPageRedirect } from '@drupal-canvas/headless';
+import { defineEventHandler, getCookie, toWebRequest } from 'h3';
 import {
+  isDraftSessionExpired,
+  isPageNotFound,
+  isPageRedirect,
+} from '@drupal-canvas/headless';
+import {
+  createCacheInvalidationHandler,
   createDraftServer,
   resolveDraftConfig,
 } from '@drupal-canvas/headless/server';
@@ -10,9 +15,14 @@ import { createNuxtDraftAdapter, NUXT_DRAFT_FLAG_COOKIE_NAME } from './adapter';
 import type {
   DraftData,
   EntityResult,
+  PageNotFound,
   PageResult,
 } from '@drupal-canvas/headless';
-import type { DraftConfig, DraftServer } from '@drupal-canvas/headless/server';
+import type {
+  CacheInvalidationOptions,
+  DraftConfig,
+  DraftServer,
+} from '@drupal-canvas/headless/server';
 import type { JsonApiRuntimeConfig } from 'drupal-canvas/jsonapi-client';
 import type { H3Event } from 'h3';
 
@@ -96,6 +106,41 @@ export function fetchPage(
   return getDraftServer(event).fetchPage(path, previewContext);
 }
 
+/**
+ * Fetches a page as anonymous visitors see it, for caches keyed by path; see
+ * `DraftServer.fetchPublishedPage()`. Tag what you cache with the result's
+ * `cacheTags`, and keep it for at most `cacheMaxAge` seconds.
+ */
+export function fetchPublishedPage(
+  event: H3Event,
+  path: string,
+): Promise<PageResult | PageNotFound> {
+  return getDraftServer(event).fetchPublishedPage(path);
+}
+
+/**
+ * Creates the cache invalidation route handler. Mount it at
+ * `server/api/canvas/revalidate.post.ts`: Drupal announces invalidated cache
+ * tags to /api/canvas/revalidate under every frontend with cache
+ * invalidation turned on in Canvas. `invalidate` expires whatever the app
+ * cached with them, for example a CDN purge. Nitro's
+ * own cache has no tags, so the app brings its own. Answers at once when the
+ * Nitro preset provides `event.waitUntil`.
+ */
+export function createCacheInvalidationRouteHandler(
+  options: Pick<CacheInvalidationOptions, 'invalidate' | 'config'>,
+) {
+  return defineEventHandler((event) => {
+    const { waitUntil } = event as {
+      waitUntil?: (p: Promise<unknown>) => void;
+    };
+    return createCacheInvalidationHandler({
+      ...options,
+      defer: waitUntil && ((task) => waitUntil.call(event, task())),
+    })(toWebRequest(event));
+  });
+}
+
 /** Fetches one component preview through the current draft session. */
 export function fetchComponentPreview(
   event: H3Event,
@@ -128,14 +173,21 @@ export function handleJsonApiProxy(
   return getDraftServer(event).handleJsonApiProxy(request);
 }
 
-export { isDraftSessionExpired, isPageRedirect, NUXT_DRAFT_FLAG_COOKIE_NAME };
+export {
+  isDraftSessionExpired,
+  isPageNotFound,
+  isPageRedirect,
+  NUXT_DRAFT_FLAG_COOKIE_NAME,
+};
 export type {
+  Cacheability,
   CanvasContext,
   EntityResult,
   DrupalRoute,
   DrupalRouteEntity,
   Page,
   PageHead,
+  PageNotFound,
   PageRedirect,
   PageResult,
 } from '@drupal-canvas/headless';

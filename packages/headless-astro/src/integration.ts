@@ -213,6 +213,10 @@ export function canvas(
             entrypoint: '@drupal-canvas/headless-astro/routes/disable-draft',
           });
           injectRoute({
+            pattern: '/api/canvas/revalidate',
+            entrypoint: '@drupal-canvas/headless-astro/routes/revalidate',
+          });
+          injectRoute({
             pattern: componentsRoutePath,
             entrypoint: '@drupal-canvas/headless-astro/routes/components',
           });

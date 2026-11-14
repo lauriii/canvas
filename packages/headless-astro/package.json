@@ -54,7 +54,12 @@
       "types": "./src/routes/disable-draft.ts",
       "default": "./src/routes/disable-draft.ts"
     },
-    "./routes/components": {
+    "./routes/revalidate": {
+    "import": "./src/routes/revalidate.ts",
+    "types": "./src/routes/revalidate.ts",
+    "default": "./src/routes/revalidate.ts"
+  },
+  "./routes/components": {
       "import": "./src/routes/components.ts",
       "types": "./src/routes/components.ts",
       "default": "./src/routes/components.ts"

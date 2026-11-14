@@ -14,7 +14,10 @@ import {
 } from '@tanstack/react-router';
 import { createStartHandler } from '@tanstack/react-start/server';
 
-import { createDraftRouteHandlers } from './route-handlers';
+import {
+  createCacheInvalidationRouteHandler,
+  createDraftRouteHandlers,
+} from './route-handlers';
 
 const upstream = vi.hoisted(() => {
   const fetch = vi.fn();
@@ -122,5 +125,27 @@ describe('JSON:API proxy server route', () => {
     expect(rejected.status).toBe(403);
     expect(upstream).not.toHaveBeenCalled();
     expect(renderHtml).not.toHaveBeenCalled();
+  });
+});
+
+describe('createCacheInvalidationRouteHandler()', () => {
+  it('reads the announced tags from Drupal and invalidates them', async () => {
+    const invalidate = vi.fn();
+    const { POST } = createCacheInvalidationRouteHandler({
+      invalidate,
+      config: { baseUrl: 'https://cms.example' },
+      fetchImpl: (async () =>
+        Response.json({ tags: ['node:1'] })) as unknown as typeof fetch,
+    });
+
+    const response = await POST({
+      request: new Request('https://app.example/api/canvas/revalidate', {
+        method: 'POST',
+        body: JSON.stringify({ id: 'abc' }),
+      }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith(['node:1']);
   });
 });

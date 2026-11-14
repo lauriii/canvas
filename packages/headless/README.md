@@ -134,6 +134,58 @@ empty managed tree also has `content` set to `null`, but keeps
 `route.managedByCanvas` set to `true`. Route-not-found and access-denied
 responses make `fetchPage()` return `null`.
 
+## Cache tag invalidation
+
+Page, redirect, and entity results carry their Drupal cacheability: `cacheTags`,
+the cache tags they depend on, and `cacheMaxAge`, the seconds they may be cached
+(-1: no limit). Both include the dependencies of the response's cache contexts,
+such as the anonymous role's permissions, because a cache keyed by path ignores
+the contexts. Cache published results for at most `cacheMaxAge` with these tags,
+and expire them when Drupal reports the tags invalidated. Results from sites
+without cache tag support have no tags and no limit.
+
+`fetchPublishedPage(path)` fetches a page as anonymous visitors see it without
+reading the current request, so the result is safe to store in a cache keyed by
+path. A page anonymous visitors cannot see (403/404) is a `PageNotFound`
+(`{ notFound: true, status, cacheTags, cacheMaxAge }`) with the error's
+cacheability; `isPageNotFound()` tells it apart. Other errors throw, so a cache
+does not keep a transient failure. Use `fetchPage()` for draft sessions.
+
+Mount `createCacheInvalidationHandler()` from `@drupal-canvas/headless/server`
+as a POST route at `/api/canvas/revalidate` under the frontend URL registered in
+Canvas: Drupal announces to that path only. Then turn on cache invalidation for
+the frontend on the Canvas **Headless frontends** screen, and check the round
+trip with its **Test** button. Drupal announces invalidations to the route; the
+handler reads the invalidated tags, once, from `CANVAS_SITE_URL` and passes them
+to your `invalidate` callback. No secret is shared (see the
+[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)):
+
+```ts
+import { createCacheInvalidationHandler } from '@drupal-canvas/headless/server';
+
+// For example, behind a CDN that purges by tag: send
+// `Cache-Tag: ${page.cacheTags.join(',')}` with each page response.
+export const POST = createCacheInvalidationHandler({
+  invalidate: (tags) => purgeCdnTags(tags),
+});
+```
+
+The handler answers 204 after `invalidate` completes, 400 for a malformed
+announcement, 404 for an ID Drupal does not know, and 502 when Drupal cannot be
+reached or does not answer within ten seconds. It throws (a framework 500) when
+`CANVAS_SITE_URL` is not configured or `invalidate` throws. Pass `defer` (for
+example Next.js `after()`) to answer 202 at once and read the tags afterwards,
+so that Drupal's announcing request does not wait for a second Drupal worker.
+Failures are then logged. A read that fails expires nothing: Drupal detects tags
+that are not read within 30 seconds, and then announces `http_response`, which
+expires everything. When `invalidate` throws after the read, the handler calls
+it again with `http_response`.
+
+The adapters connect this to their frameworks: Next.js and Astro purge their own
+caches; Nuxt and TanStack Start pass the tags to an `invalidate` callback you
+write, such as a CDN purge. See their READMEs, and
+[how cache invalidation works](../../modules/canvas_headless/docs/headless-cache-invalidation.md).
+
 ## JSON:API for portable Code Components
 
 To write a component that also works in Drupal and Workbench, use the supplied
@@ -290,6 +342,7 @@ mostly wiring:
    // POST /api/draft/renew           -> server.renewDraftSession(request)
    // POST /api/disable-draft         -> server.disableDraftMode()
    // ANY  /api/canvas/jsonapi/**     -> server.handleJsonApiProxy(request)
+   // POST /api/canvas/revalidate     -> createCacheInvalidationHandler(...)
    ```
 
 3. Mount `createComponentMetadataHandler()` from

@@ -14,6 +14,7 @@ import type {
   DraftConfig,
   DraftServer,
   EntityResult,
+  PageNotFound,
   PageResult,
 } from '@drupal-canvas/headless/server';
 import type { JsonApiRuntimeConfig } from 'drupal-canvas/jsonapi-client';
@@ -101,6 +102,17 @@ export function fetchPage(
   previewContext?: Parameters<DraftServer['fetchPage']>[1],
 ): Promise<PageResult | null> {
   return getDraftServer(context).fetchPage(path, previewContext);
+}
+
+/**
+ * Fetches a page as anonymous visitors see it, for caches keyed by path;
+ * see `DraftServer.fetchPublishedPage()`. Pair it with `cacheCanvasTags()`.
+ */
+export function fetchPublishedPage(
+  context: AstroDraftContext,
+  path: string,
+): Promise<PageResult | PageNotFound> {
+  return getDraftServer(context).fetchPublishedPage(path);
 }
 
 /** Fetches one component preview through the current draft session. */

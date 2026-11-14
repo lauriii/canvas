@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\consumers\Entity\Consumer;
 
@@ -62,7 +63,7 @@ function canvas_headless_install(): void {
  * module's to remove unless it created them.
  *
  * Restores synchronized components with retained fallback implementations to
- * the React type.
+ * the React type. Forgets the cache invalidation state of the frontends.
  */
 function canvas_headless_uninstall(): void {
   $uuid = \Drupal::state()->get('canvas_headless.provisioned_consumer_uuid');
@@ -73,6 +74,7 @@ function canvas_headless_uninstall(): void {
     }
   }
   \Drupal::state()->delete('canvas_headless.provisioned_consumer_uuid');
+  \Drupal::keyValue(FrontendCacheTagInvalidator::STATE_COLLECTION)->deleteAll();
 
   $component_storage = \Drupal::entityTypeManager()->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
   foreach ($component_storage->loadMultiple() as $component) {
