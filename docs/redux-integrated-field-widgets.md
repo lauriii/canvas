@@ -402,7 +402,11 @@ Although it's not typically an issue, these re-renders mean that elements using 
 
 However, if there is Vanilla JS that impacts the layout of elements within the form, (such as adding elements to the form markup) there might be flickering as the JS-altered layout reverts and is reintroduced. Similarly, if there is a Vanilla JS process that takes considerable time to initialize, there could be issues with this long process being run repeatedly. There are no current examples of this, but it's worth noting this is a potential issue.
 
-#### 3.5.3 Auto-save and real time preview considerations
+#### 3.5.3 Enhanced rendering of core widgets
+Some core widgets render with a more visual control. The original form element stays in the DOM and remains the form element: the visual control sets its value, which fires the same change event as direct input.
+- `options_select` for an SDC prop with `x-canvas-options` and `x-canvas-options-display: cards` renders as a button that opens a popover with a search box and a grid of cards, one per option, each with an image and its label. The images come from the options source, if it implements `OptionsSourceWithImagesInterface`. The `<select>` is hidden. Multi-value props do not support it. See `ui/src/components/form/components/CardSelect.tsx`.
+
+#### 3.5.4 Auto-save and real time preview considerations
 Some of the complexity introduced by Drupal Canvas based component + entity forms is not due to them being rendered in React, but instead because of the need to accommodate auto-save and real time preview updates. Reshaping of data that would occur on form submission is instead done in real time, which necessitates some extra plumbing such as the [3.4 Transforms](#34-transforms) covered earlier in this document.
 
 One example is additional logic required for autocomplete. Although the form element is rerendering to display the autocomplete suggestions, additional logic is required to ensure the autocomplete suggestion process is not triggering a preview update until a selection is made.

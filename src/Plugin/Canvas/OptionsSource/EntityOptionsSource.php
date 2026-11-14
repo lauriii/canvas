@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\OptionsSource;
 
 use Drupal\canvas\Attribute\OptionsSource;
-use Drupal\canvas\OptionsSource\OptionsSourceInterface;
+use Drupal\canvas\OptionsSource\EntityOptionImagesTrait;
+use Drupal\canvas\OptionsSource\OptionsSourceWithImagesInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -13,6 +14,7 @@ use Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface;
 use Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -24,7 +26,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * Uses the entity type's default entity reference selection handler, so the
  * options respect access. Taxonomy terms are listed in tree order, labeled with
- * their path, such as "Design › Typography".
+ * their path, such as "Design › Typography". Cards show the thumbnail of a
+ * media item, and the first image of any other entity.
  *
  * @code
  * x-canvas-options:
@@ -37,7 +40,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: 'entity',
   label: new TranslatableMarkup('Site content'),
 )]
-final class EntityOptionsSource extends PluginBase implements OptionsSourceInterface, ContainerFactoryPluginInterface {
+final class EntityOptionsSource extends PluginBase implements OptionsSourceWithImagesInterface, ContainerFactoryPluginInterface {
+
+  use EntityOptionImagesTrait;
 
   /**
    * Entity types that authors rarely pick from.
@@ -57,6 +62,7 @@ final class EntityOptionsSource extends PluginBase implements OptionsSourceInter
     private readonly EntityTypeBundleInfoInterface $entityTypeBundleInfo,
     private readonly SelectionPluginManagerInterface $selectionManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -70,6 +76,7 @@ final class EntityOptionsSource extends PluginBase implements OptionsSourceInter
       $container->get(EntityTypeBundleInfoInterface::class),
       $container->get(SelectionPluginManagerInterface::class),
       $container->get(EntityFieldManagerInterface::class),
+      $container->get(FileUrlGeneratorInterface::class),
     );
   }
 
@@ -97,6 +104,13 @@ final class EntityOptionsSource extends PluginBase implements OptionsSourceInter
       }
     }
     return $entity_type_id === 'taxonomy_term' ? $this->labelTermsWithTheirPath($options) : $options;
+  }
+
+  public function getOptionImages(array $values): array {
+    // The module that provides the entity type may have been uninstalled.
+    return $this->entityTypeManager->hasDefinition($this->configuration['entity_type'])
+      ? $this->getEntityImages($this->configuration['entity_type'], $values)
+      : [];
   }
 
   /**

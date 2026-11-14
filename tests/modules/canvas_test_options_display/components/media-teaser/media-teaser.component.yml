@@ -1,0 +1,13 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Media teaser
+description: A teaser whose `media` prop offers the media items of the site as cards.
+props:
+  type: object
+  properties:
+    media:
+      type: integer
+      title: Media
+      x-canvas-options:
+        source: entity
+        entity_type: media
+      x-canvas-options-display: cards

@@ -562,4 +562,5 @@ category:
 ```
 
 Because the shape includes `x-canvas-options`, each source configuration is a distinct prop shape. Such props must be
-optional, and cannot have `enum`. See `\Drupal\canvas\OptionsSource\OptionsSourceInterface`.
+optional, and cannot have `enum`. The sibling `x-canvas-options-display: cards` only changes how the form offers the
+options, so it is not part of the shape. See `\Drupal\canvas\OptionsSource\OptionsSourceInterface`.

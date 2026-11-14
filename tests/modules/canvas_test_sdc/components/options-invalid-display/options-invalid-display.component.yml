@@ -1,0 +1,28 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Options with invalid displays
+props:
+  type: object
+  properties:
+    # Cards need options from site data.
+    style:
+      title: 'Style'
+      type: string
+      x-canvas-options-display: cards
+    # Cards are the only display.
+    author:
+      title: 'Author'
+      type: string
+      x-canvas-options:
+        source: entity
+        entity_type: user
+      x-canvas-options-display: grid
+    # Cards pick one option.
+    authors:
+      title: 'Authors'
+      type: array
+      items:
+        type: string
+        x-canvas-options:
+          source: entity
+          entity_type: user
+        x-canvas-options-display: cards

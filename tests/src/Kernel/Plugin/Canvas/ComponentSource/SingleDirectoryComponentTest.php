@@ -190,6 +190,11 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.obsolete' => [
         'Component has "obsolete" status',
       ],
+      'sdc.canvas_test_sdc.options-invalid-display' => [
+        '"x-canvas-options-display" on prop "style" requires a single-value prop with "x-canvas-options", and must be "cards".',
+        '"x-canvas-options-display" on prop "author" requires a single-value prop with "x-canvas-options", and must be "cards".',
+        '"x-canvas-options-display" on prop "authors" requires a single-value prop with "x-canvas-options", and must be "cards".',
+      ],
       'sdc.canvas_test_sdc.props-invalid-shapes' => [
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>invalid_shape</code> prop, with the shape <code>{"type":"object"}</code>.',
       ],

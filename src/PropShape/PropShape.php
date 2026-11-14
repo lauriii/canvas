@@ -148,6 +148,9 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
+    // How options from site data show only affects the component instance
+    // form.
+    unset($normalized_prop_schema['x-canvas-options-display']);
     // The order of an options source's keys does not change the shape.
     // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
     if (\is_array($normalized_prop_schema['x-canvas-options'] ?? NULL)) {
