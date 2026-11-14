@@ -150,6 +150,30 @@ describe('findInPlaceUpdates', () => {
     ).toBeNull();
   });
 
+  it('returns null when a slot of a Canvas island becomes empty or gets content', () => {
+    const island = (slot: string) =>
+      page({
+        content: instance(
+          'island',
+          '<canvas-island uid="island"><template data-astro-template="body">' +
+            `<!-- canvas-slot-start-island/body -->${slot}<!-- canvas-slot-end-island/body -->` +
+            '</template></canvas-island>',
+        ),
+      });
+    expect(findInPlaceUpdates(island(CARD), island(PLACEHOLDER))).toBeNull();
+    expect(findInPlaceUpdates(island(PLACEHOLDER), island(CARD))).toBeNull();
+    // Not when its content changes.
+    expect(
+      findInPlaceUpdates(island(CARD), island(instance('card', '<p>New</p>'))),
+    ).toEqual([
+      {
+        componentUuid: 'card',
+        html: '<p>New</p>',
+        previousHtml: '<p>Card</p>',
+      },
+    ]);
+  });
+
   it('returns null when an instance is there twice', () => {
     const twice = (card: string) => page({ content: card + HEADING + card });
     expect(

@@ -56,6 +56,13 @@ const EMPTY_PLACEHOLDER = new RegExp(
 
 const MODULE_PRELOAD = /<link rel="modulepreload"[^>]*>/g;
 
+// An empty slot of a Canvas island. The island renders its slots itself, and
+// may render differently when one is empty.
+const EMPTY_ISLAND_SLOT = new RegExp(
+  `<template data-astro-template="[^"]*"><!-- canvas-slot-start-[^>]*? --><div class="${CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}"></div>`,
+  'g',
+);
+
 interface Instance {
   id: string;
   parent: string;
@@ -113,8 +120,10 @@ function splitInstances(html: string): Instance[] | null {
  * listed: where instances are is not compared here.
  *
  * Returns null when anything outside the component instances changed (for
- * example new assets in <head>, or changed drupalSettings). The caller must
- * then load the whole document.
+ * example new assets in <head>, or changed drupalSettings), or a slot of a
+ * Canvas island became empty or got content: the island must then render
+ * again, and would show empty until it has. The caller must then load the
+ * whole document.
  */
 export function findInPlaceUpdates(
   previous: string,
@@ -133,6 +142,16 @@ export function findInPlaceUpdates(
     return null;
   }
   const previousInstances = new Map(before.map((i) => [i.id, i]));
+  const emptyIslandSlots = (instance?: Instance) =>
+    instance?.own.match(EMPTY_ISLAND_SLOT)?.join('');
+  if (
+    after.some((instance) => {
+      const was = previousInstances.get(instance.id);
+      return was && emptyIslandSlots(was) !== emptyIslandSlots(instance);
+    })
+  ) {
+    return null;
+  }
   const replaced = new Set<string>();
   return after.slice(1).flatMap((instance) => {
     const { id, parent, html } = instance;
