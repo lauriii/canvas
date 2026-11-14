@@ -3,6 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeStore } from '@/app/store';
 import { initialState as configuration } from '@/features/configuration/configurationSlice';
 import {
+  NodeType,
+  selectLayout,
+  selectModel,
+  selectUpdatePreview,
+  setInitialLayoutModel,
+  setLayoutModel,
+} from '@/features/layout/layoutModelSlice';
+import {
   isPreviewEditedSince,
   notePreviewEdit,
 } from '@/features/layout/preview/previewEdits';
@@ -13,13 +21,22 @@ import {
 import { EditorFrameContext } from '@/features/ui/uiSlice';
 import { previewApi } from '@/services/preview';
 
+import type { RegionNode } from '@/features/layout/layoutModelSlice';
+
 const C = '11111111-1111-4111-8111-111111111111';
-const layout = [
+const layout: RegionNode[] = [
   {
     id: 'content',
     name: 'Content',
-    nodeType: 'region',
-    components: [{ uuid: C, type: 'sdc.test.a@1', nodeType: 'component' }],
+    nodeType: NodeType.Region,
+    components: [
+      {
+        uuid: C,
+        type: 'sdc.test.a@1',
+        nodeType: NodeType.Component,
+        slots: [],
+      },
+    ],
   },
 ];
 
@@ -105,16 +122,41 @@ describe('updateComponent', () => {
   };
 
   // A prop value reaches the model only with the PATCH response, so a render
-  // requested meanwhile, e.g. after a move, doesn't show it.
-  it('shows a prop value whose response arrives after the render of a later move', async () => {
-    const { store, patch, render, isStale } = setup();
+  // requested meanwhile, e.g. after a move, doesn't have it, and its response
+  // has the layout from before the move.
+  it('keeps a later move and sends a prop value again when the render of the move overtook it', async () => {
+    const { store, patch, render } = setup();
+    const old = { [C]: { resolved: { text: 'old' } } };
+    store.dispatch(
+      setInitialLayoutModel({ layout, model: old, updatePreview: false }),
+    );
     const settlePatch = await patch('new');
+    const moved = structuredClone(layout);
+    store.dispatch(
+      setLayoutModel({ layout: moved, model: old, updatePreview: true }),
+    );
     notePreviewEdit();
     const settleRender = await render('old');
     await settleRender();
     await settlePatch();
+    expect(selectLayout(store.getState())).toBe(moved);
+    expect(selectModel(store.getState())).toEqual({
+      [C]: { resolved: { text: 'new' } },
+    });
+    // The preview requests a render of both.
+    expect(selectUpdatePreview(store.getState())).toBe(true);
+    expect(selectPreviewHtml(store.getState())).toBe('<p>moved, old</p>');
+  });
+
+  it('applies a prop edit that no render overtook', async () => {
+    const { store, patch } = setup();
+    const settlePatch = await patch('new');
+    await settlePatch();
+    expect(selectModel(store.getState())).toEqual({
+      [C]: { resolved: { text: 'new' } },
+    });
+    expect(selectUpdatePreview(store.getState())).toBe(false);
     expect(selectPreviewHtml(store.getState())).toBe('<p>new</p>');
-    expect(isStale()).toBe(false);
   });
 
   it('keeps a later move shown while its render is on its way', async () => {

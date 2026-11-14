@@ -21,7 +21,7 @@ import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import { getEntityTitle } from '@/utils/entityTitle';
 
-import type { RootState } from '@/app/store';
+import type { AppDispatch, RootState } from '@/app/store';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
@@ -48,6 +48,64 @@ export type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
 };
 
+// The number of requests sent so far with the layout and model in the store
+// (POST), e.g. for a move.
+let layoutRequests = 0;
+
+/** Notes that a request with the layout and model in the store was sent. */
+export const noteLayoutRequest = () => {
+  layoutRequests++;
+};
+
+/**
+ * Notes that a prop edit (PATCH) is sent.
+ *
+ * The prop value reaches the model in the store only with the response. A
+ * request with the layout and model sent before then, or queued now, doesn't
+ * have it, and overwrites it on the server. The response then has the layout
+ * from before that request's edit.
+ *
+ * @return
+ *   A function that tells, once the response has arrived, whether such a
+ *   request was sent.
+ */
+export const noteComponentUpdate = () => {
+  const requestsAtUpdate = layoutRequests;
+  const queued = pendingPreviewArg !== null;
+  return () => queued || layoutRequests > requestsAtUpdate;
+};
+
+/**
+ * Applies the response to a prop edit that was overtaken by a request with
+ * the layout and model (see noteComponentUpdate()).
+ *
+ * Keeps the layout in the store, which has the later edit, adds the edited
+ * component's model from the response, and sends both, so the server and the
+ * preview have them.
+ */
+export const applyOvertakenComponentUpdate = (
+  dispatch: AppDispatch,
+  getState: () => unknown,
+  componentInstanceUuid: string,
+  model: Record<string, unknown>,
+) => {
+  const { layout, model: current } = (getState() as RootState).layoutModel
+    .present;
+  // Not when the component was removed meanwhile.
+  if (componentInstanceUuid in current) {
+    dispatch(
+      setLayoutModel({
+        layout,
+        model: {
+          ...current,
+          [componentInstanceUuid]: model[componentInstanceUuid],
+        },
+        updatePreview: true,
+      }),
+    );
+  }
+};
+
 export const previewApi = createApi({
   reducerPath: 'previewApi',
   baseQuery: baseQueryWithAutoSaves,
@@ -69,6 +127,7 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
+        noteLayoutRequest();
         pushCanvasLayoutRequest();
         try {
           const { data, meta } = await queryFulfilled;
@@ -170,6 +229,7 @@ export const previewApi = createApi({
       },
       async onQueryStarted(body, { dispatch, getState, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
+        const isOvertaken = noteComponentUpdate();
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -197,6 +257,16 @@ export const previewApi = createApi({
         // preview snapshot, which selectPreviewHtml prefers while set.
         dispatch(setSnapshotHTML(''));
         dispatch(setSnapshotTitle(''));
+        if (isOvertaken()) {
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          applyOvertakenComponentUpdate(
+            dispatch,
+            getState,
+            body.componentInstanceUuid,
+            model,
+          );
+          return;
+        }
         // A render requested while this one was in flight, e.g. for a move,
         // was built from a model without its prop value, so no later render
         // may show it. Once a render built from the store and requested after
