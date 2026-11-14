@@ -18,6 +18,27 @@
   background-color: var(--gray-a2);
 }
 
+/* The widgets of a group shown in the form, indented below the group label. */
+.inline {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: var(--space-1);
+  padding-left: var(--space-3);
+}
+
+/* A rule along the left edge groups the widgets. It ends where the last widget
+   ends: that widget brings the space above the next field. */
+.inline::before {
+  position: absolute;
+  top: 0;
+  bottom: var(--space-4);
+  left: 0;
+  width: 2px;
+  content: "";
+  background-color: var(--slate-5);
+}
+
 /* The raw Drupal AJAX submit buttons stay in the form but are operated
    through the styled "Add new", "Duplicate" and "Remove" actions and by
    dragging a row. */

@@ -121,9 +121,9 @@ function canvas_stark_theme_suggestions_fieldset_alter(array &$suggestions, arra
  * Implements hook_theme_suggestions_container_alter().
  */
 function canvas_stark_theme_suggestions_container_alter(array &$suggestions, array $variables): void {
-  // Containers of a multi-value custom object ("group") prop render as custom
-  // elements, so the client can present compact per-item rows whose widgets
-  // open in a popover.
+  // Containers of a custom object ("group") prop render as custom elements, so
+  // the client can present compact per-item rows whose widgets open in a
+  // popover, or the widgets of a single-value group in the form itself.
   // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
   if (!empty($variables['element']['#canvas_object_props_group'])) {
     $suggestions[] = 'container__canvas_object_props_' . $variables['element']['#canvas_object_props_group'];

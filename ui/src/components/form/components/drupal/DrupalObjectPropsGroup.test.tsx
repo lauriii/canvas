@@ -3,6 +3,7 @@ import { Theme } from '@radix-ui/themes';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import {
+  DrupalObjectPropsInline,
   DrupalObjectPropsItem,
   DrupalObjectPropsItemList,
 } from './DrupalObjectPropsGroup';
@@ -90,6 +91,21 @@ describe('DrupalObjectPropsItem', () => {
     expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Duplicate' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Reorder/ })).toBeNull();
+  });
+});
+
+describe('DrupalObjectPropsInline', () => {
+  it('shows the widgets in the form, as a group named after the prop', () => {
+    render(
+      <DrupalObjectPropsInline attributes={{ 'data-item-label': 'Button' }}>
+        <input type="text" aria-label="Label" defaultValue="Get started" />
+      </DrupalObjectPropsInline>,
+    );
+    const group = screen.getByRole('group', { name: 'Button' });
+    // No row to click and no popover to open: the widget is in the group.
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Label' })).toBeVisible();
+    expect(group.contains(screen.getByRole('textbox'))).toBe(true);
   });
 });
 

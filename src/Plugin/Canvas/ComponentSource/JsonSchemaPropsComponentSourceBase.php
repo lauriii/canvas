@@ -1281,11 +1281,12 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    *
    * Single-value groups render as one labeled group containing one
    * Redux-integrated widget per sub-property, with form state keyed
-   * `propName.subPropName`. Multi-value groups render as an item list with
-   * add, remove, duplicate and reorder, where each item contains the group's
-   * widgets, with form state keyed `propName.delta.subPropName`. An item keeps
-   * its delta for as long as the form lives: its position is the value of
-   * `propName.delta._weight`.
+   * `propName.subPropName`. The widgets open in a popover, or render in the
+   * form when the prop has `x-canvas-object-display: inline`. Multi-value
+   * groups render as an item list with add, remove, duplicate and reorder,
+   * where each item contains the group's widgets, with form state keyed
+   * `propName.delta.subPropName`. An item keeps its delta for as long as the
+   * form lives: its position is the value of `propName.delta._weight`.
    *
    * @see docs/adr/0021-object-props-in-code-components.md
    */
@@ -1353,21 +1354,27 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
     if (!$is_multiple) {
       // A single-value group renders like a one-item list without add and
-      // remove: one compact row whose widgets open in a popover.
-      $element['items'] = [
+      // remove: one compact row whose widgets open in a popover. With
+      // `x-canvas-object-display: inline` there is no row: the widgets render
+      // in the form, below the group label. Read from the raw component
+      // schema: the stored prop shape is the same for both.
+      // @see themes/canvas_stark/templates/form/container--canvas-object-props-inline.html.twig
+      $inline = ($prop_schema['x-canvas-object-display'] ?? NULL) === 'inline';
+      $item = [
         '#type' => 'container',
-        '#canvas_object_props_group' => 'item_list',
-      ];
-      $element['items'][0] = [
-        '#type' => 'container',
-        '#canvas_object_props_group' => 'item',
+        '#canvas_object_props_group' => $inline ? 'inline' : 'item',
         '#attributes' => [
           'data-item-label' => (string) $label,
         ],
       ];
       foreach ($source->getSubSources() as $sub_property_name => $sub_source) {
-        $element['items'][0][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
+        $item[$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, $is_required, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
       }
+      $element['items'] = $inline ? $item : [
+        '#type' => 'container',
+        '#canvas_object_props_group' => 'item_list',
+        0 => $item,
+      ];
       return $element;
     }
 
