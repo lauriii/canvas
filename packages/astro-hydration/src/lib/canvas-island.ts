@@ -3,7 +3,6 @@ import { decodeSerializedProps } from './decode-serialized-props';
 interface AstroIslandElement extends HTMLElement {
   attributeChangedCallback(): void;
   handleHydrationError(error: unknown): void;
-  getRetryImportUrl(url: string): string;
 }
 
 interface AstroIslandElementConstructor {
@@ -178,21 +177,6 @@ interface CanvasIslandElement extends AstroIslandElement {
       // Canvas UI, which shows a preview once its islands have hydrated.
       this.setAttribute('data-hydration-failed', '');
       super.handleHydrationError(error);
-    }
-    // Port of Astro's importWithRetry, which imports a module that failed to
-    // import again one second later. The island is marked as failed meanwhile.
-    async importWithRetry(url: string) {
-      try {
-        return await import(/* @vite-ignore */ url);
-      } catch {
-        this.setAttribute('data-hydration-failed', '');
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        const module = await import(
-          /* @vite-ignore */ this.getRetryImportUrl(url)
-        );
-        this.removeAttribute('data-hydration-failed');
-        return module;
-      }
     }
     attributeChangedCallback() {
       // Add the ssr attribute back so we can re-hydrate when props change.

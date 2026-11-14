@@ -3,6 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import vm from 'vm';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +28,11 @@ while ((match = scriptRegex.exec(html)) !== null) {
 }
 
 scriptContents = `${scriptContents}\n${fs.readFileSync(elementPath, 'utf8')}\n`;
+
+// Drupal loads hydration.js as a classic script, so it must parse as one: for
+// example, a dynamic import() in canvas-island.ts makes Vite add a static
+// import of its preload helper.
+new vm.Script(scriptContents, { filename: outputFilePath });
 
 // Write the script contents to hydration.js
 fs.writeFileSync(outputFilePath, scriptContents);
