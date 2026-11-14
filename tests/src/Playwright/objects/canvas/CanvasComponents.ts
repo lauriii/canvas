@@ -295,7 +295,12 @@ export function CanvasComponentsMixin<
         }
         case 'select': {
           const selectLocator = `[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"] .field--name-${propName.toLowerCase()} select`;
-          await this.page.locator(selectLocator).selectOption(propValue);
+          // Short selects render as a segmented control, with the select
+          // hidden.
+          // @see ui/src/components/form/components/SegmentedSelect.tsx
+          await this.page
+            .locator(selectLocator)
+            .selectOption(propValue, { force: true });
           break;
         }
         default:
