@@ -1,3 +1,4 @@
+import isEqual from 'lodash/isEqual';
 import { createSelector } from '@reduxjs/toolkit';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
@@ -48,36 +49,78 @@ export type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
 };
 
-// The number of requests sent so far with the layout and model in the store
-// (POST), e.g. for a move.
+// Requests with the layout and model in the store (POST), e.g. for a move:
+// how many were sent, how many are on their way, and the last one answered.
 let layoutRequests = 0;
+let layoutRequestsInFlight = 0;
+let lastAnsweredLayoutRequest = 0;
 
-/** Notes that a request with the layout and model in the store was sent. */
+/**
+ * Notes that a request with the layout and model in the store is sent.
+ *
+ * @return
+ *   A function to call once it is answered, or failed. It returns whether a
+ *   later request was answered first, so this one's response is outdated.
+ */
 export const noteLayoutRequest = () => {
-  layoutRequests++;
+  const request = ++layoutRequests;
+  layoutRequestsInFlight++;
+  let answered = false;
+  return () => {
+    if (!answered) {
+      answered = true;
+      layoutRequestsInFlight--;
+    }
+    const outdated = request < lastAnsweredLayoutRequest;
+    lastAnsweredLayoutRequest = Math.max(lastAnsweredLayoutRequest, request);
+    return outdated;
+  };
 };
+
+// The last prop edit sent for each component.
+let componentUpdates = 0;
+const lastComponentUpdate = new Map<string, number>();
 
 /**
  * Notes that a prop edit (PATCH) is sent.
  *
  * The prop value reaches the model in the store only with the response. A
- * request with the layout and model sent before then, or queued now, doesn't
- * have it, and overwrites it on the server. The response then has the layout
- * from before that request's edit.
+ * request with the layout and model that is on its way now, queued, or sent
+ * before then doesn't have it, and may overwrite it on the server. The
+ * response then may have the layout from before that request's edit.
+ *
+ * @param componentInstanceUuid
+ *   The edited component.
+ * @param getState
+ *   Returns the store's state.
  *
  * @return
- *   A function that tells, once the response has arrived, whether such a
- *   request was sent.
+ *   Functions that tell, once the response has arrived, whether a later prop
+ *   edit of the component was sent (so this response has an older value), and
+ *   whether the response was overtaken by a request with the layout and model,
+ *   or by an edit of the layout that is yet to be sent.
  */
-export const noteComponentUpdate = () => {
+export const noteComponentUpdate = (
+  componentInstanceUuid: string,
+  getState: () => unknown,
+) => {
+  const update = ++componentUpdates;
+  lastComponentUpdate.set(componentInstanceUuid, update);
+  const layout = () => (getState() as RootState).layoutModel.present.layout;
+  const layoutAtUpdate = layout();
   const requestsAtUpdate = layoutRequests;
-  const queued = pendingPreviewArg !== null;
-  return () => queued || layoutRequests > requestsAtUpdate;
+  const busy = layoutRequestsInFlight > 0 || pendingPreviewArg !== null;
+  return {
+    isSuperseded: () =>
+      lastComponentUpdate.get(componentInstanceUuid) !== update,
+    isOvertaken: () =>
+      busy || layoutRequests > requestsAtUpdate || layout() !== layoutAtUpdate,
+  };
 };
 
 /**
  * Applies the response to a prop edit that was overtaken by a request with
- * the layout and model (see noteComponentUpdate()).
+ * the layout and model, or by an edit of the layout (see noteComponentUpdate()).
  *
  * Keeps the layout in the store, which has the later edit, adds the edited
  * component's model from the response, and sends both, so the server and the
@@ -127,7 +170,7 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        noteLayoutRequest();
+        const answered = noteLayoutRequest();
         pushCanvasLayoutRequest();
         try {
           const { data, meta } = await queryFulfilled;
@@ -153,6 +196,7 @@ export const previewApi = createApi({
             }
           }, 5000);
         } finally {
+          answered();
           popCanvasLayoutRequest();
         }
       },
@@ -229,7 +273,10 @@ export const previewApi = createApi({
       },
       async onQueryStarted(body, { dispatch, getState, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        const isOvertaken = noteComponentUpdate();
+        const { isSuperseded, isOvertaken } = noteComponentUpdate(
+          body.componentInstanceUuid,
+          getState,
+        );
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -257,6 +304,11 @@ export const previewApi = createApi({
         // preview snapshot, which selectPreviewHtml prefers while set.
         dispatch(setSnapshotHTML(''));
         dispatch(setSnapshotTitle(''));
+        if (isSuperseded()) {
+          // The response to the later edit has the later value.
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          return;
+        }
         if (isOvertaken()) {
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           applyOvertakenComponentUpdate(
@@ -277,8 +329,16 @@ export const previewApi = createApi({
         dispatch(setHtml(html, Math.max(editsAtRequest, renderedEdits), true));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
-        // we have the data here.
-        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+        // we have the data here. The layout in the store stays if it is the
+        // same, so a prop edit sent meanwhile isn't taken to be overtaken.
+        const current = (getState() as RootState).layoutModel.present.layout;
+        dispatch(
+          setLayoutModel({
+            layout: isEqual(current, layout) ? current : layout,
+            model,
+            updatePreview: false,
+          }),
+        );
       },
     }),
   }),

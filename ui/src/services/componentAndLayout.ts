@@ -18,11 +18,7 @@ import {
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
-import {
-  applyOvertakenComponentUpdate,
-  noteComponentUpdate,
-  noteLayoutRequest,
-} from '@/services/preview';
+import { noteLayoutRequest } from '@/services/preview';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
@@ -362,8 +358,16 @@ export const componentAndLayoutApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        noteLayoutRequest();
-        const { data, meta } = await queryFulfilled;
+        const answered = noteLayoutRequest();
+        let data;
+        let meta;
+        // These requests aren't queued: an earlier one may be answered last.
+        let outdated = false;
+        try {
+          ({ data, meta } = await queryFulfilled);
+        } finally {
+          outdated = answered();
+        }
         const { html, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
@@ -372,7 +376,9 @@ export const componentAndLayoutApi = createApi({
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our template preview slice.
-        dispatch(setHtml(html, editsAtRequest));
+        if (!outdated) {
+          dispatch(setHtml(html, editsAtRequest));
+        }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },
@@ -386,9 +392,8 @@ export const componentAndLayoutApi = createApi({
         method: 'PATCH',
         body,
       }),
-      async onQueryStarted(body, { dispatch, getState, queryFulfilled }) {
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        const isOvertaken = noteComponentUpdate();
         const { data, meta } = await queryFulfilled;
         const { html, layout, model, autoSaves } = data;
         dispatch(
@@ -397,16 +402,6 @@ export const componentAndLayoutApi = createApi({
           ]),
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
-        if (isOvertaken()) {
-          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
-          applyOvertakenComponentUpdate(
-            dispatch,
-            getState,
-            body.componentInstanceUuid,
-            model,
-          );
-          return;
-        }
         dispatch(setHtml(html, editsAtRequest, true));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
@@ -426,8 +421,16 @@ export const componentAndLayoutApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        noteLayoutRequest();
-        const { data, meta } = await queryFulfilled;
+        const answered = noteLayoutRequest();
+        let data;
+        let meta;
+        // These requests aren't queued: an earlier one may be answered last.
+        let outdated = false;
+        try {
+          ({ data, meta } = await queryFulfilled);
+        } finally {
+          outdated = answered();
+        }
         const { html, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
@@ -436,7 +439,9 @@ export const componentAndLayoutApi = createApi({
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our pattern preview slice.
-        dispatch(setHtml(html, editsAtRequest));
+        if (!outdated) {
+          dispatch(setHtml(html, editsAtRequest));
+        }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },
@@ -450,9 +455,8 @@ export const componentAndLayoutApi = createApi({
         method: 'PATCH',
         body,
       }),
-      async onQueryStarted(body, { dispatch, getState, queryFulfilled }) {
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        const isOvertaken = noteComponentUpdate();
         const { data, meta } = await queryFulfilled;
         const { html, layout, model, autoSaves } = data;
         dispatch(
@@ -461,16 +465,6 @@ export const componentAndLayoutApi = createApi({
           ]),
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
-        if (isOvertaken()) {
-          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
-          applyOvertakenComponentUpdate(
-            dispatch,
-            getState,
-            body.componentInstanceUuid,
-            model,
-          );
-          return;
-        }
         dispatch(setHtml(html, editsAtRequest, true));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
