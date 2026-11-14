@@ -272,7 +272,12 @@ if (container) {
         }
         // For each element, parse out its attributes. These are JSON sent by
         // the canvas_stark.theme.
-        return JSON.parse(el.getAttribute('attributes') || '{}');
+        const attributes = JSON.parse(el.getAttribute('attributes') || '{}');
+        // The value attribute of a checkbox is what it submits when checked,
+        // not its state.
+        return attributes.type === 'checkbox'
+          ? { ...attributes, value: !!attributes.checked }
+          : attributes;
       })
       // Build a key-value pair of input names and values.
       .reduce((carry, attributes) => {
