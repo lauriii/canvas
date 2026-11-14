@@ -80,8 +80,33 @@ Modules can add sources, for example for options from an external API:
    returns the configurations offered in the code editor, or `[]`.
 4. Define the config schema type `canvas.options_source.<plugin ID>` for the
    keys, with the `FullyValidatable` constraint. Code components need it.
+5. To give cards an image, implement `OptionsSourceWithImagesInterface`
+   instead. `getOptionImages()` returns image URLs keyed by option value.
 
 See `EntityOptionsSource` for an example.
+
+## Cards
+
+When content authors recognize the options by sight, such as media items or
+articles with an image, add `x-canvas-options-display: cards` next to
+`x-canvas-options`. Content authors then pick from cards with an image and a
+label, and search them by label:
+
+```yaml
+    image:
+      type: integer
+      title: Image
+      x-canvas-options:
+        source: entity
+        entity_type: media
+        bundles: [image]
+      x-canvas-options-display: cards
+```
+
+With the `entity` and `view` sources, a media item shows its thumbnail. Any
+other entity shows its first image: of an image field, or of a media item that
+it references. An option shows a placeholder if it has no image, or none that
+the content author can view. The component still receives the ID.
 
 ## Rules
 
@@ -102,6 +127,8 @@ See `EntityOptionsSource` for an example.
             bundles: [tags]
   ```
 
+- `x-canvas-options-display` needs `x-canvas-options` on the same prop, and its
+  only value is `cards`. A prop with multiple values cannot use it.
 - Canvas validates the source when it discovers the component. An unknown
   source, entity type, bundle or view makes the component unavailable, with
   the reason in the component list.
@@ -112,4 +139,4 @@ See `EntityOptionsSource` for an example.
   form only offers the options.
 
 Code components get the same sources from the **List: from site** prop type in
-the code editor.
+the code editor. They do not offer cards.

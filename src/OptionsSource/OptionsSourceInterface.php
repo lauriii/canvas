@@ -25,7 +25,11 @@ use Drupal\Component\Plugin\PluginInspectionInterface;
  * `canvas.options_source.<plugin ID>` for its configuration, so code components
  * can use it.
  *
+ * A source whose options have images also implements
+ * OptionsSourceWithImagesInterface.
+ *
  * @see \Drupal\canvas\Attribute\OptionsSource
+ * @see \Drupal\canvas\OptionsSource\OptionsSourceWithImagesInterface
  * @see docs/user/src/content/docs/sdc-components/options-from-site-data.mdx
  */
 interface OptionsSourceInterface extends PluginInspectionInterface {
@@ -34,6 +38,15 @@ interface OptionsSourceInterface extends PluginInspectionInterface {
    * The JSON Schema key that configures the options source of a prop.
    */
   public const string KEY = 'x-canvas-options';
+
+  /**
+   * The JSON Schema key that sets how the form offers the options of a prop.
+   *
+   * Its only value is `cards`: a single-value prop offers its options as cards,
+   * each with an image and a label. It is a sibling of `x-canvas-options`,
+   * whose keys other than `source` belong to the source.
+   */
+  public const string DISPLAY_KEY = 'x-canvas-options-display';
 
   /**
    * Lists the options for the current user.

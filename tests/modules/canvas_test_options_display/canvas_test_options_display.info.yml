@@ -1,0 +1,6 @@
+name: 'Canvas test: options from site data as cards'
+type: module
+description: 'Provides an SDC whose prop offers media items as cards, with `x-canvas-options-display`.'
+package: Testing
+dependencies:
+  - canvas:canvas

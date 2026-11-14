@@ -13,6 +13,8 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\OptionsSource\OptionsSourceInterface;
+use Drupal\canvas\OptionsSource\OptionsSourceManager;
+use Drupal\canvas\OptionsSource\OptionsSourceWithImagesInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -36,6 +38,7 @@ use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -118,6 +121,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     private readonly LoggerChannelInterface $logger,
     protected readonly PropShapeRepositoryInterface $propShapeRepository,
     private readonly ColorResolver $colorResolver,
+    private readonly OptionsSourceManager $optionsSourceManager,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -138,6 +142,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $container->get('logger.channel.canvas'),
       $container->get(PropShapeRepositoryInterface::class),
       $container->get(ColorResolver::class),
+      $container->get(OptionsSourceManager::class),
     );
   }
 
@@ -1051,7 +1056,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
       // Options from site data.
       // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
-      if (($form[$sdc_prop_name]['widget']['#type'] ?? NULL) === 'select' && $this->getOptionsSourceForExplicitInputProp($sdc_prop_name) !== NULL) {
+      if (($form[$sdc_prop_name]['widget']['#type'] ?? NULL) === 'select' && ($options_source = $this->getOptionsSourceForExplicitInputProp($sdc_prop_name)) !== NULL) {
         $select = &$form[$sdc_prop_name]['widget'];
         // The UI offers search however many options there are today.
         $select['#attributes']['data-canvas-options-source'] = 'true';
@@ -1066,6 +1071,25 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         }
         if ($unavailable_values) {
           $select['#default_value'] = !empty($select['#multiple']) ? $stored_values : reset($stored_values);
+        }
+        // The UI offers the options as cards, with the images that the source
+        // has for them. Read the display from the raw component schema, like
+        // the color picker mode above: the stored prop shape is the same for
+        // every display.
+        // @see ui/src/components/form/components/CardSelect.tsx
+        if (($prop_schema[OptionsSourceInterface::DISPLAY_KEY] ?? NULL) === 'cards') {
+          $images = [];
+          try {
+            $options_source_plugin = $this->optionsSourceManager->createFromPropSchema($options_source);
+            if ($options_source_plugin instanceof OptionsSourceWithImagesInterface) {
+              $images = $options_source_plugin->getOptionImages(\array_values(\array_diff(\array_keys($select['#options'] ?? []), ['_none'])));
+            }
+          }
+          catch (PluginException) {
+            // The module that provides the source was uninstalled.
+          }
+          $select['#attributes']['data-canvas-options-display'] = 'cards';
+          $select['#attributes']['data-canvas-option-images'] = \json_encode((object) $images, JSON_THROW_ON_ERROR);
         }
         unset($select);
       }
