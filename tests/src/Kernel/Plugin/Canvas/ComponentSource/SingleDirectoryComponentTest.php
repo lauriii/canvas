@@ -187,6 +187,11 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
         // @see \Drupal\Tests\canvas\Kernel\PropSourceSuggesterTest
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>srcSetCandidateTemplate</code> prop, with the shape <code>{"type":"string","format":"uri-template","x-required-variables":["width"]}</code>.',
       ],
+      'sdc.canvas_test_sdc.object-invalid-display' => [
+        '"x-canvas-object-display" on prop "heading" requires a single-value object prop with "properties".',
+        '"x-canvas-object-display" on prop "links" requires a single-value object prop with "properties".',
+        '"x-canvas-object-display" on prop "button" must be "inline" or "popover".',
+      ],
       'sdc.canvas_test_sdc.obsolete' => [
         'Component has "obsolete" status',
       ],

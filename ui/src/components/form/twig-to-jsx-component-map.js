@@ -17,6 +17,7 @@ import DrupalMediaLibraryItem from '@/components/form/components/drupal/DrupalMe
 import DrupalMediaListContainer from '@/components/form/components/drupal/DrupalMediaListContainer.tsx';
 import DrupalMultivalueSubmit from '@/components/form/components/drupal/DrupalMultivalueSubmit';
 import {
+  DrupalObjectPropsInline,
   DrupalObjectPropsItem,
   DrupalObjectPropsItemList,
 } from '@/components/form/components/drupal/DrupalObjectPropsGroup';
@@ -69,6 +70,7 @@ const twigToJSXComponentMap = {
   'drupal-canvas-media-library-item': DrupalMediaLibraryItem,
   'drupal-canvas-media-library-fieldset': DrupalMediaLibraryFieldset,
   'drupal-canvas-multivalue-submit': DrupalMultivalueSubmit,
+  'drupal-canvas-object-props-inline': DrupalObjectPropsInline,
   'drupal-canvas-object-props-item-list': DrupalObjectPropsItemList,
   'drupal-canvas-object-props-item': DrupalObjectPropsItem,
 };
