@@ -178,29 +178,65 @@ describe('insertPreviewComponent', () => {
     );
   });
 
-  it('keeps the placeholder of a slot a Canvas island is added to until the island has hydrated', async () => {
-    vi.useFakeTimers();
-    try {
-      const doc = preview();
-      const placeholder = () =>
-        doc.querySelector('div > .canvas--slot-empty-placeholder');
+  describe('of a Canvas island to an empty slot', () => {
+    const insertIsland = (doc: Document, markup: string) =>
       insertPreviewComponent(
         doc,
         layout(component('a'), component('b'), withSlot(component('n'))),
         'n',
-        { default_markup: '<canvas-island ssr></canvas-island>', css: '' },
+        { default_markup: markup, css: '' },
       );
-      await vi.advanceTimersByTimeAsync(100);
-      expect(placeholder()).not.toBeNull();
+    const placeholder = (doc: Document) =>
+      doc.querySelector('div > .canvas--slot-empty-placeholder');
 
-      doc
-        .querySelector('canvas-island')!
-        .dispatchEvent(new CustomEvent('astro:hydrate'));
-      await vi.advanceTimersByTimeAsync(0);
-      expect(placeholder()).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
+    it('keeps the placeholder until the island has hydrated, or failed to', async () => {
+      for (const event of ['astro:hydrate', 'astro:hydration-error']) {
+        const doc = preview();
+        insertIsland(doc, '<canvas-island ssr></canvas-island>');
+        // Not removed by other edits or a render shown in place meanwhile.
+        removePreviewComponent(doc, 'a');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(placeholder(doc)).not.toBeNull();
+
+        doc
+          .querySelector('canvas-island')!
+          .dispatchEvent(new CustomEvent(event));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(placeholder(doc)).toBeNull();
+      }
+    });
+
+    it('keeps the placeholder for one second at most', async () => {
+      vi.useFakeTimers();
+      try {
+        const doc = preview();
+        insertIsland(doc, '<canvas-island ssr></canvas-island>');
+        await vi.advanceTimersByTimeAsync(999);
+        expect(placeholder(doc)).not.toBeNull();
+        await vi.advanceTimersByTimeAsync(1);
+        expect(placeholder(doc)).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("doesn't keep the placeholder for an island that has rendered", async () => {
+      const doc = preview();
+      insertIsland(doc, '<canvas-island></canvas-island>');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(placeholder(doc)).toBeNull();
+    });
+  });
+
+  it('removes the placeholder of an empty slot it adds a component to', () => {
+    const doc = preview();
+    insertPreviewComponent(
+      doc,
+      layout(component('a'), component('b'), withSlot(component('n'))),
+      'n',
+      { default_markup: '<p>N</p>', css: '' },
+    );
+    expect(doc.querySelector('.canvas--slot-empty-placeholder')).toBeNull();
   });
 
   it('adds CSS before the styles kept last', () => {
@@ -226,7 +262,19 @@ describe('removePreviewComponent', () => {
   });
 
   it('shows the placeholder of the region or slot it leaves empty', () => {
-    const doc = preview();
+    let doc = preview();
+    insertPreviewComponent(
+      doc,
+      layout(component('a'), component('b'), withSlot(component('x'))),
+      'x',
+      { default_markup: '<p>X</p>', css: '' },
+    );
+    removePreviewComponent(doc, 'x');
+    expect(
+      doc.querySelector('div > .canvas--slot-empty-placeholder'),
+    ).not.toBeNull();
+
+    doc = preview();
     removePreviewComponent(doc, 'a');
     removePreviewComponent(doc, 'b');
     removePreviewComponent(doc, 'c');

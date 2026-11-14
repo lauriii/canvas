@@ -45,6 +45,11 @@ export const findBoundary = (
  * Shows the placeholder of a slot or region if it has nothing in it, as the
  * server renders it, and removes it otherwise.
  */
+// Components added ahead of the server whose Canvas islands are yet to
+// hydrate. They are empty until then, so the placeholder of the slot they were
+// added to stays.
+const hydrating = new Set<string>();
+
 function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
   if (start.parentNode !== end.parentNode) {
     return;
@@ -54,15 +59,22 @@ function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
       ? CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS
       : CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS;
   let empty = true;
+  let pending = false;
+  let skipping: string | null = null;
   let placeholder: HTMLElement | null = null;
   for (let node = start.nextSibling; node && node !== end;) {
-    if ((node as Element).classList?.contains(className)) {
+    const marker =
+      node.nodeType === Node.COMMENT_NODE
+        ? parseCanvasCommentMarker(node.nodeValue ?? '')
+        : null;
+    if (marker?.type === 'component' && hydrating.has(marker.id)) {
+      skipping = marker.position === 'start' ? marker.id : null;
+      pending = true;
+    } else if (skipping) {
+      // In a component that is yet to hydrate.
+    } else if ((node as Element).classList?.contains(className)) {
       placeholder = node as HTMLElement;
-    } else if (
-      node.nodeType === Node.ELEMENT_NODE ||
-      (node.nodeType === Node.COMMENT_NODE &&
-        parseCanvasCommentMarker(node.nodeValue ?? ''))
-    ) {
+    } else if (marker || node.nodeType === Node.ELEMENT_NODE) {
       // A component that failed to render has no markers.
       empty = false;
     }
@@ -70,6 +82,8 @@ function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
   }
   if (!empty) {
     placeholder?.remove();
+  } else if (pending) {
+    // Kept as it is until the component has hydrated.
   } else if (placeholder) {
     placeholder.style.display = '';
   } else {
@@ -243,7 +257,11 @@ export function insertPreviewComponent(
   // A Canvas island is empty until it has hydrated. The placeholder of the
   // slot it was added to keeps its height until then.
   if (islands.length) {
-    islandsHydrated(islands).then(() => syncPlaceholders(document));
+    hydrating.add(uuid);
+    islandsHydrated(islands).then(() => {
+      hydrating.delete(uuid);
+      syncPlaceholders(document);
+    });
   } else {
     syncPlaceholders(document);
   }
