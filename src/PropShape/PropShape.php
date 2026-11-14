@@ -162,6 +162,9 @@ final class PropShape {
     // Visibility conditions only affect the component instance form.
     // @see \Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition
     unset($normalized_prop_schema[PropVisibilityCondition::KEY]);
+    // How options from site data show only affects the component instance
+    // form.
+    unset($normalized_prop_schema['x-canvas-options-display']);
     // The order of an options source's keys does not change the shape.
     // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
     if (\is_array($normalized_prop_schema['x-canvas-options'] ?? NULL)) {

@@ -14,6 +14,7 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\OptionsSource\OptionsSourceInterface;
 use Drupal\canvas\OptionsSource\OptionsSourceManager;
+use Drupal\canvas\OptionsSource\OptionsSourceWithImagesInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
@@ -30,6 +31,7 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
+use Drupal\media\Entity\Media;
 use Drupal\system\Entity\Menu;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
@@ -647,8 +649,8 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
    * @see \Drupal\canvas\Plugin\Canvas\OptionsSource\EntityOptionsSource
    */
   public function testOptionsFromSiteData(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['taxonomy']);
-    $this->setUpCurrentUser(permissions: ['access content', Page::EDIT_PERMISSION]);
+    $this->container->get(ModuleInstallerInterface::class)->install(['taxonomy', 'canvas_test_options_display']);
+    $this->setUpCurrentUser(permissions: ['access content', 'view media', Page::EDIT_PERMISSION]);
     Vocabulary::create(['vid' => 'tags', 'name' => 'Tags'])->save();
     $design = Term::create(['vid' => 'tags', 'name' => 'Design']);
     $design->save();
@@ -702,6 +704,8 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertMatchesRegularExpression('/(Art|Design) › Color & type/', $crawler->filter('.field--name-category')->text());
     // The UI always offers search for options from site data.
     self::assertSame('true', $crawler->filter('select[name$="[category]"]')->attr('data-canvas-options-source'));
+    // Without `x-canvas-options-display`, the options are not cards.
+    self::assertNull($crawler->filter('select[name$="[category]"]')->attr('data-canvas-options-display'));
     $menus = $crawler->filter('select[name$="[menu]"] option, input[type="radio"][name$="[menu]"]');
     self::assertEqualsCanonicalizing(['_none', ...\array_keys(Menu::loadMultiple())], $menus->each(fn (Crawler $option) => $option->attr('value')));
     self::assertStringContainsString('Main navigation', $crawler->filter('.field--name-menu')->text());
@@ -720,6 +724,43 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $unavailable = $crawler->filter('select[name$="[category]"] option[value="999"]');
     self::assertSame('Unavailable (999)', $unavailable->text());
     self::assertSame('selected', $unavailable->attr('selected'));
+
+    // An SDC prop with `x-canvas-options-display: cards` passes the images of
+    // its options to the UI: for a media item, its thumbnail. The keyword is
+    // not part of the prop shape.
+    $media = Media::loadMultiple();
+    $unpublished_media = array_pop($media);
+    self::assertInstanceOf(Media::class, $unpublished_media);
+    $unpublished_media->setUnpublished()->save();
+    $media_teaser = Component::load('sdc.canvas_test_options_display.media-teaser');
+    self::assertInstanceOf(Component::class, $media_teaser);
+    $media_teaser_source = $media_teaser->getComponentSource();
+    self::assertInstanceOf(JsonSchemaPropsComponentSourceBase::class, $media_teaser_source);
+    self::assertSame(['media' => ['type' => 'integer', 'x-canvas-options' => ['entity_type' => 'media', 'source' => 'entity']]], $media_teaser_source->getExplicitInputDefinitions()['shapes']);
+    $crawler = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $media_teaser, $this->getFormCanvasPropsForComponent($media_teaser->id()));
+    $select = $crawler->filter('select[name$="[media]"]');
+    self::assertSame('cards', $select->attr('data-canvas-options-display'));
+    $images = json_decode((string) $select->attr('data-canvas-option-images'), TRUE);
+    self::assertEqualsCanonicalizing(\array_keys($media), \array_keys($images));
+    $first_media_id = key($media);
+    self::assertStringContainsString('/styles/media_library/public/', $images[$first_media_id]);
+
+    // Any other entity gives its first image: of an image field, or the
+    // thumbnail of a media item that it references. What the current user
+    // cannot view gives none.
+    $node_source = \Drupal::service(OptionsSourceManager::class)->createFromPropSchema(['source' => 'entity', 'entity_type' => 'node']);
+    self::assertInstanceOf(OptionsSourceWithImagesInterface::class, $node_source);
+    $node_ids = \array_map(fn (array $values): int => (int) $this->createNode(['type' => 'article'] + $values)->id(), [
+      'with media' => ['media_image_field' => $first_media_id],
+      'with unpublished media' => ['media_image_field' => $unpublished_media->id()],
+      'without image' => [],
+      'unpublished' => ['media_image_field' => $first_media_id, 'status' => 0],
+    ]);
+    // The setup's article, with ID 1, has an image in its `field_hero` image
+    // field. No node has the ID 999.
+    $node_images = $node_source->getOptionImages([1, ...\array_values($node_ids), 999]);
+    self::assertSame([1, $node_ids['with media']], \array_keys($node_images));
+    self::assertSame($images[$first_media_id], $node_images[$node_ids['with media']]);
 
     // Invalid sources make the code component invalid.
     $assert_invalid = function (array $prop, array $required, string $expected_message) use ($code_component): void {

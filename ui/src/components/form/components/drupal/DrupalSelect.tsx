@@ -1,3 +1,6 @@
+import CardSelect, {
+  showsCards,
+} from '@/components/form/components/CardSelect';
 import SearchableSelect, {
   needsSearchableSelect,
 } from '@/components/form/components/SearchableSelect';
@@ -26,6 +29,14 @@ const DrupalSelect: React.FC<DrupalSelectProps> = ({
   options = [],
 }) => {
   const formContext = useSafeFormContext();
+  // Options that authors recognize by sight, such as media items, are picked
+  // from cards with their images.
+  if (
+    formContext?.formId === FORM_TYPES.COMPONENT_INSTANCE_FORM &&
+    showsCards(attributes)
+  ) {
+    return <CardSelect options={options} attributes={attributes} />;
+  }
   // Long lists, such as options from site data, need search, and nested
   // options read better as a tree.
   if (

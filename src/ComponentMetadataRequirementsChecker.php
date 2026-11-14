@@ -199,6 +199,17 @@ final class ComponentMetadataRequirementsChecker {
         }
       }
 
+      // Validation for x-canvas-options-display: whether the component instance
+      // form offers options from site data as cards, each with an image. Cards
+      // pick one option, so the items of a multi-value prop cannot use them.
+      // @see ui/src/components/form/components/CardSelect.tsx
+      if (\array_key_exists(OptionsSourceInterface::DISPLAY_KEY, $prop) || \array_key_exists(OptionsSourceInterface::DISPLAY_KEY, $item_schema)) {
+        if ($is_array_prop_type || !\array_key_exists(OptionsSourceInterface::KEY, $prop) || $prop[OptionsSourceInterface::DISPLAY_KEY] !== 'cards') {
+          $messages[] = \sprintf('"%s" on prop "%s" requires a single-value prop with "%s", and must be "cards".', OptionsSourceInterface::DISPLAY_KEY, $prop_name, OptionsSourceInterface::KEY);
+          continue;
+        }
+      }
+
       // Validation for x-canvas-unit: the unit that the component instance form
       // shows next to a number input, such as "px". A prop with an `enum` gets
       // a select, which has no place for it.

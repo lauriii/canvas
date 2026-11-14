@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Canvas\OptionsSource;
 
 use Drupal\canvas\Attribute\OptionsSource;
-use Drupal\canvas\OptionsSource\OptionsSourceInterface;
+use Drupal\canvas\OptionsSource\EntityOptionImagesTrait;
+use Drupal\canvas\OptionsSource\OptionsSourceWithImagesInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface;
 use Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -20,7 +23,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Offers the results of a view's "Entity Reference" display, by entity ID.
  *
  * Site builders control which entities are offered, their order and their
- * labels in the view, without changing the component.
+ * labels in the view, without changing the component. Cards show the same
+ * images as for the "entity" source.
  *
  * @code
  * x-canvas-options:
@@ -33,7 +37,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: 'view',
   label: new TranslatableMarkup('Views'),
 )]
-final class ViewOptionsSource extends PluginBase implements OptionsSourceInterface, ContainerFactoryPluginInterface {
+final class ViewOptionsSource extends PluginBase implements OptionsSourceWithImagesInterface, ContainerFactoryPluginInterface {
+
+  use EntityOptionImagesTrait;
 
   public function __construct(
     array $configuration,
@@ -41,6 +47,8 @@ final class ViewOptionsSource extends PluginBase implements OptionsSourceInterfa
     mixed $plugin_definition,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly SelectionPluginManagerInterface $selectionManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -52,6 +60,8 @@ final class ViewOptionsSource extends PluginBase implements OptionsSourceInterfa
       $plugin_definition,
       $container->get(ModuleHandlerInterface::class),
       $container->get(SelectionPluginManagerInterface::class),
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(FileUrlGeneratorInterface::class),
     );
   }
 
@@ -82,6 +92,12 @@ final class ViewOptionsSource extends PluginBase implements OptionsSourceInterfa
       }
     }
     return $options;
+  }
+
+  public function getOptionImages(array $values): array {
+    // The Views module may have been uninstalled.
+    $entity_type = $this->moduleHandler->moduleExists('views') ? Views::getView($this->configuration['view'])?->getBaseEntityType() : NULL;
+    return $entity_type ? $this->getEntityImages($entity_type->id(), $values) : [];
   }
 
   public function validateConfiguration(string $type): array {

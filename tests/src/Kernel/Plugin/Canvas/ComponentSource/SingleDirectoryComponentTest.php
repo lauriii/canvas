@@ -203,6 +203,11 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.obsolete' => [
         'Component has "obsolete" status',
       ],
+      'sdc.canvas_test_sdc.options-invalid-display' => [
+        '"x-canvas-options-display" on prop "style" requires a single-value prop with "x-canvas-options", and must be "cards".',
+        '"x-canvas-options-display" on prop "author" requires a single-value prop with "x-canvas-options", and must be "cards".',
+        '"x-canvas-options-display" on prop "authors" requires a single-value prop with "x-canvas-options", and must be "cards".',
+      ],
       'sdc.canvas_test_sdc.props-invalid-sections' => [
         'Prop "heading" is required, so it cannot have "x-canvas-advanced": an author would miss it in the collapsed section.',
         '"x-canvas-group" on prop "text" must be a non-empty string: the label of its section.',
