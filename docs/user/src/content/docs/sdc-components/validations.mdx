@@ -56,6 +56,7 @@ In addition, you can add other validations like:
 - `minLength`, `maxLength` for `string` props,
 - `minItems`, `maxItems` for `array` props,
 - `minimum`, `maximum` for `number` props,
+- `multipleOf` for `integer` and `number` props,
 - ...
 
 ```yml
@@ -63,6 +64,18 @@ In addition, you can add other validations like:
     title: 'Integer, minimum=0'
     type: integer
     minimum: 0
+```
+
+A `number` or `integer` prop with both `minimum` and `maximum` gets a slider next
+to its input. `multipleOf` sets the slider's step:
+
+```yml
+  width:
+    title: 'Width'
+    type: integer
+    minimum: 0
+    maximum: 2000
+    multipleOf: 50
 ```
 
 

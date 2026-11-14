@@ -4,6 +4,9 @@ import Checkbox from '@/components/form/components/Checkbox';
 import DrupalColorPicker from '@/components/form/components/drupal/DrupalColorPicker';
 import { DrupalRadioItem } from '@/components/form/components/drupal/DrupalRadio';
 import Hidden from '@/components/form/components/Hidden';
+import NumberSlider, {
+  hasSliderRange,
+} from '@/components/form/components/NumberSlider';
 import TextField from '@/components/form/components/TextField';
 import TextFieldAutocomplete from '@/components/form/components/TextFieldAutocomplete';
 import { withRHF } from '@/components/form/react-hook-form/withRHF';
@@ -33,11 +36,11 @@ const DrupalInput = ({
         />
       );
     }
-    case 'number':
+    case 'number': {
       // The a2p() process converts 'value to 'defaultValue', which is typically
       // what React wants. Explicitly set value but don't cast empty/false-like
       // values to an empty string.
-      return (
+      const numberField = (
         <TextField
           attributes={{
             ...a2p(attributes, {}, { skipAttributes: ['value'] }),
@@ -51,6 +54,12 @@ const DrupalInput = ({
           }}
         />
       );
+      return hasSliderRange(attributes) ? (
+        <NumberSlider attributes={attributes}>{numberField}</NumberSlider>
+      ) : (
+        numberField
+      );
+    }
     case 'radio':
       return <DrupalRadioItem attributes={attributes} />;
     case 'color':
