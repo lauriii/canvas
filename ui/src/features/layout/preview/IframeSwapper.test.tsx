@@ -167,6 +167,51 @@ describe('IframeSwapper', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('loads a render that arrives as a document is swapped in into the other iframe', async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+      frames.push(cb),
+    );
+    const nextFrame = () =>
+      frames.splice(0).forEach((cb) => cb(performance.now()));
+    const store = makeStore();
+    store.dispatch(setHtml(page('initial'), previewEditCount()));
+    const { container } = render(
+      <Provider store={store}>
+        <Swapper />
+      </Provider>,
+    );
+    await act(async () => nextFrame());
+    act(() => {
+      store.dispatch(setHtml(page('next'), previewEditCount()));
+    });
+    const loadingFrame = container.querySelector<HTMLIFrameElement>(
+      'iframe[data-canvas-swap-active="false"]',
+    )!;
+    act(() => {
+      loadingFrame.dispatchEvent(new Event('load'));
+    });
+
+    // Outside act(), React schedules the swap as it does in the browser. A
+    // render arrives before it would have committed it.
+    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = false;
+    try {
+      nextFrame();
+      store.dispatch(setHtml(page('newer'), previewEditCount()));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    } finally {
+      (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+    }
+
+    expect(loadingFrame.dataset.canvasSwapActive).toBe('true');
+    expect(loadingFrame.srcdoc).toContain('next');
+    const newerFrame = container.querySelector<HTMLIFrameElement>(
+      'iframe[data-canvas-swap-active="false"]',
+    )!;
+    expect(newerFrame.srcdoc).toContain('newer');
+    expect(setIsReloading).toHaveBeenLastCalledWith(true);
+  });
+
   it('compares a render with the one shown, not with an older one it skipped', async () => {
     const instances = (...texts: string[]) =>
       texts

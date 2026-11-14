@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import clsx from 'clsx';
+import { flushSync } from 'react-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
@@ -120,8 +121,9 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         const swap = () => {
           swappedSrcDocumentRef.current = loadedSrcDocument;
           // Not a toggle: an earlier load of the same markup into this iframe
-          // may still be waiting to swap it in, too.
-          setWhichActive(iFrameRefs.current.indexOf(iframe));
+          // may still be waiting to swap it in, too. Committed at once, so a
+          // render that arrives meanwhile loads into the other iframe.
+          flushSync(() => setWhichActive(iFrameRefs.current.indexOf(iframe)));
         };
 
         const startTime = Date.now();
