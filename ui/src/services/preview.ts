@@ -1,3 +1,4 @@
+import isEqual from 'lodash/isEqual';
 import { createSelector } from '@reduxjs/toolkit';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
@@ -21,7 +22,7 @@ import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import { getEntityTitle } from '@/utils/entityTitle';
 
-import type { RootState } from '@/app/store';
+import type { AppDispatch, RootState } from '@/app/store';
 import type {
   ComponentModel,
   EvaluatedComponentModel,
@@ -48,6 +49,126 @@ export type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
 };
 
+// Requests with the layout and model in the store (POST), e.g. for a move:
+// how many were sent, how many are on their way, and the last one answered.
+let layoutRequests = 0;
+let layoutRequestsInFlight = 0;
+let lastAnsweredLayoutRequest = 0;
+
+/**
+ * Notes that a request with the layout and model in the store is sent.
+ *
+ * @return
+ *   A function to call once it is answered, or failed. It returns whether a
+ *   later request was answered first, so this one's response is outdated.
+ */
+export const noteLayoutRequest = () => {
+  const request = ++layoutRequests;
+  layoutRequestsInFlight++;
+  let answered = false;
+  return () => {
+    if (!answered) {
+      answered = true;
+      layoutRequestsInFlight--;
+    }
+    const outdated = request < lastAnsweredLayoutRequest;
+    lastAnsweredLayoutRequest = Math.max(lastAnsweredLayoutRequest, request);
+    return outdated;
+  };
+};
+
+// Whether a request with the layout and model in the store waits to be sent,
+// e.g. until a Drupal AJAX request has completed.
+let layoutRequestDue = false;
+
+/** Notes whether a request with the layout and model waits to be sent. */
+export const noteLayoutRequestDue = (due: boolean) => {
+  layoutRequestDue = due;
+};
+
+// The last prop edit of each component whose response was applied.
+let componentUpdates = 0;
+const lastAppliedComponentUpdate = new Map<string, number>();
+
+/**
+ * Notes that a prop edit (PATCH) is sent.
+ *
+ * The prop value reaches the model in the store only with the response. A
+ * request with the layout and model that is on its way now, queued, waiting
+ * to be sent, or sent before then doesn't have it, and may overwrite it on
+ * the server. The response then may have the layout from before that
+ * request's edit.
+ *
+ * @param componentInstanceUuid
+ *   The edited component.
+ * @param getState
+ *   Returns the store's state.
+ *
+ * @return
+ *   Functions that tell, once the response has arrived, whether the response
+ *   to a later prop edit of the component was applied already (so this one
+ *   has an older value), and whether the response was overtaken by a request
+ *   with the layout and model, or by an edit of the layout.
+ */
+export const noteComponentUpdate = (
+  componentInstanceUuid: string,
+  getState: () => unknown,
+) => {
+  const update = ++componentUpdates;
+  const layout = () => (getState() as RootState).layoutModel.present.layout;
+  const layoutAtUpdate = layout();
+  const requestsAtUpdate = layoutRequests;
+  const busy =
+    layoutRequestsInFlight > 0 ||
+    pendingPreviewArg !== null ||
+    layoutRequestDue;
+  return {
+    // Called once, when the response is applied unless this returns true.
+    isSuperseded: () => {
+      if (
+        update < (lastAppliedComponentUpdate.get(componentInstanceUuid) ?? 0)
+      ) {
+        return true;
+      }
+      lastAppliedComponentUpdate.set(componentInstanceUuid, update);
+      return false;
+    },
+    isOvertaken: () =>
+      busy || layoutRequests > requestsAtUpdate || layout() !== layoutAtUpdate,
+  };
+};
+
+/**
+ * Applies the response to a prop edit that was overtaken by a request with
+ * the layout and model, or by an edit of the layout (see noteComponentUpdate()).
+ *
+ * Keeps the layout in the store, which has the later edit, adds the edited
+ * component's model from the response, and sends both, so the server and the
+ * preview have them.
+ */
+export const applyOvertakenComponentUpdate = (
+  dispatch: AppDispatch,
+  getState: () => unknown,
+  componentInstanceUuid: string,
+  model: Record<string, unknown>,
+) => {
+  const { layout, model: current } = (getState() as RootState).layoutModel
+    .present;
+  // Not when the component was removed meanwhile.
+  if (componentInstanceUuid in current) {
+    dispatch(
+      setLayoutModel({
+        layout,
+        model: {
+          ...current,
+          [componentInstanceUuid]: model[componentInstanceUuid],
+        },
+        updatePreview: true,
+      }),
+    );
+  }
+};
+
 export const previewApi = createApi({
   reducerPath: 'previewApi',
   baseQuery: baseQueryWithAutoSaves,
@@ -69,6 +190,7 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
+        const answered = noteLayoutRequest();
         pushCanvasLayoutRequest();
         try {
           const { data, meta } = await queryFulfilled;
@@ -94,6 +216,7 @@ export const previewApi = createApi({
             }
           }, 5000);
         } finally {
+          answered();
           popCanvasLayoutRequest();
         }
       },
@@ -170,6 +293,10 @@ export const previewApi = createApi({
       },
       async onQueryStarted(body, { dispatch, getState, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
+        const { isSuperseded, isOvertaken } = noteComponentUpdate(
+          body.componentInstanceUuid,
+          getState,
+        );
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -197,6 +324,21 @@ export const previewApi = createApi({
         // preview snapshot, which selectPreviewHtml prefers while set.
         dispatch(setSnapshotHTML(''));
         dispatch(setSnapshotTitle(''));
+        if (isSuperseded()) {
+          // The response to a later edit, with the later value, was applied.
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          return;
+        }
+        if (isOvertaken()) {
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          applyOvertakenComponentUpdate(
+            dispatch,
+            getState,
+            body.componentInstanceUuid,
+            model,
+          );
+          return;
+        }
         // A render requested while this one was in flight, e.g. for a move,
         // was built from a model without its prop value, so no later render
         // may show it. Once a render built from the store and requested after
@@ -207,8 +349,16 @@ export const previewApi = createApi({
         dispatch(setHtml(html, Math.max(editsAtRequest, renderedEdits), true));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
-        // we have the data here.
-        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+        // we have the data here. The layout in the store stays if it is the
+        // same, so a prop edit sent meanwhile isn't taken to be overtaken.
+        const current = (getState() as RootState).layoutModel.present.layout;
+        dispatch(
+          setLayoutModel({
+            layout: isEqual(current, layout) ? current : layout,
+            model,
+            updatePreview: false,
+          }),
+        );
       },
     }),
   }),

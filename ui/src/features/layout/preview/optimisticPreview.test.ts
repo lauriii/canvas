@@ -4,9 +4,14 @@ import { NodeType } from '@/features/layout/layoutModelSlice';
 import {
   insertPreviewComponent,
   movePreviewComponent,
+  OPTIMISTIC_CSS_ATTRIBUTE,
   PREVIEW_HEAD_STYLES_ID,
+  removePreviewComponent,
 } from '@/features/layout/preview/optimisticPreview';
-import { previewEditCount } from '@/features/layout/preview/previewEdits';
+import {
+  isPreviewLayoutEdited,
+  previewEditCount,
+} from '@/features/layout/preview/previewEdits';
 
 import type {
   ComponentNode,
@@ -58,6 +63,8 @@ describe('movePreviewComponent', () => {
       movePreviewComponent(doc, layout(component('b'), component('a')), 'b'),
     ).toBe(true);
     expect(text(doc)).toBe('B,A');
+    // So a render with the components elsewhere isn't shown in place.
+    expect(isPreviewLayoutEdited(doc)).toBe(true);
   });
 
   it('moves a component to the end of a region', () => {
@@ -70,18 +77,25 @@ describe('movePreviewComponent', () => {
     expect(doc.body.lastElementChild!.textContent).toBe('A');
   });
 
-  it('moves a component into an empty slot and hides its placeholder', () => {
+  it('moves a component into an empty slot and out of it, and syncs its placeholder', () => {
     const doc = preview();
+    const placeholder = () =>
+      doc.querySelector('div > .canvas--slot-empty-placeholder');
     movePreviewComponent(
       doc,
       layout(component('b'), withSlot(component('a'))),
       'a',
     );
     expect(doc.querySelector('div > p')!.textContent).toBe('A');
-    expect(
-      doc.querySelector<HTMLElement>('.canvas--slot-empty-placeholder')!.style
-        .display,
-    ).toBe('none');
+    expect(placeholder()).toBeNull();
+
+    // As the server renders it once the slot is empty again.
+    movePreviewComponent(
+      doc,
+      layout(component('a'), component('b'), withSlot()),
+      'a',
+    );
+    expect(placeholder()).not.toBeNull();
   });
 
   it("doesn't touch a component that is shown in place already", () => {
@@ -98,6 +112,7 @@ describe('movePreviewComponent', () => {
     ).toBe(true);
     expect(doc.querySelector('p')).toBe(a);
     expect(previewEditCount()).toBe(edits);
+    expect(isPreviewLayoutEdited(doc)).toBe(false);
   });
 
   it('leaves the preview alone when markers are missing', () => {
@@ -126,9 +141,12 @@ describe('insertPreviewComponent', () => {
       ),
     ).toBe(true);
     expect(text(doc)).toBe('A,N,B');
-    expect(doc.head.querySelector('link[href="n.css"]')).not.toBeNull();
-    expect(doc.body.innerHTML).toContain('<!--canvas-start-n--><p>N</p>');
+    expect(
+      doc.head.querySelector(`link[href="n.css"][${OPTIMISTIC_CSS_ATTRIBUTE}]`),
+    ).not.toBeNull();
+    expect(doc.body.innerHTML).toContain('<!-- canvas-start-n --><p>N</p>');
     expect(previewEditCount()).toBe(edits + 1);
+    expect(isPreviewLayoutEdited(doc)).toBe(true);
     // The CSS of another instance is there already.
     insertPreviewComponent(
       doc,
@@ -137,6 +155,114 @@ describe('insertPreviewComponent', () => {
       markup,
     );
     expect(doc.head.querySelectorAll('link[href="n.css"]')).toHaveLength(1);
+  });
+
+  it('gives default markup with a uuid of its own the uuid of the instance', () => {
+    const doc = preview();
+    insertPreviewComponent(
+      doc,
+      layout(component('a'), component('n'), component('b')),
+      'n',
+      {
+        default_markup:
+          '<!-- canvas-start-default --><canvas-island uid="default" ssr="">' +
+          '<!-- canvas-slot-start-default/body --><!-- canvas-slot-end-default/body -->' +
+          '</canvas-island><!-- canvas-end-default -->',
+        css: '',
+      },
+    );
+    expect(doc.body.innerHTML).toContain(
+      '<!-- canvas-end-a --><!-- canvas-start-n --><canvas-island uid="n" ssr="">' +
+        '<!-- canvas-slot-start-n/body --><!-- canvas-slot-end-n/body -->' +
+        '</canvas-island><!-- canvas-end-n --><!-- canvas-start-b -->',
+    );
+  });
+
+  describe('of a Canvas island to an empty slot', () => {
+    const insertIsland = (doc: Document, markup: string) =>
+      insertPreviewComponent(
+        doc,
+        layout(component('a'), component('b'), withSlot(component('n'))),
+        'n',
+        { default_markup: markup, css: '' },
+      );
+    const placeholder = (doc: Document) =>
+      doc.querySelector('div > .canvas--slot-empty-placeholder');
+
+    it('keeps the placeholder until the island renders, or fails to', () => {
+      for (const failed of [false, true]) {
+        const doc = preview();
+        // As the server renders it.
+        insertIsland(
+          doc,
+          '<canvas-island ssr><script type="module" src="c.js"></script><template data-astro-template="body"></template></canvas-island>',
+        );
+        // Not removed by other edits or a render shown in place meanwhile.
+        removePreviewComponent(doc, 'a');
+        expect(placeholder(doc)).not.toBeNull();
+
+        const island = doc.querySelector('canvas-island')!;
+        if (failed) {
+          island.setAttribute('data-hydration-failed', '');
+          island.dispatchEvent(new CustomEvent('astro:hydration-error'));
+        } else {
+          island.innerHTML = '<p>N</p>';
+          island.removeAttribute('ssr');
+          island.dispatchEvent(new CustomEvent('astro:hydrate'));
+        }
+        expect(placeholder(doc)).toBeNull();
+      }
+    });
+
+    it('keeps the placeholder when the slot is emptied and filled again before the island renders', () => {
+      const doc = preview();
+      insertIsland(doc, '<canvas-island ssr></canvas-island>');
+      movePreviewComponent(
+        doc,
+        layout(component('b'), withSlot(component('a'), component('n'))),
+        'a',
+      );
+      expect(placeholder(doc)).toBeNull();
+      movePreviewComponent(
+        doc,
+        layout(component('a'), component('b'), withSlot(component('n'))),
+        'a',
+      );
+      expect(placeholder(doc)).not.toBeNull();
+      // Or the island is removed.
+      removePreviewComponent(doc, 'n');
+      expect(placeholder(doc)).not.toBeNull();
+    });
+
+    it('leaves the slots of the island alone until it renders', () => {
+      const doc = preview();
+      insertIsland(
+        doc,
+        '<canvas-island ssr><!-- canvas-slot-start-n/body --><!-- canvas-slot-end-n/body --></canvas-island>',
+      );
+      expect(placeholder(doc)).not.toBeNull();
+      expect(doc.querySelector('canvas-island')!.innerHTML).toBe(
+        '<!-- canvas-slot-start-n/body --><!-- canvas-slot-end-n/body -->',
+      );
+    });
+
+    it("doesn't keep the placeholder for an island that has rendered", async () => {
+      const doc = preview();
+      insertIsland(doc, '<canvas-island></canvas-island>');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(placeholder(doc)).toBeNull();
+    });
+  });
+
+  it('removes the placeholder of an empty slot it adds a component to', () => {
+    const doc = preview();
+    insertPreviewComponent(
+      doc,
+      layout(component('a'), component('b'), withSlot(component('n'))),
+      'n',
+      { default_markup: '<p>N</p>', css: '' },
+    );
+    expect(doc.querySelector('.canvas--slot-empty-placeholder')).toBeNull();
   });
 
   it('adds CSS before the styles kept last', () => {
@@ -149,5 +275,37 @@ describe('insertPreviewComponent', () => {
       { default_markup: '<p>N</p>', css: '<style>p{}</style>' },
     );
     expect(doc.head.lastElementChild!.id).toBe(PREVIEW_HEAD_STYLES_ID);
+  });
+});
+
+describe('removePreviewComponent', () => {
+  it('removes the markup of a component with its markers', () => {
+    const doc = preview();
+    removePreviewComponent(doc, 'a');
+    expect(text(doc)).toBe('B');
+    expect(doc.body.innerHTML).not.toContain('canvas-start-a');
+    expect(isPreviewLayoutEdited(doc)).toBe(true);
+  });
+
+  it('shows the placeholder of the region or slot it leaves empty', () => {
+    let doc = preview();
+    insertPreviewComponent(
+      doc,
+      layout(component('a'), component('b'), withSlot(component('x'))),
+      'x',
+      { default_markup: '<p>X</p>', css: '' },
+    );
+    removePreviewComponent(doc, 'x');
+    expect(
+      doc.querySelector('div > .canvas--slot-empty-placeholder'),
+    ).not.toBeNull();
+
+    doc = preview();
+    removePreviewComponent(doc, 'a');
+    removePreviewComponent(doc, 'b');
+    removePreviewComponent(doc, 'c');
+    expect(doc.body.innerHTML).toBe(
+      '<!-- canvas-region-start-content --><div class="canvas--region-empty-placeholder"></div><!-- canvas-region-end-content -->',
+    );
   });
 });

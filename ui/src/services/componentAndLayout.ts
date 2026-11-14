@@ -18,6 +18,7 @@ import {
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
+import { noteLayoutRequest } from '@/services/preview';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
@@ -357,7 +358,16 @@ export const componentAndLayoutApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        const { data, meta } = await queryFulfilled;
+        const answered = noteLayoutRequest();
+        let data;
+        let meta;
+        // These requests aren't queued: an earlier one may be answered last.
+        let outdated = false;
+        try {
+          ({ data, meta } = await queryFulfilled);
+        } finally {
+          outdated = answered();
+        }
         const { html, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
@@ -366,7 +376,9 @@ export const componentAndLayoutApi = createApi({
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our template preview slice.
-        dispatch(setHtml(html, editsAtRequest));
+        if (!outdated) {
+          dispatch(setHtml(html, editsAtRequest));
+        }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },
@@ -409,7 +421,16 @@ export const componentAndLayoutApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
-        const { data, meta } = await queryFulfilled;
+        const answered = noteLayoutRequest();
+        let data;
+        let meta;
+        // These requests aren't queued: an earlier one may be answered last.
+        let outdated = false;
+        try {
+          ({ data, meta } = await queryFulfilled);
+        } finally {
+          outdated = answered();
+        }
         const { html, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
@@ -418,7 +439,9 @@ export const componentAndLayoutApi = createApi({
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our pattern preview slice.
-        dispatch(setHtml(html, editsAtRequest));
+        if (!outdated) {
+          dispatch(setHtml(html, editsAtRequest));
+        }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },

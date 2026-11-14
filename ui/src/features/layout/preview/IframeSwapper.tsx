@@ -7,13 +7,11 @@ import {
   useState,
 } from 'react';
 import clsx from 'clsx';
+import { flushSync } from 'react-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
-import {
-  applyInPlaceUpdate,
-  findInPlaceUpdate,
-} from '@/features/layout/preview/inPlaceUpdate';
+import { updateInPlace } from '@/features/layout/preview/inPlaceUpdate';
 import { PREVIEW_HEAD_STYLES_ID } from '@/features/layout/preview/optimisticPreview';
 import { isPreviewEditedSince } from '@/features/layout/preview/previewEdits';
 import { selectPreviewHtmlEditsAtRequest } from '@/features/pagePreview/previewSlice';
@@ -74,8 +72,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const headStylesRef = useRef(headStyles);
     headStylesRef.current = headStyles;
     // The markup loading in the inactive iframe, and the markup the active
-    // iframe shows once no swap is pending. A change confined to one component
-    // instance is applied to the active iframe in place, without a swap.
+    // iframe shows once no swap is pending. A change confined to component
+    // instances is applied to the active iframe in place, without a swap.
     const loadingSrcDocumentRef = useRef<string | null>(null);
     const swappedSrcDocumentRef = useRef<string | null>(null);
     const activeSrcDocumentRef = useRef<string | null>(null);
@@ -119,33 +117,40 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         // in-place update only reaches documents that have finished parsing.
         applyHeadStyles(iframe, headStylesRef.current);
 
-        iframe.style.display = '';
-
         const loadedSrcDocument = loadingSrcDocumentRef.current;
         const swap = () => {
-          // A newer document may have started loading since this one did.
-          swappedSrcDocumentRef.current =
-            loadingSrcDocumentRef.current === loadedSrcDocument
-              ? loadedSrcDocument
-              : null;
-          setWhichActive((current) => 1 - current);
+          swappedSrcDocumentRef.current = loadedSrcDocument;
+          // Not a toggle: an earlier load of the same markup into this iframe
+          // may still be waiting to swap it in, too. Committed at once, so a
+          // render that arrives meanwhile loads into the other iframe.
+          flushSync(() => setWhichActive(iFrameRefs.current.indexOf(iframe)));
         };
 
         const startTime = Date.now();
         const checkIFrameContent = () => {
+          // A newer document has started loading in this iframe since. Its
+          // own load event swaps it in.
+          if (loadingSrcDocumentRef.current !== loadedSrcDocument) {
+            return;
+          }
           // The shown preview has been edited since this one was requested: it
           // is newer, and the render of the edit is on its way.
           if (isPreviewEditedSince(editsAtLoadRef.current)) {
+            iframe.style.display = '';
             setIsReloading(false);
             return;
           }
-          // Find all <template>s pending hydration by Astro. Once hydration is complete, there should be no pending templates remaining.
-          const pendingTemplates = iframe?.contentDocument?.querySelectorAll(
-            'template[data-astro-template]',
+          // Find what Astro has yet to hydrate: the <template>s of slots, and
+          // the islands themselves, which are marked `ssr` until they have
+          // rendered. An island with no slots has no <template>, and renders
+          // nothing until it is hydrated. One that failed to hydrate stays
+          // marked `ssr`.
+          const pending = iframe?.contentDocument?.querySelectorAll(
+            'template[data-astro-template], canvas-island[ssr]:not([data-hydration-failed])',
           ).length;
 
-          // Ensure there are no pending templates (non-hydrated astro-islands) before swapping in the iframe.
-          if (pendingTemplates === 0) {
+          // Ensure nothing is pending hydration before swapping in the iframe.
+          if (pending === 0) {
             swap();
           } else if (Date.now() - startTime < 1000) {
             // If the hydration still hasn't finished and 1 second hasn't yet elapsed, try again after the next animation frame.
@@ -159,8 +164,10 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           }
         };
 
-        // Continuously monitor the iframe content for non-hydrated templates every 'tick'.
-        // Only swap the iframe once all templates are hydrated or 1 second has elapsed.
+        // Continuously monitor the iframe content for pending hydration every 'tick'.
+        // Only swap the iframe once everything is hydrated or 1 second has elapsed.
+        // The iframe stays rendered until then (display: block, set when it
+        // started loading), so its components are laid out as they hydrate.
         requestAnimationFrame(checkIFrameContent);
       },
       [setIsReloading],
@@ -205,6 +212,11 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     useEffect(() => {
       whichActiveRef.current = whichActive;
       activeSrcDocumentRef.current = swappedSrcDocumentRef.current;
+      // Only an iframe that is loading is rendered while it isn't the active
+      // one.
+      iFrameRefs.current.forEach((frame) =>
+        frame?.style.removeProperty('display'),
+      );
       setIsReloading(false);
     }, [getIFrames, setIsReloading, whichActive]);
 
@@ -213,8 +225,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       const { activeIFrame, inactiveIFrame } = getIFrames();
 
       // The shown preview has been edited since this render was requested, so
-      // it would revert the edit, in place or by a swap. Compare the next
-      // render against it, as it is close to what is shown.
+      // it would revert the edit, in place or by a swap. The next render is
+      // still compared against the one the preview was built from.
       if (isPreviewEditedSince(editsAtRequestRef.current)) {
         // While a document loads, let it finish, so it is swapped in (or
         // checked for edits since it was requested, too) and loading ends. The
@@ -224,19 +236,18 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           inactiveIFrame.addEventListener('load', swapIFrames);
           return () => inactiveIFrame.removeEventListener('load', swapIFrames);
         }
-        activeSrcDocumentRef.current = srcDocument;
         return;
       }
 
       const previousSrcDocument = activeSrcDocumentRef.current;
-      const inPlaceUpdate =
-        previousSrcDocument === null
-          ? null
-          : findInPlaceUpdate(previousSrcDocument, srcDocument);
       if (
-        inPlaceUpdate &&
+        previousSrcDocument !== null &&
         activeIFrame.contentDocument &&
-        applyInPlaceUpdate(activeIFrame.contentDocument, inPlaceUpdate)
+        updateInPlace(
+          activeIFrame.contentDocument,
+          previousSrcDocument,
+          srcDocument,
+        )
       ) {
         activeSrcDocumentRef.current = srcDocument;
         setInPlaceUpdates((count) => count + 1);

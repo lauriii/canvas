@@ -1,72 +1,173 @@
 import {
+  CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
+  CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
   discoverCanvasBoundaries,
   formatCanvasCommentMarker,
+  parseCanvasCommentMarker,
 } from '@drupal-canvas/preview-geometry';
 
+import {
+  OPTIMISTIC_CSS_ATTRIBUTE,
+  syncPlaceholders,
+} from '@/features/layout/preview/optimisticPreview';
+import {
+  isPreviewLayoutEdited,
+  notePreviewRendered,
+} from '@/features/layout/preview/previewEdits';
+
 /**
- * The new markup of the one component instance that changed between renders.
+ * The new markup of a component instance that changed between renders.
  */
 export interface InPlaceUpdate {
   componentUuid: string;
   html: string;
-  previousHtml: string;
+  // Not set for an instance the previous render doesn't have.
+  previousHtml?: string;
 }
 
-const commentMarker = (position: 'start' | 'end', id: string) =>
-  `<!-- ${formatCanvasCommentMarker({ type: 'component', position, id })} -->`;
+const marker = (position: 'start' | 'end', id: string) =>
+  formatCanvasCommentMarker({ type: 'component', position, id });
 
-const START_MARKER_PREFIX = commentMarker('start', '').slice(0, -' -->'.length);
+const COMPONENT_MARKER = new RegExp(
+  `<!-- (${marker('start', '')}|${marker('end', '')})(.+?) -->`,
+  'g',
+);
+
+// The markers of components, slots and regions, which tell where each is, and
+// the element printed instead of a component that failed to render, which
+// has no markers.
+// @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
+const MARKER =
+  /<!-- canvas-(?:slot-|region-)?(?:start|end)-.+? -->|<div [^>]*?\bdata-component-uuid="([^"]*)"/g;
+const failedMarker = (uuid: string) => `<failed ${uuid}>`;
+
+// Where the components, slots and regions of a render are.
+const markersOf = (html: string) =>
+  Array.from(html.matchAll(MARKER), ([text, failed]) =>
+    failed === undefined ? text : failedMarker(failed),
+  ).join('');
+
+// What the server renders in a slot or region with no components. Whether it
+// is there follows from where the components are, so it isn't a change to the
+// markup of the instance or document around it.
+const EMPTY_PLACEHOLDER = new RegExp(
+  `<div class="(${CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}|${CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS})"></div>`,
+  'g',
+);
+
+const MODULE_PRELOAD = /<link rel="modulepreload"[^>]*>/g;
+
+// An empty slot of a Canvas island. The island renders its slots itself, and
+// may render differently when one is empty.
+const EMPTY_ISLAND_SLOT = new RegExp(
+  `<template data-astro-template="[^"]*"><!-- canvas-slot-start-[^>]*? --><div class="${CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}"></div>`,
+  'g',
+);
+
+interface Instance {
+  id: string;
+  parent: string;
+  // The markup between the markers of the instance.
+  html: string;
+  // That markup without the instances in it.
+  own: string;
+}
 
 /**
- * Finds the innermost component instance enclosing every difference between
- * two preview documents.
+ * Splits a preview document into its component instances, in document order.
  *
- * Returns null when any difference lies outside a component instance (for
- * example new assets in <head>, or changed drupalSettings), or when nothing
- * changed. The caller must then load the whole document.
+ * The first one stands for the document itself: its own markup is all that is
+ * outside any instance. Null when the markers aren't nested properly, or an
+ * instance is there twice (e.g. in a slot that a component prints twice).
  */
-export function findInPlaceUpdate(
-  previous: string,
-  next: string,
-): InPlaceUpdate | null {
-  if (previous === next) {
+function splitInstances(html: string): Instance[] | null {
+  const instances = [{ id: '', parent: '', html, own: '', start: 0 }];
+  const open = [instances[0]];
+  const ids = new Set<string>();
+  let at = 0;
+  for (const match of html.matchAll(COMPONENT_MARKER)) {
+    const [text, prefix, id] = match;
+    const top = open[open.length - 1];
+    top.own += html.slice(at, match.index);
+    at = match.index + text.length;
+    if (prefix === marker('start', '')) {
+      if (ids.has(id)) {
+        return null;
+      }
+      ids.add(id);
+      const instance = { id, parent: top.id, html: '', own: '', start: at };
+      instances.push(instance);
+      open.push(instance);
+    } else if (top.id !== id) {
+      return null;
+    } else {
+      top.html = html.slice(top.start, match.index);
+      open.pop();
+    }
+  }
+  if (open.length !== 1) {
     return null;
   }
-  const shortest = Math.min(previous.length, next.length);
-  let prefix = 0;
-  while (prefix < shortest && previous[prefix] === next[prefix]) {
-    prefix++;
-  }
-  let suffix = 0;
-  while (
-    suffix < shortest - prefix &&
-    previous[previous.length - 1 - suffix] === next[next.length - 1 - suffix]
-  ) {
-    suffix++;
-  }
-  const changeEnd = previous.length - suffix;
+  instances[0].own += html.slice(at);
+  return instances;
+}
 
-  // The nearest start marker before the change whose end marker comes after
-  // it is the innermost instance containing the change. Skipped candidates
-  // are earlier siblings, which close before the change.
-  let at = previous.lastIndexOf(START_MARKER_PREFIX, prefix);
-  while (at !== -1) {
-    const close = previous.indexOf(' -->', at);
-    const contentStart = close + ' -->'.length;
-    if (close !== -1 && contentStart <= prefix) {
-      const id = previous.slice(at + START_MARKER_PREFIX.length, close);
-      const end = previous.indexOf(commentMarker('end', id), contentStart);
-      if (end >= changeEnd) {
-        return {
-          componentUuid: id,
-          html: next.slice(contentStart, end - previous.length + next.length),
-          previousHtml: previous.slice(contentStart, end),
-        };
-      }
-    }
-    at = at > 0 ? previous.lastIndexOf(START_MARKER_PREFIX, at - 1) : -1;
+/**
+ * Finds the component instances whose markup differs between two preview
+ * documents.
+ *
+ * An instance whose own markup changed comes with the instances in it. One
+ * that only has different instances in it, or is in a different place, isn't
+ * listed: where instances are is not compared here.
+ *
+ * Returns null when anything outside the component instances changed (for
+ * example new assets in <head>, or changed drupalSettings), or a slot of a
+ * Canvas island became empty or got content: the island must then render
+ * again, and would show empty until it has. The caller must then load the
+ * whole document.
+ */
+export function findInPlaceUpdates(
+  previous: string,
+  next: string,
+): InPlaceUpdate[] | null {
+  const before = splitInstances(previous);
+  const after = splitInstances(next);
+  const own = (instance?: Instance) =>
+    instance?.own.replace(EMPTY_PLACEHOLDER, '');
+  // The links that preload the modules of code components are in the order
+  // the components are rendered in, which has no effect on the document.
+  const outside = ([document]: Instance[]) =>
+    own(document)!.replace(MODULE_PRELOAD, '') +
+    (document.own.match(MODULE_PRELOAD) ?? []).sort().join('');
+  if (!before || !after || outside(before) !== outside(after)) {
+    return null;
   }
-  return null;
+  const previousInstances = new Map(before.map((i) => [i.id, i]));
+  const emptyIslandSlots = (instance?: Instance) =>
+    instance?.own.match(EMPTY_ISLAND_SLOT)?.join('');
+  if (
+    after.some((instance) => {
+      const was = previousInstances.get(instance.id);
+      return was && emptyIslandSlots(was) !== emptyIslandSlots(instance);
+    })
+  ) {
+    return null;
+  }
+  const replaced = new Set<string>();
+  return after.slice(1).flatMap((instance) => {
+    const { id, parent, html } = instance;
+    const was = previousInstances.get(id);
+    // New markup of an instance has the instances in it.
+    if (replaced.has(parent)) {
+      replaced.add(id);
+      return [];
+    }
+    if (own(was) === own(instance)) {
+      return [];
+    }
+    replaced.add(id);
+    return [{ componentUuid: id, html, previousHtml: was?.html }];
+  });
 }
 
 // Decodes a Canvas island's props attribute, whose values are JSON-encoded
@@ -92,6 +193,13 @@ const parseFragment = (document: Document, html: string) => {
   return template;
 };
 
+// The Canvas island a component instance's markup consists of, if it does.
+const soleIsland = ({ content }: HTMLTemplateElement) =>
+  content.children.length === 1 &&
+  content.firstElementChild?.localName === 'canvas-island'
+    ? content.firstElementChild
+    : null;
+
 /**
  * Updates the props of a live Canvas island when they are all that changed.
  * Replacing the island instead would render it empty until it hydrates again.
@@ -99,38 +207,51 @@ const parseFragment = (document: Document, html: string) => {
 function updateIslandProps(
   document: Document,
   live: Node[],
-  previousHtml: string,
+  previousHtml: string | undefined,
   html: string,
 ): boolean {
   const liveElements = live.filter(
     (node): node is Element => node.nodeType === Node.ELEMENT_NODE,
   );
   const [island] = liveElements;
-  const fragments = [previousHtml, html].map((markup) =>
-    parseFragment(document, markup),
-  );
-  const [before, after] = fragments.map(({ content }) =>
-    content.children.length === 1 &&
-    content.firstElementChild?.localName === 'canvas-island'
-      ? content.firstElementChild
-      : null,
-  );
+  const next = parseFragment(document, html);
+  const after = soleIsland(next);
   const props = after?.getAttribute('props');
   if (
     liveElements.length !== 1 ||
     island.localName !== 'canvas-island' ||
-    !before ||
     !after ||
     props == null
   ) {
     return false;
   }
-  // Everything else, including text and comments beside the island, must be
-  // unchanged.
-  before.removeAttribute('props');
-  after.removeAttribute('props');
-  if (fragments[0].innerHTML !== fragments[1].innerHTML) {
-    return false;
+  if (previousHtml === undefined) {
+    // An instance the previous render doesn't have is shown ahead of the
+    // server rendering it (see optimisticPreview.ts). Its island stays if it
+    // has all that the rendered one has.
+    if (
+      !Array.from(after.attributes).every(
+        ({ name, value }) =>
+          name === 'props' ||
+          name === 'ssr' ||
+          island.getAttribute(name) === value,
+      )
+    ) {
+      return false;
+    }
+  } else {
+    const previous = parseFragment(document, previousHtml);
+    const before = soleIsland(previous);
+    if (!before) {
+      return false;
+    }
+    // Everything else, including text and comments beside the island, must
+    // be unchanged.
+    before.removeAttribute('props');
+    after.removeAttribute('props');
+    if (previous.innerHTML !== next.innerHTML) {
+      return false;
+    }
   }
   // Changing props re-renders the island from scratch, so only change them
   // if they differ, for example not after a client-side update set them.
@@ -210,6 +331,89 @@ export function applyInPlaceUpdate(
   // from being initialized twice.
   if (parent.nodeType === Node.ELEMENT_NODE) {
     Drupal?.attachBehaviors(parent);
+  }
+  return true;
+}
+
+// The canvas marker a node is, if it is one.
+const markerOf = (node: Node) =>
+  node.nodeType === Node.COMMENT_NODE
+    ? parseCanvasCommentMarker(node.nodeValue ?? '')
+    : null;
+
+// The markers of a live preview document, as markersOf() finds them in a
+// render.
+function liveMarkers(document: Document) {
+  const walker = document.createTreeWalker(
+    document,
+    NodeFilter.SHOW_COMMENT | NodeFilter.SHOW_ELEMENT,
+  );
+  let markers = '';
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    const failed =
+      node.nodeType === Node.ELEMENT_NODE &&
+      (node as Element).localName === 'div' &&
+      (node as Element).getAttribute('data-component-uuid');
+    if (typeof failed === 'string') {
+      markers += failedMarker(failed);
+    } else if (markerOf(node)) {
+      markers += `<!-- ${node.nodeValue!.trim()} -->`;
+    }
+  }
+  return markers;
+}
+
+/**
+ * Shows a new render in a live preview document without loading it.
+ *
+ * Only the component instances whose own markup changed are replaced, with
+ * the instances in them (see applyInPlaceUpdate). The others stay as they
+ * are, so their Canvas islands don't render again. Instances aren't added,
+ * moved or removed: when the render may have them elsewhere than the document
+ * does, the document must show them there already, as it does once the edit
+ * was shown ahead of the server (see optimisticPreview.ts).
+ *
+ * A Canvas island that stays keeps the markup of its slots from when it last
+ * rendered, like when an instance in one of them is replaced. It shows that
+ * markup again if it removes a slot and renders it again, until its props
+ * change or the whole document is loaded.
+ *
+ * @param document
+ *   The live preview document.
+ * @param previous
+ *   The render the document was last shown.
+ * @param next
+ *   The render to show.
+ *
+ * @return
+ *   False when it can't be shown this way. The caller must then load the
+ *   whole document.
+ */
+export function updateInPlace(
+  document: Document,
+  previous: string,
+  next: string,
+): boolean {
+  const updates = findInPlaceUpdates(previous, next);
+  const markers = markersOf(next);
+  // Whether the document may have instances elsewhere than the render does.
+  const moved =
+    markers !== markersOf(previous) || isPreviewLayoutEdited(document);
+  if (!updates || (moved && markers !== liveMarkers(document))) {
+    return false;
+  }
+  if (!updates.every((update) => applyInPlaceUpdate(document, update))) {
+    return false;
+  }
+  notePreviewRendered(document);
+  // The head of the render is the one the document was loaded with. CSS that
+  // was added to show a component ahead of the server isn't in it.
+  document.head
+    .querySelectorAll(`[${OPTIMISTIC_CSS_ATTRIBUTE}]`)
+    .forEach((el) => el.remove());
+  if (moved) {
+    syncPlaceholders(document);
   }
   return true;
 }
