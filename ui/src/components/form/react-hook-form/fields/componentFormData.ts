@@ -118,6 +118,39 @@ export const formStateToObject = (
 };
 
 /**
+ * Finds the form state of group items that a rebuilt item list no longer has.
+ *
+ * Every item of a multi-value group has a `groupName.delta._weight` field, so
+ * the weights among the rebuilt fields tell which items of a group remain.
+ *
+ * @param {string[]} formStateNames
+ *   The names of all form elements in the form state.
+ * @param {string[]} rebuiltNames
+ *   The names of the form elements that an AJAX response rebuilt.
+ *
+ * @return {string[]}
+ *   The names in the form state that belong to removed items.
+ */
+export const staleGroupItemNames = (
+  formStateNames: string[],
+  rebuiltNames: string[],
+): string[] => {
+  // The start of the names of every remaining item: `…[groupName.delta.`.
+  const items = rebuiltNames
+    .filter((name) => /\.\d+\._weight\]$/.test(name))
+    .map((name) => name.slice(0, -'_weight]'.length));
+  const groups = [...new Set(items.map((item) => item.replace(/\d+\.$/, '')))];
+  return formStateNames.filter((name) =>
+    groups.some(
+      (group) =>
+        name.startsWith(group) &&
+        /^\d+\./.test(name.slice(group.length)) &&
+        !items.some((item) => name.startsWith(item)),
+    ),
+  );
+};
+
+/**
  * Analyzes a form state and returns an object that organizes the form
  * information in multiple ways to satisfy different use cases.
  *
@@ -266,6 +299,28 @@ export function getPropsValues(
     >;
     return subSchemas[segments[segments.length - 1]];
   };
+  // Resolves the transforms for a form state key. The server only sends the
+  // transforms of the items a multi-value group had when the form loaded.
+  // Every item of a group has the same ones, so an item added since then uses
+  // those of another item.
+  const resolveTransforms = (key: string) => {
+    if (key in transformConfig) {
+      return transformConfig[key];
+    }
+    const [groupName, delta, subPropName, ...rest] = key.split('.');
+    if (subPropName === undefined || rest.length > 0 || !/^\d+$/.test(delta)) {
+      return undefined;
+    }
+    const sibling = Object.keys(transformConfig).find((other) => {
+      const segments = other.split('.');
+      return (
+        segments.length === 3 &&
+        segments[0] === groupName &&
+        segments[2] === subPropName
+      );
+    });
+    return sibling === undefined ? undefined : transformConfig[sibling];
+  };
   // Resolves the prop source for a form state key. Sub-properties of group
   // object props use dotted keys; their value-less per-sub source prototypes
   // live under the group source's `sources`.
@@ -285,8 +340,9 @@ export function getPropsValues(
   const propsValues = Object.entries(
     formStateToObject(formState, selectedComponent),
   ).reduce((carry: PropsValues, [key, value]) => {
-    if (key in transformConfig) {
-      let fieldTransforms = transformConfig[key];
+    const configuredTransforms = resolveTransforms(key);
+    if (configuredTransforms) {
+      let fieldTransforms = configuredTransforms;
       // Internally to formStateToObject we make use of the `qs` npm package and
       // URLSearchParams to convert nested named form elements into a nested
       // structure. Because URLSearchParams converts all values to strings so
@@ -334,7 +390,9 @@ export function getPropsValues(
   // under the group's prop name: `{groupName: {subPropName: value}}` for
   // single-value groups, `{groupName: [{subPropName: value}, …]}` for
   // multi-value groups. Sub-property form state keys are dotted:
-  // `groupName.subPropName` or `groupName.delta.subPropName`.
+  // `groupName.subPropName` or `groupName.delta.subPropName`. The position of
+  // an item of a multi-value group is the value of `groupName.delta._weight`:
+  // moving or duplicating items changes their order, not their deltas.
   const groupItemValues: Record<string, Record<number, PropsValues>> = {};
   Object.entries(propsValues).forEach(([key, value]) => {
     const segments = key.split('.');
@@ -370,10 +428,15 @@ export function getPropsValues(
       // Dense, ordered list of per-item objects. Fully empty items are kept:
       // the server drops them when rendering and publishing, but they must
       // remain visible in the form while being filled in.
+      const position = (delta: number) => Number(items[delta]._weight ?? delta);
       propsValues[groupName as keyof PropsValues] = Object.keys(items)
         .map(Number)
-        .sort((a, b) => a - b)
-        .map((delta) => items[delta]);
+        .sort((a, b) => position(a) - position(b) || a - b)
+        .map((delta) => {
+          const item = { ...items[delta] };
+          delete item._weight;
+          return item;
+        });
     } else {
       propsValues[groupName as keyof PropsValues] = items[0] ?? {};
     }

@@ -12,6 +12,8 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBa
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Form\FormAjaxException;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -232,6 +234,181 @@ final class ObjectPropsComponentInstanceFormTest extends ApiLayoutControllerTest
     self::assertSame('Ada', $crawler->filter('[name*="authors.0.name"]')->attr('value'));
     self::assertSame('https://example.com/ada', $crawler->filter('[name*="authors.0.link"]')->attr('value'));
     self::assertSame('Grace', $crawler->filter('[name*="authors.1.name"]')->attr('value'));
+  }
+
+  /**
+   * The items of a multi-value group can be moved, duplicated and removed.
+   *
+   * Every action is a hidden submit button that the client clicks. The list
+   * withholds "Remove" at `minItems`, "Duplicate" and "Add new" at `maxItems`
+   * and "Move" for a single item.
+   */
+  public function testItemListRowControls(): void {
+    JavaScriptComponent::create([
+      'machineName' => 'steps',
+      'name' => 'Steps',
+      'status' => TRUE,
+      'props' => [
+        'steps' => [
+          'title' => 'Steps',
+          'type' => 'array',
+          'minItems' => 1,
+          'maxItems' => 3,
+          'items' => [
+            'type' => 'object',
+            'properties' => [
+              'name' => ['title' => 'Step name', 'type' => 'string'],
+              'done' => ['title' => 'Done', 'type' => 'boolean'],
+            ],
+            'required' => ['name'],
+          ],
+          'examples' => [
+            [
+              ['name' => 'Example', 'done' => FALSE],
+            ],
+          ],
+        ],
+      ],
+      'required' => ['steps'],
+      'slots' => [],
+      'js' => ['original' => 'console.log("t")', 'compiled' => 'console.log("t")'],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ])->save();
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId('steps'));
+    \assert($component instanceof Component);
+    $source = $component->getComponentSource();
+    \assert($source instanceof JsonSchemaPropsComponentSourceBase);
+    $client_side_info = $source->getClientSideInfo($component);
+    self::assertArrayHasKey('propSources', $client_side_info);
+    $stored_steps = [
+      ['name' => 'Mix', 'done' => TRUE],
+      ['name' => 'Bake', 'done' => FALSE],
+    ];
+
+    $page = Page::create(['title' => $this->randomMachineName()]);
+    self::assertSame(SAVED_NEW, $page->save());
+    $url = '/canvas/api/v0/form/component-instance/canvas_page/' . $page->id();
+    $form_parameters = [
+      'form_canvas_tree' => json_encode([
+        'nodeType' => 'component',
+        'slots' => [],
+        'type' => "{$component->id()}@{$component->getActiveVersion()}",
+        'uuid' => self::TEST_UUID,
+      ], JSON_THROW_ON_ERROR),
+      'form_canvas_props' => json_encode([
+        'resolved' => ['steps' => $stored_steps],
+        'source' => [
+          'steps' => ['value' => $stored_steps] + \array_intersect_key($client_side_info['propSources']['steps'], \array_flip(['sourceType', 'sources', 'sourceTypeSettings'])),
+        ],
+      ], JSON_THROW_ON_ERROR),
+      'form_canvas_selected' => self::TEST_UUID,
+    ];
+    $json = self::decodeResponse($this->request(Request::create($url, 'PATCH', $form_parameters)));
+    $crawler = new Crawler($json['html']);
+    $form_parameters += [
+      'form_id' => $crawler->filter('input[name="form_id"]')->attr('value'),
+      'form_token' => $crawler->filter('input[name="form_token"]')->attr('value'),
+      'form_build_id' => $crawler->filter('input[name="form_build_id"]')->attr('value'),
+    ];
+
+    // The item list as the author sees it: per item, in order, its delta, its
+    // position for the client, its name and whether it is done. An item keeps
+    // its delta when the list changes.
+    $list_items = static function (Crawler $crawler): array {
+      $items = [];
+      foreach ($crawler->filter('input[name$="._weight]"]') as $weight) {
+        \assert($weight instanceof \DOMElement);
+        self::assertSame(1, \preg_match('/\[steps\.(\d+)\._weight\]$/', $weight->getAttribute('name'), $matches));
+        $delta = $matches[1];
+        $items[] = \implode(' ', [
+          $delta,
+          $weight->getAttribute('value'),
+          $crawler->filter("input[name*=\"[steps.$delta.name]\"]")->attr('value'),
+          $crawler->filter("input[name*=\"[steps.$delta.done]\"][checked]")->count() ? 'done' : 'open',
+        ]);
+      }
+      return $items;
+    };
+    // The actions the list offers: the number of hidden submit buttons.
+    $list_actions = static fn (Crawler $crawler): array => \array_map(
+      static fn (string $action): int => $crawler->filter("input[type=\"submit\"][data-object-props-$action]")->count(),
+      \array_combine(['add', 'remove', 'duplicate', 'move'], ['add', 'remove', 'duplicate', 'move']),
+    );
+    // Clicks a hidden submit button, like the client does: with the values of
+    // the item widgets, and for "Move" the position to move the item to.
+    $click = function (string $button_name, array $item_values, array $extra = []) use ($url, &$form_parameters): Crawler {
+      try {
+        $this->request(Request::create($url . '?ajax_form=1&_wrapper_format=drupal_ajax', 'POST', [
+          ...$form_parameters,
+          ...$extra,
+          'canvas_component_props' => [self::TEST_UUID => $item_values],
+          '_triggering_element_name' => $button_name,
+        ]));
+      }
+      catch (FormAjaxException $e) {
+        // The HTTP kernel of this test does not turn exceptions into
+        // responses. Render the rebuilt item list like the AJAX response does.
+        // @see \Drupal\Core\Form\FormAjaxResponseBuilder::buildResponse()
+        $form_parameters['form_build_id'] = $e->getForm()['#build_id'];
+        $item_list = JsonSchemaPropsComponentSourceBase::objectPropsAjax($e->getForm(), $e->getFormState());
+        return new Crawler((string) $this->container->get(RendererInterface::class)->renderRoot($item_list));
+      }
+      self::fail("The $button_name button did not rebuild the form.");
+    };
+    $name = static fn (string $value): array => [['value' => $value]];
+    $done = ['value' => '1'];
+
+    self::assertSame(['0 0 Mix done', '1 1 Bake open'], $list_items($crawler));
+    self::assertSame(['add' => 1, 'remove' => 2, 'duplicate' => 2, 'move' => 2], $list_actions($crawler));
+
+    // A duplicate follows the item it copies. It gets the submitted values of
+    // that item, here its checkbox. What a widget did not submit, here the
+    // name, comes from the stored value of that item.
+    $crawler = $click('steps_0_object_props_duplicate', ['steps.0.done' => $done]);
+    self::assertSame(['0 0 Mix done', '2 1 Mix done', '1 2 Bake open'], $list_items($crawler));
+    // At `maxItems`, no more items can be added.
+    self::assertSame(['add' => 0, 'remove' => 3, 'duplicate' => 0, 'move' => 3], $list_actions($crawler));
+
+    // Removing an item makes room again.
+    $values = [
+      'steps.0.name' => $name('Mix'),
+      'steps.0.done' => $done,
+      'steps.2.name' => $name('Mix'),
+      'steps.2.done' => $done,
+      'steps.1.name' => $name('Bake'),
+    ];
+    $crawler = $click('steps_2_object_props_remove', $values);
+    self::assertSame(['0 0 Mix done', '1 1 Bake open'], $list_items($crawler));
+    self::assertSame(['add' => 1, 'remove' => 2, 'duplicate' => 2, 'move' => 2], $list_actions($crawler));
+    unset($values['steps.2.name'], $values['steps.2.done']);
+
+    // Moving an item changes its position, not its delta.
+    $crawler = $click('steps_0_object_props_move', $values, ['canvas_object_props_position' => '1']);
+    self::assertSame(['1 0 Bake open', '0 1 Mix done'], $list_items($crawler));
+    // A position outside the list is ignored.
+    foreach (['2', '-1', 'last', NULL] as $position) {
+      $crawler = $click('steps_0_object_props_move', $values, ['canvas_object_props_position' => $position]);
+      self::assertSame(['1 0 Bake open', '0 1 Mix done'], $list_items($crawler));
+    }
+
+    // A duplicate starts from what the author entered, saved or not, and
+    // keeps the order the author gave the list.
+    $values['steps.1.name'] = $name('Bake well');
+    $crawler = $click('steps_1_object_props_duplicate', $values);
+    self::assertSame(['1 0 Bake well open', '3 1 Bake well open', '0 2 Mix done'], $list_items($crawler));
+    $values['steps.3.name'] = $name('Bake well');
+
+    // The list keeps its order when an item is removed.
+    $crawler = $click('steps_1_object_props_remove', $values);
+    self::assertSame(['3 0 Bake well open', '0 1 Mix done'], $list_items($crawler));
+    unset($values['steps.1.name']);
+
+    // At `minItems`, the last item can not be removed, and has nowhere to
+    // move to.
+    $crawler = $click('steps_0_object_props_remove', $values);
+    self::assertSame(['3 0 Bake well open'], $list_items($crawler));
+    self::assertSame(['add' => 1, 'remove' => 0, 'duplicate' => 1, 'move' => 0], $list_actions($crawler));
   }
 
   /**

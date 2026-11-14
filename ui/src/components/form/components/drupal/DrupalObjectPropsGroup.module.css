@@ -19,26 +19,65 @@
 }
 
 /* The raw Drupal AJAX submit buttons stay in the form but are operated
-   through the styled "Add new" and "Remove" actions. */
+   through the styled "Add new", "Duplicate" and "Remove" actions and by
+   dragging a row. */
 .itemList input[data-object-props-add],
-.popoverContent input[data-object-props-remove] {
+.popoverContent input[data-object-props-remove],
+.popoverContent input[data-object-props-duplicate],
+.popoverContent input[data-object-props-move] {
   display: none;
+}
+
+/* A drop rebuilds the list on the server: no second drag until it is back. */
+:global([data-canvas-ajax-behaviors="true"]) .dragHandle {
+  pointer-events: none;
 }
 
 .itemRow {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
   height: 40px;
+  transition: background-color 0.15s ease;
+  background-color: white;
+}
+
+/* The row being dragged stays above the rows it passes. */
+.dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-3);
+}
+
+.dragHandle,
+.itemTrigger {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: none;
+  background-color: transparent;
+}
+
+.dragHandle {
+  flex-shrink: 0;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  cursor: grab;
+  touch-action: none;
+  color: var(--gray-11);
+}
+
+.dragging .dragHandle {
+  cursor: grabbing;
+}
+
+.itemTrigger {
+  flex: 1;
+  min-width: 0;
   padding: 0 var(--space-2);
   cursor: pointer;
-  transition: background-color 0.15s ease;
   text-align: left;
-  border: none;
-  background-color: white;
-  gap: var(--space-2);
 }
 
 /* Separators between rows only: the list border closes the last row. */
@@ -51,14 +90,10 @@
   background-color: var(--blue-3);
 }
 
-.itemRow:focus {
+.dragHandle:focus-visible,
+.itemTrigger:focus {
   outline: 2px solid var(--blue-8);
   outline-offset: -2px;
-}
-
-.dragIcon {
-  flex-shrink: 0;
-  color: var(--gray-11);
 }
 
 .itemText {
@@ -112,7 +147,7 @@
   color: var(--gray-12);
 }
 
-.removeButtonContainer {
+.actions {
   margin-top: var(--space-2);
 }
 

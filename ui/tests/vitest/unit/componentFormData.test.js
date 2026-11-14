@@ -1,4 +1,47 @@
-import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
+import {
+  getPropsValues,
+  staleGroupItemNames,
+} from '@/components/form/react-hook-form/fields/componentFormData';
+
+describe('componentFormData - staleGroupItemNames', () => {
+  const name = (key) => `canvas_component_props[test-uuid][${key}]`;
+
+  it('finds the form state of items a rebuilt list no longer has', () => {
+    const formStateNames = [
+      name('title'),
+      name('authors.0.name][0][value'),
+      name('authors.0._weight'),
+      name('authors.1.name][0][value'),
+      name('authors.1._weight'),
+      name('authors.10.name][0][value'),
+      name('authors.10._weight'),
+      name('ingredient.name][0][value'),
+      name('links.0.label][0][value'),
+      'form_build_id',
+    ];
+    // The server rebuilt the authors list without item 1.
+    const rebuiltNames = [
+      name('authors.10._weight'),
+      name('authors.10.name][0][value'),
+      name('authors.0._weight'),
+      name('authors.0.name][0][value'),
+      'authors_object_props_add_more',
+    ];
+    expect(staleGroupItemNames(formStateNames, rebuiltNames)).toEqual([
+      name('authors.1.name][0][value'),
+      name('authors.1._weight'),
+    ]);
+  });
+
+  it('finds nothing when no item list was rebuilt', () => {
+    expect(
+      staleGroupItemNames(
+        [name('authors.0.name][0][value'), name('authors.0._weight')],
+        [name('title')],
+      ),
+    ).toEqual([]);
+  });
+});
 
 describe('componentFormData - getPropsValues propSource fallback', () => {
   const selectedComponent = 'test-uuid';

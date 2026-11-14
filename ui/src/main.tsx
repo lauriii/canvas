@@ -272,7 +272,17 @@ if (container) {
         }
         // For each element, parse out its attributes. These are JSON sent by
         // the canvas_stark.theme.
-        return JSON.parse(el.getAttribute('attributes') || '{}');
+        const attributes = JSON.parse(el.getAttribute('attributes') || '{}');
+        // A textarea has its value next to its attributes.
+        // @see themes/canvas_stark/templates/form/textarea.html.twig
+        if (el.tagName.toLowerCase() === 'drupal-canvas-textarea') {
+          return { ...attributes, value: el.getAttribute('value') ?? '' };
+        }
+        // The value attribute of a checkbox is what it submits when checked,
+        // not its state.
+        return attributes.type === 'checkbox'
+          ? { ...attributes, value: !!attributes.checked }
+          : attributes;
       })
       // Build a key-value pair of input names and values.
       .reduce((carry, attributes) => {

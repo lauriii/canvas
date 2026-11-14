@@ -385,6 +385,10 @@ When `multiple: true`, the `mainProperty` transform also supports weight-based o
 ["5", "3"]
 ```
 
+**Multi-value object props**
+
+A multi-value object prop ("group") renders as a list of rows. A row is moved by dragging its handle, or from the keyboard with Enter and the arrow keys, and is duplicated or removed in its popover. The list offers no "Remove" at the prop's `minItems`, and no "Add new" or "Duplicate" at its `maxItems`. Each action clicks a hidden submit button, after which the server rebuilds the list: an item keeps its delta, and `propName.delta._weight` holds its position. See `ui/src/components/form/components/drupal/DrupalObjectPropsGroup.tsx`.
+
 ### 3.5 Limitations / Tradeoffs
 We've already established this system makes it possible to render Drupal render arrays with React. This makes it possible to use existing Drupal core functionality as if it were rendered by Twig. As powerful as this is, this isn't a 100% seamless solution. There are some limitations to be aware of:
 
