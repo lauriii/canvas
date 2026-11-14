@@ -253,7 +253,13 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
       $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
       // Mark all input elements within multivalue widgets and add field
       // title.
-      $this->markMultivalueFormElements($widget, $field_label, $cardinality);
+      // Each item of an object list is a group of single-valued properties:
+      // render those as plain form elements, not as multiple value items.
+      // @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget
+      $types = $widget_type === 'canvas_object'
+        ? ['submit']
+        : ['textfield', 'number', 'url', 'entity_autocomplete', 'submit', 'select'];
+      $this->markMultivalueFormElements($widget, $field_label, $cardinality, $types);
     }
   }
 
@@ -266,12 +272,14 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
    *   The field label to add to input elements.
    * @param int $cardinality
    *   The field cardinality (-1 for unlimited, or a positive integer).
+   * @param string[] $types
+   *   The form element types to mark.
    */
-  private function markMultivalueFormElements(array &$element, string $field_label, int $cardinality): void {
+  private function markMultivalueFormElements(array &$element, string $field_label, int $cardinality, array $types): void {
     foreach (Element::children($element) as $key) {
       // Mark input elements.
       if (isset($element[$key]['#type']) &&
-          \in_array($element[$key]['#type'], ['textfield', 'number', 'url', 'entity_autocomplete', 'submit', 'select'], TRUE)) {
+          \in_array($element[$key]['#type'], $types, TRUE)) {
         $element[$key]['#is_multivalue_form'] = TRUE;
         $element[$key]['#attributes']['data-field-label'] = $field_label;
         $element[$key]['#attributes']['data-cardinality'] = $cardinality;
@@ -291,7 +299,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
 
       // Recursively process child elements.
       if (\is_array($element[$key])) {
-        $this->markMultivalueFormElements($element[$key], $field_label, $cardinality);
+        $this->markMultivalueFormElements($element[$key], $field_label, $cardinality, $types);
       }
     }
   }
@@ -304,6 +312,7 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     $map = [
       'boolean_checkbox' => ['mainProperty' => []],
       'canvas_color_picker' => ['mainProperty' => []],
+      'canvas_object' => ['objectProperties' => []],
       'datetime_default' => ['mainProperty' => [], 'dateTime' => []],
       'daterange_default' => ['dateRange' => []],
       'email_default' => ['mainProperty' => []],

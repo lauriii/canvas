@@ -67,6 +67,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     // Modules providing additional SDCs.
     'sdc_test',
     'sdc_test_all_props',
+    'canvas_test_list_of_objects',
     // To be able to create a MediaType (which creates its source field).
     // @see ::testArrayPropShapeInheritsItemPropShapeCacheTags()
     'field',
@@ -156,6 +157,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'number']]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'number'], 'maxItems' => 3]),
+      PropShape::normalize(['type' => 'array', 'items' => self::getTestimonialItemSchema(), 'minItems' => 1, 'maxItems' => 6]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'string']]),
       PropShape::normalize(['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['option_one', 'option_two', 'option_three', 'option_four'], 'meta:enum' => ['option_one' => 'Option One', 'option_two' => 'Option Two', 'option_three' => 'Option Three', 'option_four' => 'Option Four']]]),
       PropShape::normalize(['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['option_one', 'option_two', 'option_three', 'option_four'], 'meta:enum' => ['option_one' => 'Option One', 'option_two' => 'Option Two', 'option_three' => 'Option Three', 'option_four' => 'Option Four']], 'maxItems' => 3]),
@@ -189,6 +191,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       JsonSchemaObjectRef::Image->asPropShape(),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       JsonSchemaObjectRef::Video->asPropShape(),
+      PropShape::normalize(self::getTestimonialItemSchema()),
       new PropShape(['type' => 'string']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/color']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
@@ -252,7 +255,33 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
    * @return \Drupal\canvas\PropShape\StorablePropShape[]
    */
   public static function getExpectedStorablePropShapes(): array {
+    $testimonial = self::getTestimonialItemSchema();
+    $testimonial_storage = [
+      'properties' => PropShape::normalize($testimonial)->schema['properties'],
+      'required' => ['quote', 'author'],
+    ];
+    $testimonial_expression = new FieldTypeObjectPropsExpression('canvas_object', [
+      'quote' => new FieldTypePropExpression('canvas_object', 'quote'),
+      'author' => new FieldTypePropExpression('canvas_object', 'author'),
+      'role' => new FieldTypePropExpression('canvas_object', 'role'),
+      'rating' => new FieldTypePropExpression('canvas_object', 'rating'),
+      'featured' => new FieldTypePropExpression('canvas_object', 'featured'),
+    ]);
     return [
+      // @see tests/modules/canvas_test_list_of_objects/components/testimonials/testimonials.component.yml
+      PropShape::normalize($testimonial)->uniquePropSchemaKey() => new StorablePropShape(
+        shape: PropShape::normalize($testimonial),
+        fieldTypeProp: $testimonial_expression,
+        fieldWidget: 'canvas_object',
+        fieldStorageSettings: $testimonial_storage,
+      ),
+      PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'minItems' => 1, 'maxItems' => 6])->uniquePropSchemaKey() => new StorablePropShape(
+        shape: PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'minItems' => 1, 'maxItems' => 6]),
+        fieldTypeProp: $testimonial_expression,
+        fieldWidget: 'canvas_object',
+        cardinality: 6,
+        fieldStorageSettings: $testimonial_storage,
+      ),
       'type=boolean' => new StorablePropShape(
         shape: new PropShape(['type' => 'boolean']),
         fieldTypeProp: new FieldTypePropExpression('boolean', 'value'),
@@ -975,6 +1004,30 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   }
 
   /**
+   * The raw item schema of the `testimonials` prop.
+   *
+   * @see tests/modules/canvas_test_list_of_objects/components/testimonials/testimonials.component.yml
+   */
+  private static function getTestimonialItemSchema(): array {
+    return [
+      'type' => 'object',
+      'required' => ['quote', 'author'],
+      'properties' => [
+        'quote' => ['type' => 'string', 'title' => 'Quote'],
+        'author' => ['type' => 'string', 'title' => 'Author'],
+        'role' => [
+          'type' => 'string',
+          'title' => 'Role',
+          'enum' => ['customer', 'partner', 'employee'],
+          'meta:enum' => ['customer' => 'Customer', 'partner' => 'Partner', 'employee' => 'Employee'],
+        ],
+        'rating' => ['type' => 'integer', 'title' => 'Rating', 'minimum' => 1, 'maximum' => 5],
+        'featured' => ['type' => 'boolean', 'title' => 'Featured'],
+      ],
+    ];
+  }
+
+  /**
    * @return \Drupal\canvas\PropShape\PropShape[]
    */
   public static function getExpectedUnstorablePropShapes(): array {
@@ -1161,6 +1214,21 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
 
     // The file widget built its rows, proving it received ImageItems.
     self::assertArrayHasKey('widget', $image_form);
+
+    // The same field type with other storage settings must not share a
+    // prototype either: `canvas_object` derives its properties from them.
+    $repository = $this->container->get(PropShapeRepositoryInterface::class);
+    $testimonial_shape = $repository->getStorablePropShape(PropShape::normalize(self::getTestimonialItemSchema()));
+    $stat_shape = $repository->getStorablePropShape(PropShape::normalize([
+      'type' => 'object',
+      'properties' => ['count' => ['type' => 'integer']],
+    ]));
+    self::assertNotNull($testimonial_shape);
+    self::assertNotNull($stat_shape);
+    $this->buildTemporaryWidgetForm($testimonial_shape);
+    $stat_form = $this->buildTemporaryWidgetForm($stat_shape);
+    self::assertArrayHasKey('count', $stat_form['widget'][0]);
+    self::assertArrayNotHasKey('quote', $stat_form['widget'][0]);
   }
 
   /**
@@ -1355,10 +1423,12 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $repository = \Drupal::service(PropShapeRepositoryInterface::class);
     \assert($repository instanceof CacheCollectorInterface);
     \assert($repository instanceof PropShapeRepositoryInterface);
-    // A prop shape no field type can store: cached as NULL.
+    // A prop shape no field type can store: cached as NULL. Objects with only
+    // scalar properties are storable, but a nested array is not.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
     $non_storable_shape = PropShape::normalize([
       'type' => 'object',
-      'properties' => ['x' => ['type' => 'string']],
+      'properties' => ['x' => ['type' => 'array', 'items' => ['type' => 'string']]],
     ]);
     self::assertNull($repository->getStorablePropShape($non_storable_shape));
     // End of the request: the cache is written, including the NULL.

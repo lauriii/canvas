@@ -453,8 +453,83 @@ const mediaSelection: Transformer<
   return multiple ? selectionValues : selectionValues[0];
 };
 
+export interface ObjectPropShape extends StaticPropSource {
+  sourceTypeSettings: {
+    storage: {
+      // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+      properties: Record<
+        string,
+        { type: 'string' | 'integer' | 'number' | 'boolean' }
+      >;
+      required?: string[];
+    };
+  };
+}
+
+// Builds objects from the per-property form values of the `canvas_object`
+// widget: casts each value to its JSON schema type, and omits empty values,
+// empty objects (such as an unfilled new item) and objects that lack a
+// required property (such as an item that is still being filled in).
+// Rendering those would fail component validation.
+// @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget
+const objectProperties: Transformer<
+  BaseTransformOptions,
+  null | PropsValues | Array<PropsValues>,
+  PropsValuesOrArrayOfPropsValues,
+  ObjectPropShape
+> = (value, options, propSource) => {
+  const properties = propSource?.sourceTypeSettings?.storage?.properties ?? {};
+  const required = propSource?.sourceTypeSettings?.storage?.required ?? [];
+  // A single object's widget submits delta 0, like any field widget.
+  const single = Array.isArray(value) ? value[0] : value;
+  const records: Array<PropsValues | null> = options.multiple
+    ? normalizeMultipleRecords(value)
+    : [
+        ((single as PropsValues | undefined)?.[0] ??
+          single ??
+          null) as PropsValues | null,
+      ];
+  const propertySchemas = Object.values(properties);
+  // FALSE is what an unchecked checkbox submits, so it only makes an object
+  // non-empty when all of its properties are booleans.
+  // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem::isEmpty()
+  const onlyBooleans =
+    propertySchemas.length > 0 &&
+    propertySchemas.every(({ type }) => type === 'boolean');
+  const objects = records.map((record) => {
+    if (record === null || typeof record !== 'object') {
+      return null;
+    }
+    const object: PropsValues = {};
+    Object.entries(properties).forEach(([name, { type }]) => {
+      const raw = record[name];
+      if (raw === undefined || raw === null || raw === '') {
+        return;
+      }
+      object[name] =
+        type === 'string'
+          ? String(raw)
+          : cast(
+              raw,
+              { to: type === 'boolean' ? 'boolean' : type },
+              propSource,
+            );
+    });
+    const isEmpty = onlyBooleans
+      ? Object.keys(object).length === 0
+      : !Object.values(object).some((v) => v !== false);
+    const isIncomplete = required.some((name) => !(name in object));
+    return isEmpty || isIncomplete ? null : object;
+  });
+  if (options.multiple) {
+    return objects.filter((object): object is PropsValues => object !== null);
+  }
+  return objects[0] ?? null;
+};
+
 const transforms = {
   mainProperty,
+  objectProperties,
   firstRecord,
   dateTime,
   dateRange,
