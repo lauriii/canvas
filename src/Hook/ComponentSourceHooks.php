@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Block\BlockManagerDecorator;
 use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -65,10 +66,31 @@ readonly final class ComponentSourceHooks {
   }
 
   /**
+   * Implements hook_module_preinstall().
+   *
+   * Tells the block manager decorator to skip component generation until the
+   * install is done.
+   *
+   * @see \Drupal\canvas\Block\BlockManagerDecorator::$moduleInstallInProgress
+   */
+  #[Hook('module_preinstall')]
+  public function modulePreinstall(string $module, bool $is_syncing): void {
+    $block_manager = $this->kernel->getContainer()->get('plugin.manager.block');
+    \assert($block_manager instanceof BlockManagerDecorator);
+    $block_manager->moduleInstallInProgress = TRUE;
+  }
+
+  /**
    * Implements hook_modules_installed().
    */
   #[Hook('modules_installed')]
   public function modulesInstalled(array $modules, bool $is_syncing): void {
+    // The install is done, so the block manager decorator may generate
+    // components again.
+    $block_manager = $this->kernel->getContainer()->get('plugin.manager.block');
+    \assert($block_manager instanceof BlockManagerDecorator);
+    $block_manager->moduleInstallInProgress = FALSE;
+
     // Canvas needs canvas_stark in order to work, so *always* install it
     // regardless of whether config is syncing. The theme installer is smart
     // enough to return early if canvas_stark is already installed.

@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Block;
 
+use Drupal\block_content\Entity\BlockContent;
+use Drupal\block_content\Entity\BlockContentType;
 use Drupal\canvas\Block\BlockManagerDecorator;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\Core\Block\BlockManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\system\Entity\Menu;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -76,6 +81,66 @@ final class BlockManagerDecoratorTest extends CanvasKernelTestBase {
     // New menu block derivatives are disabled by default: only those in
     // BlockComponentDiscovery::BLOCKS_TO_KEEP_ENABLED are enabled.
     self::assertFalse($component->status());
+  }
+
+  /**
+   * Installing block_content must not break the site.
+   *
+   * Core clears plugin caches during a module install before it installs the
+   * module's entity types; block_content's derivative queries its table.
+   * Webform crashed during the same cache clear, on sites with Trash 3.1.0:
+   * its block asked for the webform entity type before core knew about it.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3582851
+   */
+  public function testInstallingBlockContentDoesNotDiscoverBlocksBeforeItsTablesExist(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['block_content']);
+
+    // Now that the install is done, new reusable blocks must still become
+    // components right away.
+    BlockContentType::create([
+      'id' => 'basic',
+      'label' => 'Basic',
+    ])->save();
+    $block_content = BlockContent::create([
+      'type' => 'basic',
+      'info' => 'Test reusable block',
+      'reusable' => TRUE,
+    ]);
+    $block_content->save();
+
+    $component = Component::load('block.block_content.' . $block_content->uuid());
+    self::assertNotNull($component, 'The reusable block is generated as a component after the install.');
+    self::assertSame(BlockComponent::SOURCE_PLUGIN_ID, $component->get('source'));
+  }
+
+  /**
+   * Installing several modules at once must not break the site either.
+   *
+   * Core installs modules in groups. Modules that don't set
+   * `container_rebuild_required: true` in their info file share a group. Core
+   * rebuilds the container at the start of each group, and resets it again
+   * after installing config if the group has more than one module. The install
+   * must still succeed, and the block manager decorator must generate
+   * components again afterwards.
+   *
+   * @see \Drupal\Core\Extension\ModuleInstaller::install()
+   * @see \Drupal\Core\Extension\ModuleInstaller::doInstall()
+   * @see https://www.drupal.org/project/canvas/issues/3582851
+   */
+  public function testInstallingSeveralModulesAtOnce(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install([
+      'block_content',
+      'contact',
+    ]);
+
+    $module_handler = $this->container->get(ModuleHandlerInterface::class);
+    self::assertTrue($module_handler->moduleExists('block_content'));
+    self::assertTrue($module_handler->moduleExists('contact'));
+
+    $block_manager = $this->container->get(BlockManagerInterface::class);
+    self::assertInstanceOf(BlockManagerDecorator::class, $block_manager);
+    self::assertFalse($block_manager->moduleInstallInProgress);
   }
 
 }

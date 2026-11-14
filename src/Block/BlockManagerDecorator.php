@@ -18,6 +18,9 @@ use Drupal\Core\Block\BlockManagerInterface;
  * entities for the "block" component source. Without this, newly added block
  * plugins (e.g. Views blocks) do not appear in Canvas until a full cache clear.
  *
+ * This is skipped while a module is being installed, because the module's
+ * database tables may not exist yet.
+ *
  * @todo Refactor this after https://www.drupal.org/project/drupal/issues/3001284 lands.
  *
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
@@ -26,7 +29,29 @@ use Drupal\Core\Block\BlockManagerInterface;
  * @see https://www.drupal.org/project/canvas/issues/3578142
  * @internal
  */
-final readonly class BlockManagerDecorator implements BlockManagerInterface, FallbackPluginManagerInterface, CachedDiscoveryInterface {
+final class BlockManagerDecorator implements BlockManagerInterface, FallbackPluginManagerInterface, CachedDiscoveryInterface {
+
+  /**
+   * TRUE while a module is being installed.
+   *
+   * While a module installs, core clears the plugin caches before it creates
+   * the module's database tables. Generating block components at that moment
+   * reads tables that don't exist yet, and the install crashes halfway. So
+   * clearCachedDefinitions() skips generation until the install is done.
+   *
+   * This lives on the service, so a container rebuild resets it. That is
+   * fine: core rebuilds the container before invoking
+   * hook_module_preinstall(), and any later rebuild happens after the tables
+   * exist.
+   *
+   * @var bool
+   *
+   * @see \Drupal\Core\Extension\ModuleInstaller::doInstall()
+   * @see \Drupal\canvas\Hook\ComponentSourceHooks::modulePreinstall()
+   * @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
+   * @see https://www.drupal.org/project/canvas/issues/3582851
+   */
+  public bool $moduleInstallInProgress = FALSE;
 
   /**
    * The decorated block plugin manager is responsible for caching, not this!
@@ -34,8 +59,8 @@ final readonly class BlockManagerDecorator implements BlockManagerInterface, Fal
    * @phpstan-ignore pluginManagerSetsCacheBackend.missingCacheBackend
    */
   public function __construct(
-    private BlockManagerInterface&FallbackPluginManagerInterface&CachedDiscoveryInterface $decorated,
-    private ComponentSourceManager $componentSourceManager,
+    private readonly BlockManagerInterface&FallbackPluginManagerInterface&CachedDiscoveryInterface $decorated,
+    private readonly ComponentSourceManager $componentSourceManager,
   ) {}
 
   /**
@@ -43,6 +68,14 @@ final readonly class BlockManagerDecorator implements BlockManagerInterface, Fal
    */
   public function clearCachedDefinitions(): void {
     $this->decorated->clearCachedDefinitions();
+
+    // During a module install, Canvas generates all components once the
+    // install is done.
+    // @see ::$moduleInstallInProgress
+    // @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
+    if ($this->moduleInstallInProgress) {
+      return;
+    }
     $this->componentSourceManager->generateComponents(BlockComponent::SOURCE_PLUGIN_ID);
   }
 
