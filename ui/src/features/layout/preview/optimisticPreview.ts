@@ -41,18 +41,36 @@ export const findBoundary = (
   id: string,
 ) => boundaries.find((b) => b.type === type && b.id === id);
 
+// A Canvas island that renders nothing yet: one added ahead of the server, or
+// on a page whose islands are yet to hydrate. It is empty until it has
+// hydrated (or failed to), so the slot it is in keeps its placeholder.
+const rendersNothingYet = (element: Element) =>
+  element.matches('canvas-island[ssr]:not([data-hydration-failed])') &&
+  Array.from(element.childNodes).every(
+    (child) =>
+      ['template', 'script', 'style', 'link'].includes(
+        (child as Element).localName,
+      ) ||
+      child.nodeType === Node.COMMENT_NODE ||
+      (child.nodeType === Node.TEXT_NODE && !child.textContent?.trim()),
+  );
+
 /**
  * Shows the placeholder of a slot or region if it has nothing in it, as the
  * server renders it, and removes it otherwise.
+ *
+ * @return
+ *   Whether it has a component whose Canvas island renders nothing yet.
  */
-// Components added ahead of the server whose Canvas islands are yet to
-// hydrate. They are empty until then, so the placeholder of the slot they were
-// added to stays.
-const hydrating = new Set<string>();
-
 function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
-  if (start.parentNode !== end.parentNode) {
-    return;
+  // Not in an island that renders nothing yet: its render replaces it.
+  if (
+    start.parentNode !== end.parentNode ||
+    (start.parentNode as Element).closest?.(
+      'canvas-island[ssr]:not([data-hydration-failed])',
+    )
+  ) {
+    return false;
   }
   const className =
     type === 'region'
@@ -60,21 +78,34 @@ function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
       : CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS;
   let empty = true;
   let pending = false;
-  let skipping: string | null = null;
+  // The component the node is in, and whether its elements are islands that
+  // render nothing yet: none of them (false), all of them, or there are none.
+  let component: string | null = null;
+  let componentEmpty: boolean | null = null;
   let placeholder: HTMLElement | null = null;
   for (let node = start.nextSibling; node && node !== end;) {
     const marker =
       node.nodeType === Node.COMMENT_NODE
         ? parseCanvasCommentMarker(node.nodeValue ?? '')
         : null;
-    if (marker?.type === 'component' && hydrating.has(marker.id)) {
-      skipping = marker.position === 'start' ? marker.id : null;
-      pending = true;
-    } else if (skipping) {
-      // In a component that is yet to hydrate.
-    } else if ((node as Element).classList?.contains(className)) {
+    if (!component && marker?.type === 'component') {
+      component = marker.id;
+      componentEmpty = null;
+    } else if (component && marker?.id === component) {
+      component = null;
+      if (componentEmpty) {
+        pending = true;
+      } else {
+        empty = false;
+      }
+    } else if (node.nodeType !== Node.ELEMENT_NODE) {
+      // Text, and the markers of the instances in a component.
+    } else if (component) {
+      componentEmpty =
+        componentEmpty !== false && rendersNothingYet(node as Element);
+    } else if ((node as Element).classList.contains(className)) {
       placeholder = node as HTMLElement;
-    } else if (marker || node.nodeType === Node.ELEMENT_NODE) {
+    } else {
       // A component that failed to render has no markers.
       empty = false;
     }
@@ -82,8 +113,6 @@ function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
   }
   if (!empty) {
     placeholder?.remove();
-  } else if (pending) {
-    // Kept as it is until the component has hydrated.
   } else if (placeholder) {
     placeholder.style.display = '';
   } else {
@@ -91,40 +120,38 @@ function syncEmptyPlaceholder({ type, start, end }: CanvasBoundary) {
     placeholder.className = className;
     end.parentNode!.insertBefore(placeholder, end);
   }
+  return pending;
 }
+
+// The preview documents that sync their placeholders when an island hydrates.
+const syncedOnHydration = new WeakSet<Document>();
 
 /**
  * Shows the placeholder of each slot and region in the preview that has
  * nothing in it, as the server renders it, and removes the others.
  *
+ * A component whose Canvas island renders nothing yet counts as nothing, so a
+ * slot doesn't collapse while it hydrates. The placeholders are synced again
+ * once islands have hydrated.
+ *
  * @param document
  *   The preview document.
  */
 export function syncPlaceholders(document: Document) {
-  discoverCanvasBoundaries(document, { templateMarkers: false })
+  const pending = discoverCanvasBoundaries(document, {
+    templateMarkers: false,
+  })
     .filter(({ type }) => type !== 'component')
-    .forEach(syncEmptyPlaceholder);
+    .map(syncEmptyPlaceholder)
+    .some(Boolean);
+  if (pending && !syncedOnHydration.has(document)) {
+    syncedOnHydration.add(document);
+    // Captured: Astro doesn't bubble astro:hydrate.
+    const sync = () => syncPlaceholders(document);
+    document.addEventListener('astro:hydrate', sync, true);
+    document.addEventListener('astro:hydration-error', sync, true);
+  }
 }
-
-// Resolves once each Canvas island in a list has hydrated, or failed to, but
-// within a second, as a preview swap waits for them (see IframeSwapper).
-const islandsHydrated = (islands: Element[]) =>
-  Promise.race([
-    Promise.all(
-      islands
-        .filter((island) => island.hasAttribute('ssr'))
-        .map(
-          (island) =>
-            new Promise((resolve) => {
-              island.addEventListener('astro:hydrate', resolve, { once: true });
-              island.addEventListener('astro:hydration-error', resolve, {
-                once: true,
-              });
-            }),
-        ),
-    ),
-    new Promise((resolve) => setTimeout(resolve, 1000)),
-  ]);
 
 /**
  * Returns the document of the preview iframe that is currently shown.
@@ -250,21 +277,8 @@ export function insertPreviewComponent(
   template.innerHTML = defaultUuid
     ? markup.default_markup.replaceAll(defaultUuid, uuid)
     : marker('start', uuid) + markup.default_markup + marker('end', uuid);
-  const islands = Array.from(
-    template.content.querySelectorAll('canvas-island'),
-  );
   position.anchor.parentNode.insertBefore(template.content, position.anchor);
-  // A Canvas island is empty until it has hydrated. The placeholder of the
-  // slot it was added to keeps its height until then.
-  if (islands.length) {
-    hydrating.add(uuid);
-    islandsHydrated(islands).then(() => {
-      hydrating.delete(uuid);
-      syncPlaceholders(document);
-    });
-  } else {
-    syncPlaceholders(document);
-  }
+  syncPlaceholders(document);
   notePreviewEdit(document);
   return true;
 }

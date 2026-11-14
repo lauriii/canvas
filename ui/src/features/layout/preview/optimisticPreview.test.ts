@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { NodeType } from '@/features/layout/layoutModelSlice';
 import {
@@ -165,14 +165,14 @@ describe('insertPreviewComponent', () => {
       'n',
       {
         default_markup:
-          '<!-- canvas-start-default --><canvas-island uid="default">' +
+          '<!-- canvas-start-default --><canvas-island uid="default" ssr="">' +
           '<!-- canvas-slot-start-default/body --><!-- canvas-slot-end-default/body -->' +
           '</canvas-island><!-- canvas-end-default -->',
         css: '',
       },
     );
     expect(doc.body.innerHTML).toContain(
-      '<!-- canvas-end-a --><!-- canvas-start-n --><canvas-island uid="n">' +
+      '<!-- canvas-end-a --><!-- canvas-start-n --><canvas-island uid="n" ssr="">' +
         '<!-- canvas-slot-start-n/body --><!-- canvas-slot-end-n/body -->' +
         '</canvas-island><!-- canvas-end-n --><!-- canvas-start-b -->',
     );
@@ -189,35 +189,61 @@ describe('insertPreviewComponent', () => {
     const placeholder = (doc: Document) =>
       doc.querySelector('div > .canvas--slot-empty-placeholder');
 
-    it('keeps the placeholder until the island has hydrated, or failed to', async () => {
-      for (const event of ['astro:hydrate', 'astro:hydration-error']) {
+    it('keeps the placeholder until the island renders, or fails to', () => {
+      for (const failed of [false, true]) {
         const doc = preview();
-        insertIsland(doc, '<canvas-island ssr></canvas-island>');
+        // As the server renders it.
+        insertIsland(
+          doc,
+          '<canvas-island ssr><script type="module" src="c.js"></script><template data-astro-template="body"></template></canvas-island>',
+        );
         // Not removed by other edits or a render shown in place meanwhile.
         removePreviewComponent(doc, 'a');
-        await new Promise((resolve) => setTimeout(resolve, 0));
         expect(placeholder(doc)).not.toBeNull();
 
-        doc
-          .querySelector('canvas-island')!
-          .dispatchEvent(new CustomEvent(event));
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        const island = doc.querySelector('canvas-island')!;
+        if (failed) {
+          island.setAttribute('data-hydration-failed', '');
+          island.dispatchEvent(new CustomEvent('astro:hydration-error'));
+        } else {
+          island.innerHTML = '<p>N</p>';
+          island.removeAttribute('ssr');
+          island.dispatchEvent(new CustomEvent('astro:hydrate'));
+        }
         expect(placeholder(doc)).toBeNull();
       }
     });
 
-    it('keeps the placeholder for one second at most', async () => {
-      vi.useFakeTimers();
-      try {
-        const doc = preview();
-        insertIsland(doc, '<canvas-island ssr></canvas-island>');
-        await vi.advanceTimersByTimeAsync(999);
-        expect(placeholder(doc)).not.toBeNull();
-        await vi.advanceTimersByTimeAsync(1);
-        expect(placeholder(doc)).toBeNull();
-      } finally {
-        vi.useRealTimers();
-      }
+    it('keeps the placeholder when the slot is emptied and filled again before the island renders', () => {
+      const doc = preview();
+      insertIsland(doc, '<canvas-island ssr></canvas-island>');
+      movePreviewComponent(
+        doc,
+        layout(component('b'), withSlot(component('a'), component('n'))),
+        'a',
+      );
+      expect(placeholder(doc)).toBeNull();
+      movePreviewComponent(
+        doc,
+        layout(component('a'), component('b'), withSlot(component('n'))),
+        'a',
+      );
+      expect(placeholder(doc)).not.toBeNull();
+      // Or the island is removed.
+      removePreviewComponent(doc, 'n');
+      expect(placeholder(doc)).not.toBeNull();
+    });
+
+    it('leaves the slots of the island alone until it renders', () => {
+      const doc = preview();
+      insertIsland(
+        doc,
+        '<canvas-island ssr><!-- canvas-slot-start-n/body --><!-- canvas-slot-end-n/body --></canvas-island>',
+      );
+      expect(placeholder(doc)).not.toBeNull();
+      expect(doc.querySelector('canvas-island')!.innerHTML).toBe(
+        '<!-- canvas-slot-start-n/body --><!-- canvas-slot-end-n/body -->',
+      );
     });
 
     it("doesn't keep the placeholder for an island that has rendered", async () => {
