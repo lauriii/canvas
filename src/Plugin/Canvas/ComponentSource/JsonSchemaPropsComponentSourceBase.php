@@ -1308,10 +1308,16 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // The collapsible section of each prop that is in one: the label of its
     // `x-canvas-group`, or TRUE for `x-canvas-advanced`. Read from the raw
     // component schema: the stored prop shape is the same in every section.
+    // A label that is not a string is ignored: discovery rejects it, but the
+    // form of an existing instance still reads the live schema.
     $sections = \array_filter(\array_map(
-      static fn (array $prop_schema): string|bool => !empty($prop_schema['x-canvas-advanced']) ? TRUE : $prop_schema['x-canvas-group'] ?? FALSE,
+      static fn (array $prop_schema): string|bool => match (TRUE) {
+        !empty($prop_schema['x-canvas-advanced']) => TRUE,
+        \is_string($prop_schema['x-canvas-group'] ?? NULL) => $prop_schema['x-canvas-group'],
+        default => FALSE,
+      },
       \array_intersect_key($component_schema['properties'] ?? [], $prop_field_definitions),
-    ));
+    ), static fn (string|bool $section): bool => $section !== FALSE);
     if ($sections) {
       $form['#canvas_prop_sections'] = $sections;
       $form['#pre_render'][] = [static::class, 'preRenderPropSections'];
