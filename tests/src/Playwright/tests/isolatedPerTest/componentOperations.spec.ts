@@ -497,3 +497,67 @@ test.describe('Perform CRUD operations on components', () => {
     );
   });
 });
+
+test.describe('Link props', () => {
+  test.use({ modules: ['canvas_test_sdc', 'canvas_test_page_anchors'] });
+
+  test('Suggest anchors on the page', async ({ page, drupal, canvas }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    // The section renders its `anchor` prop example, `pricing`, as an id.
+    await canvas.addComponent({ name: 'Page section' });
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ name: 'Link button' });
+
+    const link = page.getByLabel('Link', { exact: true });
+    // jQuery UI hides a closed list but keeps its items.
+    const suggestions = page.locator('ul.ui-autocomplete:visible li');
+    const expectHref = (href: string) =>
+      canvas.testInPreviewFrame(
+        '[data-component-id="canvas_test_page_anchors:button"]',
+        async (button) => {
+          await expect(button).toHaveAttribute('href', href);
+        },
+      );
+    await expectHref('#top');
+
+    // Picking an anchor stores it.
+    await link.fill('#pri');
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+    await suggestions.click();
+    await expect(link).toHaveValue('#pricing');
+    await expectHref('#pricing');
+
+    // A typed fragment that matches no anchor closes the list and is stored.
+    await link.fill('#prices');
+    await expect(suggestions).toHaveCount(0);
+    await expectHref('#prices');
+
+    // After a stored change, the field still suggests anchors.
+    await link.fill('#pri');
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+
+    // Clearing the field stores the empty value, without listing anchors.
+    await link.fill('');
+    await expect(suggestions).toHaveCount(0);
+    await expectHref('');
+
+    // An empty field lists the anchors when it gets focus.
+    await page.getByLabel('Text', { exact: true }).click();
+    await link.click();
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+
+    // Typing anything other than `#` searches content as before.
+    await link.fill('/about');
+    await expect(suggestions).toHaveCount(0);
+    await expectHref('/about');
+
+    // An anchor typed in full is stored when the field loses focus, even
+    // while it is suggested.
+    await link.fill('#pricing');
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+    await link.press('Tab');
+    await expectHref('#pricing');
+  });
+});
