@@ -182,6 +182,36 @@ export const resolveEntityUri = (uri: string): string => {
   return id !== null ? `entity:node/${id}` : uri;
 };
 
+/**
+ * Resolves what an editor typed into a link field into a URI.
+ *
+ * A bare email address becomes a `mailto:` URI and a phone number becomes a
+ * `tel:` URI. Anything else is resolved by resolveEntityUri().
+ */
+export const resolveLinkUri = (uri: string): string => {
+  const typed = uri.trim();
+  // An autocomplete selection like "2026 (123)" can look like a phone number.
+  if (parseSingleEntityAutocompleteSelection(typed) !== null) {
+    return resolveEntityUri(uri);
+  }
+  if (/^[^\s@:/?#]+@[^\s@:/?#]+\.[^\s@:/?#]+$/.test(typed)) {
+    // Percent-encode characters such as a literal "%", which `mailto:` URIs
+    // would otherwise decode.
+    return `mailto:${encodeURI(typed)}`;
+  }
+  // A phone number needs a leading "+" or a separator, so that bare numbers
+  // (for example entity IDs) stay untouched.
+  const digits = typed.replace(/\D/g, '');
+  if (
+    /^\+?[\d\s().-]+$/.test(typed) &&
+    /^\+|[\s().-]/.test(typed) &&
+    digits.length >= 7
+  ) {
+    return `tel:${typed.startsWith('+') ? '+' : ''}${digits}`;
+  }
+  return resolveEntityUri(uri);
+};
+
 const hasStringUri = (
   value: unknown,
 ): value is PropsValues & { uri: string } => {
@@ -214,13 +244,13 @@ const link: Transformer<
         { name: 'uri', multiple: false },
         propSource,
       );
-      return uri != null ? resolveEntityUri(uri) : uri;
+      return uri != null ? resolveLinkUri(uri) : uri;
     }
     if (record === null || typeof record !== 'object') {
       return null;
     }
     return hasStringUri(record)
-      ? { ...record, uri: resolveEntityUri(record.uri) }
+      ? { ...record, uri: resolveLinkUri(record.uri) }
       : (record as PropsValues);
   });
   if (options.multiple) {
