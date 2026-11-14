@@ -159,7 +159,12 @@ export const DrupalObjectPropsItemList = ({
     // The editor reserves the space bar for panning the preview.
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-      keyboardCodes: { start: ['Enter'], cancel: ['Escape'], end: ['Enter'] },
+      // Tab leaves the handle, so it drops the row as well.
+      keyboardCodes: {
+        start: ['Enter'],
+        cancel: ['Escape'],
+        end: ['Enter', 'Tab'],
+      },
     }),
   );
 
@@ -167,7 +172,9 @@ export const DrupalObjectPropsItemList = ({
     const wrapper = wrapperRef.current;
     // The hidden "Add new" submit is only rendered while the group's
     // cardinality allows more items.
-    setCanAdd(!!wrapper?.querySelector('input[data-object-props-add]'));
+    setCanAdd(
+      !!wrapper?.querySelector('input[data-object-props-add]:not(:disabled)'),
+    );
     setDroppedOrder(null);
   }, [children]);
 
@@ -181,7 +188,7 @@ export const DrupalObjectPropsItemList = ({
       over ? `The row is now at ${positionOf(over.id)}.` : undefined,
     onDragEnd: ({ over }: Pick<DragEndEvent, 'over'>) =>
       over ? `Dropped the row at ${positionOf(over.id)}.` : undefined,
-    onDragCancel: () => 'Reordering was cancelled.',
+    onDragCancel: () => 'Reordering was canceled.',
   };
 
   const handleAddNew = () => {
@@ -196,7 +203,7 @@ export const DrupalObjectPropsItemList = ({
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const wrapper = wrapperRef.current;
     const moveButton = wrapper?.querySelector<HTMLInputElement>(
-      `[data-object-props-item="${active.id}"] input[data-object-props-move]`,
+      `[data-object-props-item="${active.id}"] input[data-object-props-move]:not(:disabled)`,
     );
     if (
       !wrapper ||
@@ -335,7 +342,7 @@ export const DrupalObjectPropsItem = ({
       updateDisplayValue();
       const hasSubmit = (action: string) =>
         !!popoverContainerRef.current?.querySelector(
-          `input[data-object-props-${action}]`,
+          `input[data-object-props-${action}]:not(:disabled)`,
         );
       setActions({
         remove: hasSubmit('remove'),
@@ -391,7 +398,7 @@ export const DrupalObjectPropsItem = ({
       setTimeout(() => {
         const submit =
           popoverContainerRef.current?.querySelector<HTMLInputElement>(
-            `input[data-object-props-${action}]`,
+            `input[data-object-props-${action}]:not(:disabled)`,
           );
         if (submit) {
           triggerHiddenSubmit(submit);
