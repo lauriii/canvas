@@ -1042,6 +1042,12 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
           }
         }
       }
+      // The unit of a number prop, which the UI shows in its input. Read from
+      // the raw component schema too: the stored value is the bare number.
+      // @see ui/src/components/form/components/TextField.tsx
+      if ($field_widget_plugin_id === 'number' && isset($prop_schema['x-canvas-unit'], $form[$sdc_prop_name]['widget'][0]['value'])) {
+        $form[$sdc_prop_name]['widget'][0]['value']['#attributes']['data-canvas-unit'] = $prop_schema['x-canvas-unit'];
+      }
 
       if ($entity instanceof ContentTemplate) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);

@@ -109,6 +109,28 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertSame('1', $integer_input->attr('step'));
   }
 
+  /**
+   * Tests that `x-canvas-unit` reaches the number input.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+   * @see ui/src/components/form/components/TextField.tsx
+   */
+  public function testNumberUnit(): void {
+    $this->createNode(['type' => 'article', 'title' => 'Test node'])->save();
+
+    $component_id = 'sdc.canvas_test_sdc.required-integer';
+    $component_entity = Component::load($component_id);
+    \assert($component_entity instanceof ComponentInterface);
+    $crawler = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/node/1',
+      $component_entity,
+      $this->getFormCanvasPropsForComponent($component_id),
+    );
+    $input = $crawler->filter('input[type="number"][name*="[count]"]');
+    self::assertCount(1, $input);
+    self::assertSame('pcs', $input->attr('data-canvas-unit'));
+  }
+
   #[DataProvider('providerOptionalImages')]
   public function testOptionalImageAndHeading(string $component, array $values_to_set, array $expected_form_canvas_props): void {
     $actual_form_canvas_props = $this->getFormCanvasPropsForComponent($component);

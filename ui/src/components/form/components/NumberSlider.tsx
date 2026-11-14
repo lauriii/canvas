@@ -64,10 +64,18 @@ const NumberSlider = ({
   const min = Number(attributes.min);
   const max = Number(attributes.max);
   const value = Number(attributes.value);
+  // Room for the unit that the number input shows, if any.
+  // @see TextField
+  const unit = `${attributes['data-canvas-unit'] ?? ''}`;
 
   return (
     <Flex align="center" gap="3">
-      <div ref={fieldRef} style={{ flex: '0 0 5rem' }}>
+      <div
+        ref={fieldRef}
+        style={{
+          flex: `0 0 calc(5rem + ${unit ? `${unit.length}ch + 14px` : '0px'})`,
+        }}
+      >
         {children}
       </div>
       <Slider

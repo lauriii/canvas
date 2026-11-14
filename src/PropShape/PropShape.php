@@ -148,6 +148,8 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
+    // The unit of a number only affects the component instance form.
+    unset($normalized_prop_schema['x-canvas-unit']);
 
     // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
     // prop's declared `type` (and then dedupes) so Twig can defer rendering
