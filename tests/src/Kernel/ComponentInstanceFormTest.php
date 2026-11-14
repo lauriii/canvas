@@ -14,6 +14,7 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
@@ -24,6 +25,7 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
@@ -474,6 +476,46 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
     $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, json_decode('undefined'));
     self::assertSame("Component is missing. Fix the component or copy values to a new component. $fyi", $response->text());
+  }
+
+  /**
+   * Tests that props with a section render in that collapsible section.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::preRenderPropSections()
+   * @see ui/src/components/form/components/Details.tsx
+   */
+  public function testPropSections(): void {
+    $this->createNode(['type' => 'article', 'title' => 'Test node'])->save();
+
+    $component_id = 'sdc.canvas_test_sdc.select-fields';
+    $component_entity = Component::load($component_id);
+    \assert($component_entity instanceof ComponentInterface);
+    $crawler = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/node/1',
+      $component_entity,
+      $this->getFormCanvasPropsForComponent($component_id),
+    );
+    $sections = $crawler->filter('details[data-canvas-prop-section]');
+    self::assertSame(['Appearance', 'Advanced'], $sections->each(static fn (Crawler $section): string => $section->filter('summary')->text()));
+    // The section of an `x-canvas-group` is open and contains its props.
+    self::assertSame('open', $sections->eq(0)->attr('open'));
+    self::assertCount(1, $sections->eq(0)->filter('select[name$="[size]"]'));
+    // The section of the `x-canvas-advanced` props is collapsed.
+    self::assertNull($sections->eq(1)->attr('open'));
+    self::assertCount(1, $sections->eq(1)->filter('select[name$="[colors][]"]'));
+
+    // A group is in the place of its first prop, "Advanced" after all props.
+    $element = JsonSchemaPropsComponentSourceBase::preRenderPropSections([
+      '#canvas_prop_sections' => ['a' => TRUE, 'c' => 'Layout', 'e' => 'Layout'],
+      'a' => [],
+      'b' => [],
+      'c' => [],
+      'd' => [],
+      'e' => [],
+    ]);
+    self::assertSame(['b', 'canvas_prop_section:Layout', 'd', 'canvas_prop_section_advanced'], Element::children($element));
+    self::assertSame(['c', 'e'], Element::children($element['canvas_prop_section:Layout']));
+    self::assertSame(['a'], Element::children($element['canvas_prop_section_advanced']));
   }
 
   /**

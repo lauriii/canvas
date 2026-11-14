@@ -190,6 +190,12 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.obsolete' => [
         'Component has "obsolete" status',
       ],
+      'sdc.canvas_test_sdc.props-invalid-sections' => [
+        'Prop "heading" is required, so it cannot have "x-canvas-advanced": an author would miss it in the collapsed section.',
+        '"x-canvas-group" on prop "text" must be a non-empty string: the label of its section.',
+        '"x-canvas-advanced" on prop "align" must be true or false.',
+        'Prop "width" has both "x-canvas-group" and "x-canvas-advanced": remove one, because a prop shows in one section.',
+      ],
       'sdc.canvas_test_sdc.props-invalid-shapes' => [
         'Drupal Canvas does not know of a field type/widget to allow populating the <code>invalid_shape</code> prop, with the shape <code>{"type":"object"}</code>.',
       ],

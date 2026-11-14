@@ -149,6 +149,9 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
+    // The section of a prop only affects the component instance form.
+    unset($normalized_prop_schema['x-canvas-group']);
+    unset($normalized_prop_schema['x-canvas-advanced']);
     // Visibility conditions only affect the component instance form.
     // @see \Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition
     unset($normalized_prop_schema[PropVisibilityCondition::KEY]);
