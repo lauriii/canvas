@@ -50,6 +50,7 @@ dhta
 diaclone
 demi
 domcontentloaded
+drowl
 drupalcode
 drupaldev
 drupalsettings

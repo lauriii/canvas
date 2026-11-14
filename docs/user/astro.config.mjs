@@ -196,7 +196,8 @@ export default defineConfig({
             { label: 'Customizing forms', slug: 'apis/customizing-forms' },
             { label: 'Theme settings', slug: 'apis/theme-settings' },
           ],
-        }
+        },
+        { label: 'Contributed modules', slug: 'contributed-modules' },
       ],
     }),
   ],
