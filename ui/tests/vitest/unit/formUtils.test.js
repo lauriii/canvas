@@ -522,6 +522,27 @@ Value`,
       // An ordered list of per-item objects for the multi-value group.
       authors: [{ name: 'Ada' }, { name: 'Grace' }],
     });
+
+    // Moved and duplicated items keep their delta: their position is their
+    // `_weight`, which is not part of the composed item.
+    const { propsValues: reordered } = getPropsValues(
+      {
+        ...groupFormState,
+        'canvas_component_props[all-props][authors.0._weight]': '2',
+        'canvas_component_props[all-props][authors.1._weight]': '0',
+        'canvas_component_props[all-props][authors.4.name][0][value]': 'Joan',
+        'canvas_component_props[all-props][authors.4._weight]': '1',
+      },
+      groupInputAndUiData,
+      // An item added after the form loaded uses the transforms of the other
+      // items: the server did not send any for it.
+      groupTransformConfig,
+    );
+    expect(reordered.authors).to.deep.equal([
+      { name: 'Grace' },
+      { name: 'Joan' },
+      { name: 'Ada' },
+    ]);
   });
 
   it('Should pass through an already-extracted entity autocomplete id', () => {

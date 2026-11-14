@@ -1,6 +1,34 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import clsx from 'clsx';
 import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from '@dnd-kit/modifiers';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  CopyIcon,
   Cross2Icon,
   DragHandleDots2Icon,
   PlusIcon,
@@ -9,10 +37,70 @@ import {
 import * as Popover from '@radix-ui/react-popover';
 import { Box, Button, Flex, Text } from '@radix-ui/themes';
 
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
+import type { DragEndEvent } from '@dnd-kit/core';
 import type { Attributes } from '@/types/DrupalAttribute';
 
 import styles from './DrupalObjectPropsGroup.module.css';
+
+const ROW_SELECTOR = '[data-object-props-item-row]';
+const HANDLE_SELECTOR = '[data-object-props-item-handle]';
+
+/**
+ * The name of the field that carries the target position of a moved item.
+ *
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::objectPropsMoveItemSubmit()
+ */
+const POSITION_FIELD = 'canvas_object_props_position';
+
+/**
+ * The ID of the AJAX wrapper of an item list: the same before and after a
+ * rebuild.
+ */
+const getListId = (element: Element | null) =>
+  element?.closest('[id^="canvas-object-props-"]')?.id ?? '';
+
+/**
+ * The element to focus once the server has rebuilt an item list.
+ *
+ * The rebuilt list replaces the one that had focus, so keyboard users would
+ * otherwise start over from the top of the page after every action.
+ */
+let focusAfterRebuild: {
+  listId: string;
+  selector: string;
+  index: number;
+} | null = null;
+
+/**
+ * Asks the rebuilt list to focus one of its rows.
+ *
+ * The request stands until the user does something else, because a rebuilt
+ * list can render more than once.
+ */
+const requestFocusAfterRebuild = (
+  trigger: Element | null,
+  selector: string,
+  index: number,
+) => {
+  focusAfterRebuild = { listId: getListId(trigger), selector, index };
+  ['keydown', 'pointerdown'].forEach((type) =>
+    document.addEventListener(type, () => (focusAfterRebuild = null), {
+      capture: true,
+      once: true,
+    }),
+  );
+};
+
+/**
+ * The position of a row in its list.
+ */
+const getRowIndex = (trigger: Element | null) =>
+  [
+    ...(trigger
+      ?.closest(`.${styles.itemList}`)
+      ?.querySelectorAll(ROW_SELECTOR) ?? []),
+  ].indexOf(trigger as Element);
 
 /**
  * Dispatches the mousedown + click sequence Drupal's AJAX system listens for
@@ -30,9 +118,14 @@ const triggerHiddenSubmit = (button: HTMLInputElement) => {
  * Item list of a multi-value group prop.
  *
  * Renders the item rows inside a bordered box and forwards clicks on the
- * styled "Add new" action to the hidden Drupal AJAX submit button.
+ * styled "Add new" action to the hidden Drupal AJAX submit button. Rows are
+ * reordered by dragging their handle, or from the keyboard: Enter on the handle
+ * picks the row up, the arrow keys move it, Enter drops it and Escape cancels.
+ * A drop clicks the hidden "Move" submit button of the row, so the server
+ * rebuilds the list in the new order.
  *
  * @see themes/canvas_stark/templates/form/container--canvas-object-props-item-list.html.twig
+ * @see DrupalMediaListContainer
  */
 export const DrupalObjectPropsItemList = ({
   children,
@@ -42,14 +135,54 @@ export const DrupalObjectPropsItemList = ({
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [canAdd, setCanAdd] = useState(false);
+  // The order of the rows after a drop, until the server has rebuilt the list.
+  const [droppedOrder, setDroppedOrder] = useState<string[] | null>(null);
 
-  // The hidden "Add new" submit is only rendered while the group's
-  // cardinality allows more items.
+  // An AJAX response replaces this list with a rebuilt one, but React keeps
+  // rendering the replaced list, out of sight. When the form reloads, it would
+  // get rows whose deltas mean other items than in the list the author sees,
+  // and write their values to the form state. A replaced list keeps its rows.
+  const rowsRef = useRef(children);
+  if (wrapperRef.current?.isConnected !== false) {
+    rowsRef.current = children;
+  }
+  const childList = Children.toArray(rowsRef.current);
+  const isItem = (child: ReactNode): child is ReactElement =>
+    isValidElement(child) && child.type === DrupalObjectPropsItem;
+  const items = childList.filter(isItem);
+  const ids = items.map((_, index) => `item-${index}`);
+  const order = droppedOrder?.length === ids.length ? droppedOrder : ids;
+
+  const sensors = useSensors(
+    // A click on a handle is not a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
+    // The editor reserves the space bar for panning the preview.
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      keyboardCodes: { start: ['Enter'], cancel: ['Escape'], end: ['Enter'] },
+    }),
+  );
+
   useEffect(() => {
-    setCanAdd(
-      !!wrapperRef.current?.querySelector('input[data-object-props-add]'),
-    );
+    const wrapper = wrapperRef.current;
+    // The hidden "Add new" submit is only rendered while the group's
+    // cardinality allows more items.
+    setCanAdd(!!wrapper?.querySelector('input[data-object-props-add]'));
+    setDroppedOrder(null);
   }, [children]);
+
+  // Tell screen reader users where a row is, instead of its internal ID.
+  const positionOf = (id: string | number | undefined) =>
+    `position ${order.indexOf(String(id)) + 1} of ${order.length}`;
+  const announcements = {
+    onDragStart: ({ active }: Pick<DragEndEvent, 'active'>) =>
+      `Picked up the row at ${positionOf(active.id)}.`,
+    onDragOver: ({ over }: Pick<DragEndEvent, 'over'>) =>
+      over ? `The row is now at ${positionOf(over.id)}.` : undefined,
+    onDragEnd: ({ over }: Pick<DragEndEvent, 'over'>) =>
+      over ? `Dropped the row at ${positionOf(over.id)}.` : undefined,
+    onDragCancel: () => 'Reordering was cancelled.',
+  };
 
   const handleAddNew = () => {
     const addButton = wrapperRef.current?.querySelector<HTMLInputElement>(
@@ -60,16 +193,72 @@ export const DrupalObjectPropsItemList = ({
     }
   };
 
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    const wrapper = wrapperRef.current;
+    const moveButton = wrapper?.querySelector<HTMLInputElement>(
+      `[data-object-props-item="${active.id}"] input[data-object-props-move]`,
+    );
+    if (
+      !wrapper ||
+      !moveButton ||
+      !over ||
+      active.id === over.id ||
+      // The list is about to be rebuilt.
+      document.body.dataset.canvasAjaxBehaviors === 'true'
+    ) {
+      return;
+    }
+    const position = order.indexOf(String(over.id));
+    setDroppedOrder(
+      arrayMove(order, order.indexOf(String(active.id)), position),
+    );
+    // The hidden submit button says which item moves; this field says where to.
+    wrapper
+      .closest('form')
+      ?.querySelectorAll(`input[name="${POSITION_FIELD}"]`)
+      .forEach((input) => input.remove());
+    const positionInput = document.createElement('input');
+    positionInput.type = 'hidden';
+    positionInput.name = POSITION_FIELD;
+    positionInput.value = String(position);
+    wrapper.append(positionInput);
+    requestFocusAfterRebuild(wrapper, HANDLE_SELECTOR, position);
+    triggerHiddenSubmit(moveButton);
+  };
+
   return (
-    <div ref={wrapperRef} className={styles.itemList}>
-      {children}
-      {canAdd && (
-        <button type="button" className={styles.addNew} onClick={handleAddNew}>
-          <PlusIcon />
-          Add new
-        </button>
-      )}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      accessibility={{
+        announcements,
+        screenReaderInstructions: {
+          draggable:
+            'To pick up a row, press Enter. Use the arrow keys to move it. Press Enter again to drop it, or press Escape to cancel.',
+        },
+      }}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={order} strategy={verticalListSortingStrategy}>
+        <div ref={wrapperRef} className={styles.itemList}>
+          {order.map((id) =>
+            cloneElement(items[ids.indexOf(id)], { key: id, sortableId: id }),
+          )}
+          {childList.filter((child) => !isItem(child))}
+          {canAdd && (
+            <button
+              type="button"
+              className={styles.addNew}
+              onClick={handleAddNew}
+            >
+              <PlusIcon />
+              Add new
+            </button>
+          )}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 };
 
@@ -77,9 +266,12 @@ export const DrupalObjectPropsItemList = ({
  * One item of a multi-value group prop.
  *
  * Displays a compact row that opens a popover containing the item's
- * sub-property widgets and a "Remove" action wired to the hidden Drupal AJAX
- * submit button. The popover content is force-mounted so the widgets stay in
- * the form while the popover is closed.
+ * sub-property widgets and the "Duplicate" and "Remove" actions, which are
+ * wired to hidden Drupal AJAX submit buttons. The server only renders the
+ * buttons of the actions the list allows: no "Remove" at `minItems`, no
+ * "Duplicate" at `maxItems` and no "Move" for a single row. The popover
+ * content is force-mounted so the widgets stay in the form while the popover
+ * is closed.
  *
  * @see themes/canvas_stark/templates/form/container--canvas-object-props-item.html.twig
  * @see DrupalInputMultivalueForm
@@ -87,20 +279,34 @@ export const DrupalObjectPropsItemList = ({
 export const DrupalObjectPropsItem = ({
   children,
   attributes = {},
+  sortableId = '',
 }: {
   children?: ReactNode;
   attributes?: Attributes;
+  // Set by DrupalObjectPropsItemList.
+  sortableId?: string;
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [displayValue, setDisplayValue] = useState('');
-  // Single-value groups render as a one-item list without a remove button.
-  const [canRemove, setCanRemove] = useState(false);
+  // The actions whose hidden submit button the server rendered.
+  const [actions, setActions] = useState({
+    remove: false,
+    duplicate: false,
+    move: false,
+  });
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const popoverContainerRef = useRef<HTMLDivElement>(null);
   const itemLabel = String(attributes['data-item-label'] || 'Item');
   const displayText = displayValue === '' ? itemLabel : displayValue;
-  // A single-value group is one fixed row: nothing to reorder.
-  const isSingle = String(attributes['data-object-props-single']) === 'true';
+  const {
+    attributes: handleAttributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sortableId, disabled: !actions.move });
 
   // Preview the first populated text-like sub-value in the row, like the
   // multivalue field rows do for their single value.
@@ -127,13 +333,39 @@ export const DrupalObjectPropsItem = ({
     // Wait a tick so the force-mounted popover children have rendered.
     setTimeout(() => {
       updateDisplayValue();
-      setCanRemove(
+      const hasSubmit = (action: string) =>
         !!popoverContainerRef.current?.querySelector(
-          'input[data-object-props-remove]',
-        ),
-      );
+          `input[data-object-props-${action}]`,
+        );
+      setActions({
+        remove: hasSubmit('remove'),
+        duplicate: hasSubmit('duplicate'),
+        move: hasSubmit('move'),
+      });
     });
   }, [children]);
+
+  // Take over the focus from the list this one replaces. The drag handle only
+  // renders once the actions are known.
+  useEffect(() => {
+    const trigger = triggerButtonRef.current;
+    if (focusAfterRebuild?.listId !== getListId(trigger)) {
+      return;
+    }
+    const rows = trigger
+      ?.closest(`.${styles.itemList}`)
+      ?.querySelectorAll(ROW_SELECTOR);
+    const target = trigger?.parentElement?.querySelector<HTMLElement>(
+      focusAfterRebuild.selector,
+    );
+    if (
+      target &&
+      getRowIndex(trigger) ===
+        Math.min(focusAfterRebuild.index, (rows?.length ?? 1) - 1)
+    ) {
+      target.focus();
+    }
+  }, [actions]);
 
   const setPopoverOpenAndRefocus = (open: boolean) => {
     setPopoverOpen(open);
@@ -142,39 +374,72 @@ export const DrupalObjectPropsItem = ({
     }
   };
 
-  const handleRemove = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setPopoverOpenAndRefocus(false);
-    setTimeout(() => {
-      const removeButton =
-        popoverContainerRef.current?.querySelector<HTMLInputElement>(
-          'input[data-object-props-remove]',
-        );
-      if (removeButton) {
-        triggerHiddenSubmit(removeButton);
-      }
-    });
-  };
+  // Clicks the hidden submit button of an action. The rebuilt list then
+  // focuses the row `focusOffset` rows after this one: the copy of a
+  // duplicated row, or the row that takes the place of a removed one.
+  const handleAction =
+    (action: 'remove' | 'duplicate', focusOffset: number) =>
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const trigger = triggerButtonRef.current;
+      requestFocusAfterRebuild(
+        trigger,
+        ROW_SELECTOR,
+        getRowIndex(trigger) + focusOffset,
+      );
+      setPopoverOpenAndRefocus(false);
+      setTimeout(() => {
+        const submit =
+          popoverContainerRef.current?.querySelector<HTMLInputElement>(
+            `input[data-object-props-${action}]`,
+          );
+        if (submit) {
+          triggerHiddenSubmit(submit);
+        }
+      });
+    };
 
   return (
     <Popover.Root open={popoverOpen} onOpenChange={setPopoverOpenAndRefocus}>
-      <Popover.Trigger asChild>
-        <button
-          data-object-props-item-row
-          ref={triggerButtonRef}
-          className={styles.itemRow}
-          type="button"
-          aria-label={`Edit ${itemLabel}: ${displayText}`}
+      {/* The popover is placed beside the whole row, not beside its label. */}
+      <Popover.Anchor asChild>
+        <div
+          ref={setNodeRef}
+          className={clsx(styles.itemRow, isDragging && styles.dragging)}
+          style={{ transform: CSS.Translate.toString(transform), transition }}
         >
-          {!isSingle && <DragHandleDots2Icon className={styles.dragIcon} />}
-          <Text size="2" className={styles.itemText}>
-            {displayText}
-          </Text>
-        </button>
-      </Popover.Trigger>
+          {actions.move && (
+            <button
+              type="button"
+              ref={setActivatorNodeRef}
+              className={styles.dragHandle}
+              data-object-props-item-handle
+              aria-label={`Reorder ${itemLabel}: ${displayText}`}
+              {...handleAttributes}
+              {...listeners}
+            >
+              <DragHandleDots2Icon />
+            </button>
+          )}
+          <Popover.Trigger asChild>
+            <button
+              data-object-props-item-row
+              ref={triggerButtonRef}
+              className={styles.itemTrigger}
+              type="button"
+              aria-label={`Edit ${itemLabel}: ${displayText}`}
+            >
+              <Text size="2" className={styles.itemText}>
+                {displayText}
+              </Text>
+            </button>
+          </Popover.Trigger>
+        </div>
+      </Popover.Anchor>
       <Popover.Content
         forceMount={true}
         ref={popoverContainerRef}
+        data-object-props-item={sortableId}
         side="left"
         align="start"
         sideOffset={36}
@@ -205,18 +470,31 @@ export const DrupalObjectPropsItem = ({
           </Popover.Close>
         </Flex>
         <Box>{children}</Box>
-        {canRemove && (
-          <Flex justify="center" className={styles.removeButtonContainer}>
-            <Button
-              data-object-props-remove-item="true"
-              variant="ghost"
-              color="red"
-              size="1"
-              onClick={handleRemove}
-            >
-              <TrashIcon />
-              Remove
-            </Button>
+        {(actions.duplicate || actions.remove) && (
+          <Flex justify="center" gap="5" className={styles.actions}>
+            {actions.duplicate && (
+              <Button
+                data-object-props-duplicate-item="true"
+                variant="ghost"
+                size="1"
+                onClick={handleAction('duplicate', 1)}
+              >
+                <CopyIcon />
+                Duplicate
+              </Button>
+            )}
+            {actions.remove && (
+              <Button
+                data-object-props-remove-item="true"
+                variant="ghost"
+                color="red"
+                size="1"
+                onClick={handleAction('remove', 0)}
+              >
+                <TrashIcon />
+                Remove
+              </Button>
+            )}
           </Flex>
         )}
       </Popover.Content>

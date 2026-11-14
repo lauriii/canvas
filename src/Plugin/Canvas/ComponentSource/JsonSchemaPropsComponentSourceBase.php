@@ -1282,8 +1282,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * Single-value groups render as one labeled group containing one
    * Redux-integrated widget per sub-property, with form state keyed
    * `propName.subPropName`. Multi-value groups render as an item list with
-   * add and remove, where each item contains the group's widgets, with form
-   * state keyed `propName.delta.subPropName`.
+   * add, remove, duplicate and reorder, where each item contains the group's
+   * widgets, with form state keyed `propName.delta.subPropName`. An item keeps
+   * its delta for as long as the form lives: its position is the value of
+   * `propName.delta._weight`.
    *
    * @see docs/adr/0021-object-props-in-code-components.md
    */
@@ -1361,8 +1363,6 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         '#canvas_object_props_group' => 'item',
         '#attributes' => [
           'data-item-label' => (string) $label,
-          // A single-value group is one fixed row: nothing to reorder.
-          'data-object-props-single' => 'true',
         ],
       ];
       foreach ($source->getSubSources() as $sub_property_name => $sub_source) {
@@ -1371,10 +1371,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       return $element;
     }
 
-    // Multi-value group: an item list with add and remove; each item contains
-    // the group's widgets. Item state (added/removed items) lives in the form
-    // state, mirroring how core's multiple-value widgets manage their
-    // "items_count" widget state.
+    // Multi-value group: an item list with add, remove, duplicate and reorder;
+    // each item contains the group's widgets. Item state (added, removed,
+    // duplicated and moved items) lives in the form state, mirroring how
+    // core's multiple-value widgets manage their "items_count" widget state.
     // @see \Drupal\Core\Field\WidgetBase::formMultipleElements()
     $wrapper_id = Html::getId('canvas-object-props-' . $sdc_prop_name);
     $storage_key = ['canvas_object_props', $sdc_prop_name];
@@ -1383,6 +1383,12 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $state = [
         'items_count' => max($source->countItems(), 1),
         'removed' => [],
+        // The deltas in the order the author gave them, once they moved or
+        // duplicated an item.
+        'order' => [],
+        // Maps the delta of a duplicate to the delta whose stored values it
+        // starts from.
+        'copies' => [],
       ];
       $form_state->set($storage_key, $state);
     }
@@ -1398,8 +1404,8 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     $element['items'] = [
       '#type' => 'container',
       '#canvas_object_props_group' => 'item_list',
-      // The add and remove buttons only rebuild the item list, so the group
-      // label outside this wrapper is unaffected by the AJAX replacement.
+      // The buttons only rebuild the item list, so the group label outside
+      // this wrapper is unaffected by the AJAX replacement.
       '#prefix' => '<div id="' . $wrapper_id . '">',
       '#suffix' => '</div>',
     ];
@@ -1414,12 +1420,44 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // sub-property keys, so the client model is updated (to an empty group)
     // instead of keeping the stale stored value.
     if ($deltas === []) {
-      $deltas = [$items_count];
-      $state['items_count'] = $items_count + 1;
+      $deltas = [$items_count++];
+      $state['items_count'] = $items_count;
       $form_state->set($storage_key, $state);
     }
+    // Moved and duplicated items keep the order the author gave them; items
+    // added since then follow.
+    $deltas = [...\array_intersect($state['order'], $deltas), ...\array_diff($deltas, $state['order'])];
     $shown_items = \count($deltas);
-    foreach ($deltas as $delta) {
+    $cardinality = $prop_field_definition['cardinality'];
+    // -1 means unlimited cardinality.
+    // @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+    $can_add = $cardinality === -1 || $shown_items < $cardinality;
+    $button_name_prefix = \str_replace('.', '_', $sdc_prop_name) . '_';
+    // Builds a hidden submit button that the client clicks for one item.
+    $item_button = static fn (int $delta, string $action, TranslatableMarkup $button_label, string $submit_handler): array => [
+      '#type' => 'submit',
+      '#name' => $button_name_prefix . $delta . '_object_props_' . $action,
+      '#value' => $button_label,
+      '#limit_validation_errors' => [],
+      '#submit' => [[static::class, $submit_handler]],
+      '#ajax' => [
+        'callback' => [static::class, 'objectPropsAjax'],
+        'wrapper' => $wrapper_id,
+      ],
+      '#attributes' => [
+        'data-object-props-' . $action => 'true',
+      ],
+      '#canvas_object_props' => [
+        'storage_key' => $storage_key,
+        'delta' => $delta,
+        'deltas' => $deltas,
+        'next_delta' => $items_count,
+        'input_parents' => $form['#parents'],
+        'input_prefix' => $sdc_prop_name . '.',
+        'element_depth' => 2,
+      ],
+    ];
+    foreach ($deltas as $position => $delta) {
       $element['items'][$delta] = [
         '#type' => 'container',
         '#canvas_object_props_group' => 'item',
@@ -1427,41 +1465,38 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
           'data-item-label' => (string) new TranslatableMarkup('@group_label item', ['@group_label' => $label]),
         ],
       ];
-      foreach ($source->getSubSources($delta) as $sub_property_name => $sub_source) {
+      // The position of this item: the client orders the items of the stored
+      // value by it, because a delta never changes while the form lives.
+      // @see ui/src/components/form/react-hook-form/fields/componentFormData.ts
+      $element['items'][$delta]['_weight'] = [
+        '#type' => 'hidden',
+        '#value' => $position,
+        '#parents' => [...$form['#parents'], $sdc_prop_name . '.' . $delta . '._weight'],
+      ];
+      foreach ($source->getSubSources($state['copies'][$delta] ?? $delta) as $sub_property_name => $sub_source) {
         // Items of a multi-value group never mark their widgets as required:
         // fully empty items are intentionally allowed (and dropped), even in
         // a required group. Publish-time validation checks populated items.
         // @see \Drupal\canvas\PropSource\ObjectPropsSource::evaluate()
         $element['items'][$delta][$sub_property_name] = $this->buildObjectPropSubForm($component, $sdc_prop_name . '.' . $delta . '.' . $sub_property_name, $sub_property_name, $prop_field_definition['sub_definitions'][$sub_property_name], $sub_source, FALSE, $entity_object_for_field_widget, $object_schema, $form, $form_state, $transforms);
       }
-      $element['items'][$delta]['_remove'] = [
-        '#type' => 'submit',
-        '#name' => \str_replace('.', '_', $sdc_prop_name) . '_' . $delta . '_object_props_remove',
-        '#value' => new TranslatableMarkup('Remove'),
-        '#limit_validation_errors' => [],
-        '#submit' => [[static::class, 'objectPropsRemoveItemSubmit']],
-        '#ajax' => [
-          'callback' => [static::class, 'objectPropsAjax'],
-          'wrapper' => $wrapper_id,
-        ],
-        '#attributes' => [
-          'data-object-props-remove' => 'true',
-        ],
-        '#canvas_object_props' => [
-          'storage_key' => $storage_key,
-          'delta' => $delta,
-          'element_depth' => 2,
-        ],
-      ];
+      // A list at its `minItems` keeps its items, a list at its `maxItems`
+      // gets no more items, and one item has nowhere to move to.
+      if ($shown_items > ($prop_schema['minItems'] ?? 0)) {
+        $element['items'][$delta]['_remove'] = $item_button($delta, 'remove', new TranslatableMarkup('Remove'), 'objectPropsRemoveItemSubmit');
+      }
+      if ($can_add) {
+        $element['items'][$delta]['_duplicate'] = $item_button($delta, 'duplicate', new TranslatableMarkup('Duplicate'), 'objectPropsDuplicateItemSubmit');
+      }
+      if ($shown_items > 1) {
+        $element['items'][$delta]['_move'] = $item_button($delta, 'move', new TranslatableMarkup('Move'), 'objectPropsMoveItemSubmit');
+      }
     }
 
-    $cardinality = $prop_field_definition['cardinality'];
-    // -1 means unlimited cardinality.
-    // @see \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
-    if ($cardinality === -1 || $shown_items < $cardinality) {
+    if ($can_add) {
       $element['items']['add_more'] = [
         '#type' => 'submit',
-        '#name' => \str_replace('.', '_', $sdc_prop_name) . '_object_props_add_more',
+        '#name' => $button_name_prefix . 'object_props_add_more',
         '#value' => new TranslatableMarkup('Add new'),
         '#limit_validation_errors' => [],
         '#submit' => [[static::class, 'objectPropsAddMoreSubmit']],
@@ -1548,7 +1583,72 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   }
 
   /**
-   * AJAX callback for the add and remove buttons of a multi-value group.
+   * Submission handler for the "Duplicate" button of a multi-value group item.
+   *
+   * The copy gets a delta of its own, directly after the item it copies. It
+   * starts from the submitted values and the widget state of that item.
+   */
+  public static function objectPropsDuplicateItemSubmit(array $form, FormStateInterface $form_state): void {
+    $button = $form_state->getTriggeringElement();
+    \assert(\is_array($button));
+    [
+      'storage_key' => $storage_key,
+      'delta' => $delta,
+      'deltas' => $deltas,
+      'next_delta' => $new_delta,
+      'input_parents' => $input_parents,
+      'input_prefix' => $input_prefix,
+    ] = $button['#canvas_object_props'];
+    $state = $form_state->get($storage_key);
+    $state['items_count'] = $new_delta + 1;
+    $state['copies'][$new_delta] = $state['copies'][$delta] ?? $delta;
+    \array_splice($deltas, (int) \array_search($delta, $deltas, TRUE) + 1, 0, [$new_delta]);
+    $state['order'] = $deltas;
+    $form_state->set($storage_key, $state);
+
+    // Copies every value keyed `propName.delta.subPropName` to the new delta.
+    $copy_item = static function (mixed $values) use ($input_prefix, $delta, $new_delta): mixed {
+      foreach (\is_array($values) ? $values : [] as $key => $value) {
+        if (\str_starts_with((string) $key, $input_prefix . $delta . '.')) {
+          $values[$input_prefix . $new_delta . \substr((string) $key, \strlen($input_prefix . $delta))] = $value;
+        }
+      }
+      return $values;
+    };
+    $user_input = $form_state->getUserInput();
+    NestedArray::setValue($user_input, $input_parents, $copy_item(NestedArray::getValue($user_input, $input_parents)));
+    $form_state->setUserInput($user_input);
+    // @see \Drupal\Core\Field\WidgetBase::getWidgetState()
+    $widget_states_key = ['field_storage', '#parents', ...$input_parents, '#fields'];
+    $form_state->set($widget_states_key, $copy_item($form_state->get($widget_states_key)));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * Submission handler for the "Move" button of a multi-value group item.
+   *
+   * Moves the item to the position submitted as
+   * `canvas_object_props_position`: an index into the list of shown items.
+   */
+  public static function objectPropsMoveItemSubmit(array $form, FormStateInterface $form_state): void {
+    $button = $form_state->getTriggeringElement();
+    \assert(\is_array($button));
+    ['storage_key' => $storage_key, 'delta' => $delta, 'deltas' => $deltas] = $button['#canvas_object_props'];
+    $position = \filter_var($form_state->getUserInput()['canvas_object_props_position'] ?? NULL, FILTER_VALIDATE_INT, [
+      'options' => ['min_range' => 0, 'max_range' => \count($deltas) - 1],
+    ]);
+    if ($position !== FALSE) {
+      $order = \array_values(\array_diff($deltas, [$delta]));
+      \array_splice($order, $position, 0, [$delta]);
+      $state = $form_state->get($storage_key);
+      $state['order'] = $order;
+      $form_state->set($storage_key, $state);
+    }
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the buttons of a multi-value group.
    */
   public static function objectPropsAjax(array $form, FormStateInterface $form_state): array {
     $button = $form_state->getTriggeringElement();
