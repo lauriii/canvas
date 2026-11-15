@@ -14,6 +14,7 @@ import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
 import UndoRedo from '@/components/UndoRedo';
 import NotificationBell from '@/features/notifications/NotificationBell';
+import PageHistoryButton from '@/features/pageHistory/PageHistoryButton';
 import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
 import {
   EditorFrameContext,
@@ -190,6 +191,7 @@ const Topbar = () => {
               {isTranslationEnabled && !isPatternEditorContext && (
                 <LanguageSelect />
               )}
+              <PageHistoryButton />
               <PreviewControls isPreview={isPreview} />
               <UnpublishedChanges />
             </Flex>

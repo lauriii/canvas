@@ -19,6 +19,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -34,6 +35,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraint;
+use Drupal\Core\Entity\RevisionLogInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -78,6 +80,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly TimeInterface $time,
     // The synchronizer belongs to content_translation, an optional dependency,
     // so it is NULL when that module is not installed.
     // @see \Drupal\canvas\CanvasServiceProvider
@@ -901,6 +904,12 @@ final class ApiAutoSaveController extends ApiControllerBase {
       $revision_id_key = $entity_definition->getKey('revision');
       \assert(\is_string($revision_id_key));
       $entity->set($revision_id_key, NULL);
+      // As the content edit form does: a new revision is dated when it is
+      // made, and does not carry the previous revision's log message.
+      if ($entity instanceof RevisionLogInterface) {
+        $entity->setRevisionCreationTime($this->time->getRequestTime());
+        $entity->setRevisionLogMessage('');
+      }
     }
     $entity->isDefaultRevision(TRUE);
     // Always set the revision user to the current user. Even though we might
