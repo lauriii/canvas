@@ -17,6 +17,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -1525,6 +1526,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         $this->container->get(ComponentSourceManager::class),
         $this->container->get(ComponentTreeLoader::class),
         $this->container->get(ModuleHandlerInterface::class),
+        $this->container->get(TimeInterface::class),
     ));
 
     $response = $this->makePublishAllRequest([

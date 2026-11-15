@@ -1,0 +1,60 @@
+/* As the notifications bell next to it. */
+.historyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  padding: 0;
+  cursor: pointer;
+  color: var(--blue-11);
+  border: none;
+  border-radius: var(--radius-2);
+  background: none;
+
+  &:hover,
+  &[data-state='open'] {
+    color: var(--blue-12);
+    background: var(--blue-3);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--gray-5);
+}
+
+.heading {
+  margin: 0;
+  color: var(--gray-12);
+  font-size: var(--font-size-3);
+  font-weight: 500;
+  line-height: var(--line-height-3);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--gray-11);
+  border: none;
+  border-radius: var(--radius-2);
+  background: none;
+}
+
+.scrollArea {
+  max-height: min(560px, 70vh);
+}
