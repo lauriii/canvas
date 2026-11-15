@@ -1,4 +1,7 @@
-import { discoverCanvasBoundaries } from '@drupal-canvas/preview-geometry';
+import {
+  discoverCanvasBoundaries,
+  measureCanvasBoundary,
+} from '@drupal-canvas/preview-geometry';
 
 import { siblingsBetween } from '@/features/layout/preview/optimisticPreview';
 
@@ -89,4 +92,17 @@ export const applyVersionHighlights = (
       }
     });
   });
+};
+
+/**
+ * Returns the top of a component in a preview document, in CSS pixels.
+ */
+export const findComponentTop = (
+  document: Document,
+  uuid: string,
+): number | undefined => {
+  const boundary = discoverCanvasBoundaries(document).find(
+    ({ type, id }) => type === 'component' && id === uuid,
+  );
+  return boundary ? measureCanvasBoundary(boundary)?.rect.top : undefined;
 };

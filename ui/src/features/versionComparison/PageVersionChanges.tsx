@@ -1,4 +1,12 @@
-import { Badge, Box, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
+import {
+  Badge,
+  Box,
+  Button,
+  Flex,
+  Heading,
+  Spinner,
+  Text,
+} from '@radix-ui/themes';
 
 import { getDisplayNameForNode } from '@/features/layout/layoutUtils';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
@@ -44,9 +52,11 @@ const ValueChange = ({
 const ChangeRow = ({
   change,
   componentName,
+  onShowChange,
 }: {
   change: PageVersionChange;
   componentName: (node: ComponentNode) => string;
+  onShowChange?: (change: PageVersionChange) => void;
 }) => {
   const badge = CHANGE_BADGES[change.kind];
   if (change.kind === 'field') {
@@ -82,6 +92,16 @@ const ChangeRow = ({
             {detail}
           </Text>
         )}
+        {onShowChange && (
+          <Button
+            variant="ghost"
+            size="1"
+            ml="auto"
+            onClick={() => onShowChange(change)}
+          >
+            Show in preview
+          </Button>
+        )}
       </Flex>
       {change.kind === 'props' &&
         change.props.map((prop) => <ValueChange key={prop.name} {...prop} />)}
@@ -104,9 +124,11 @@ const ChangeRow = ({
 
 export const PageVersionChanges = ({
   changes,
+  onShowChange,
 }: {
   // Undefined while either version is loading.
   changes?: PageVersionChange[];
+  onShowChange?: (change: PageVersionChange) => void;
 }) => {
   const { data: components } = useGetComponentsQuery();
 
@@ -144,6 +166,7 @@ export const PageVersionChanges = ({
                     key={index}
                     change={change}
                     componentName={componentName}
+                    onShowChange={onShowChange}
                   />
                 ))}
               </ul>

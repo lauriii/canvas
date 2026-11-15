@@ -30,12 +30,16 @@ import { PageVersionChanges } from '@/features/versionComparison/PageVersionChan
 import { diffPageVersions } from '@/features/versionComparison/pageVersionDiff';
 import {
   applyVersionHighlights,
+  findComponentTop,
   getVersionHighlights,
 } from '@/features/versionComparison/pageVersionHighlights';
 import { buildFullPagePreviewDocument } from '@/features/versionComparison/pageVersionPreview';
 
 import type React from 'react';
-import type { PageVersionData } from '@/features/versionComparison/pageVersionDiff';
+import type {
+  PageVersionChange,
+  PageVersionData,
+} from '@/features/versionComparison/pageVersionDiff';
 import type { HighlightKind } from '@/features/versionComparison/pageVersionHighlights';
 
 import styles from './VersionComparisonPage.module.css';
@@ -206,6 +210,19 @@ export const PageVersionComparisonView = ({
     [publishedVersion.data, newVersion.data],
   );
   const [showHighlights, setShowHighlights] = useState(true);
+  // The component to scroll to in the Visual tab. `key` repeats a request.
+  const [focus, setFocus] = useState<PreviewFocus>();
+  const handleShowChange = (change: PageVersionChange) => {
+    if (change.kind === 'field') return;
+    setFocus({
+      uuid: change.node.uuid,
+      // Removed components only exist in the old version. The other preview
+      // follows through the synchronized scrolling.
+      version: change.kind === 'removed' ? 'published' : 'new',
+      key: Date.now(),
+    });
+    setTab('visual');
+  };
   const highlights = useMemo(
     () =>
       changes && showHighlights ? getVersionHighlights(changes) : undefined,
@@ -287,7 +304,14 @@ export const PageVersionComparisonView = ({
           </Tabs.Trigger>
           {hasChangesTab && (
             <Tabs.Trigger className={styles.tabTrigger} value="changes">
-              Changes
+              <Flex align="center" gap="1">
+                Changes
+                {!!changes?.length && (
+                  <Badge size="1" radius="full" color="gray">
+                    {changes.length}
+                  </Badge>
+                )}
+              </Flex>
             </Tabs.Trigger>
           )}
         </Tabs.List>
@@ -324,6 +348,7 @@ export const PageVersionComparisonView = ({
               html={publishedContentHtml}
               loading={!!publishedVersion.loading}
               highlights={highlights?.published}
+              focus={focus?.version === 'published' ? focus : undefined}
               version="published"
               onScrollAreaMount={handleVisualScrollAreaMount}
               onScrollAreaScroll={handleVisualScroll}
@@ -344,6 +369,7 @@ export const PageVersionComparisonView = ({
               html={newContentHtml}
               loading={!!newVersion.loading}
               highlights={highlights?.new}
+              focus={focus?.version === 'new' ? focus : undefined}
               version="new"
               onScrollAreaMount={handleVisualScrollAreaMount}
               onScrollAreaScroll={handleVisualScroll}
@@ -353,7 +379,10 @@ export const PageVersionComparisonView = ({
       </Tabs.Content>
       {hasChangesTab && (
         <Tabs.Content value="changes" className={styles.tabContent}>
-          <PageVersionChanges changes={changes} />
+          <PageVersionChanges
+            changes={changes}
+            onShowChange={handleShowChange}
+          />
         </Tabs.Content>
       )}
     </Tabs.Root>
@@ -507,11 +536,15 @@ const PreviewCard = ({
 };
 
 const NO_HIGHLIGHTS = new Map<string, HighlightKind>();
+const PREVIEW_FOCUS_MARGIN = 24;
+
+type PreviewFocus = { uuid: string; version: PageVersionId; key: number };
 
 const VisualFrame = ({
   html,
   loading,
   highlights = NO_HIGHLIGHTS,
+  focus,
   version,
   onScrollAreaMount,
   onScrollAreaScroll,
@@ -519,6 +552,7 @@ const VisualFrame = ({
   html: string;
   loading: boolean;
   highlights?: Map<string, HighlightKind>;
+  focus?: PreviewFocus;
   version: PageVersionId;
   onScrollAreaMount?: (
     version: PageVersionId,
@@ -609,6 +643,37 @@ const VisualFrame = ({
       currentHeight === nextHeight ? currentHeight : nextHeight,
     );
   }, [previewMinHeight]);
+
+  // Scrolls to the focused component once the preview has its full height.
+  const handledFocusKeyRef = useRef<number>();
+  useEffect(() => {
+    const document = previewFrameRef.current?.contentDocument;
+    const scrollArea = previewScrollAreaRef.current;
+    if (
+      !focus ||
+      handledFocusKeyRef.current === focus.key ||
+      loading ||
+      !previewContentHeight ||
+      !document ||
+      !scrollArea
+    ) {
+      return;
+    }
+    const top = findComponentTop(document, focus.uuid);
+    if (top === undefined) {
+      return;
+    }
+    handledFocusKeyRef.current = focus.key;
+    scrollArea.scrollTo({
+      top: Math.max(0, top * previewScale - PREVIEW_FOCUS_MARGIN),
+    });
+  }, [
+    focus,
+    loading,
+    previewContentHeight,
+    previewDocumentVersion,
+    previewScale,
+  ]);
 
   const hasAppliedHighlightsRef = useRef(false);
   useEffect(() => {

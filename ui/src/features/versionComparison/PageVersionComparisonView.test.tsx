@@ -145,6 +145,22 @@ describe('PageVersionComparisonView', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows the number of changes on the changes tab', () => {
+    const data = (title: string) => ({
+      layout: [],
+      model: {},
+      entity_form_fields: { 'title[0][value]': title },
+    });
+    renderComparison({
+      publishedVersion: { ...publishedVersion, data: data('Old') },
+      newVersion: { ...newVersion, data: data('New') },
+    });
+
+    expect(
+      screen.getByRole('tab', { name: /^Changes 1 / }),
+    ).toBeInTheDocument();
+  });
+
   it('applies the selected card style when a version is selected', async () => {
     const user = userEvent.setup();
     render(<ComparisonHarness />);
