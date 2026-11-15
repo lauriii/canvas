@@ -289,6 +289,24 @@ describe('PublishReview conflict UI', () => {
     expect(props.onOpenChangeCallback).toHaveBeenLastCalledWith(false);
   });
 
+  it('closes the popover when reviewing a single change from its menu', async () => {
+    const user = userEvent.setup();
+    const onViewClick = vi.fn();
+    const { props } = renderReview([baseChange], { onViewClick });
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+    await user.click(screen.getByRole('button', { name: 'More options' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Review changes' }));
+
+    expect(onViewClick).toHaveBeenCalledWith(baseChange);
+    expect(props.onOpenChangeCallback).toHaveBeenLastCalledWith(false);
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('canvas-publish-reviews-content'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('shows the side-by-side review action when conflict UX is disabled', async () => {
     const user = userEvent.setup();
     conflictUxEnabled = false;

@@ -260,6 +260,11 @@ const PublishReview: React.FC<PublishReviewProps> = ({
     onResolveConflict?.(change ?? firstConflictedChange);
   };
 
+  const handleViewClick = (change: UnpublishedChange) => {
+    onOpenChangeHandler(false);
+    onViewClick?.(change);
+  };
+
   const handleReviewSelectedChanges = () => {
     if (!selectedReviewableChanges.length) {
       return;
@@ -355,7 +360,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                       selectedChanges={selectedAvailableChanges}
                       setSelectedChanges={setSelectedChanges}
                       onDiscardClick={handleDiscardClick}
-                      onViewClick={onViewClick}
+                      onViewClick={onViewClick ? handleViewClick : undefined}
                       isViewChangeAvailable={isViewChangeAvailable}
                       onResolveConflict={handleResolveConflict}
                       pageStatusMap={pageStatusMap}
