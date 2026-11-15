@@ -289,7 +289,7 @@ describe('PublishReview conflict UI', () => {
     expect(props.onOpenChangeCallback).toHaveBeenLastCalledWith(false);
   });
 
-  it('hides the side-by-side review action when conflict UX is disabled', async () => {
+  it('shows the side-by-side review action when conflict UX is disabled', async () => {
     const user = userEvent.setup();
     conflictUxEnabled = false;
     renderReview([baseChange]);
@@ -297,7 +297,7 @@ describe('PublishReview conflict UI', () => {
     await user.click(screen.getByTestId('canvas-publish-review'));
 
     expect(
-      screen.queryByRole('button', { name: 'Review selected changes' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Review selected changes' }),
+    ).toBeInTheDocument();
   });
 });

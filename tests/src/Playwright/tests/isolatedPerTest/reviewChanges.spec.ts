@@ -53,7 +53,6 @@ const openPublishReview = async (page: Page) => {
 
 test.describe('Review selected changes', () => {
   test.use({
-    modules: ['canvas_dev_cd'],
     enableTestExtensions: true,
   });
 
@@ -170,45 +169,5 @@ test.describe('Review selected changes', () => {
     ).toBe(false);
     expect((await publishResponsePromise).ok()).toBe(true);
     await expect(page).toHaveURL(/\/canvas\/editor/);
-  });
-});
-
-test.describe('Review selected changes disabled', () => {
-  test.use({
-    enableTestExtensions: true,
-  });
-
-  test('hides side-by-side review actions and redirects direct review visits when conflict detection is disabled', async ({
-    page,
-    drupal,
-    canvas,
-  }) => {
-    await drupal.login({ username: 'editor', password: 'editor' });
-
-    const canvasPage = await canvas.createCanvas({
-      title: 'Review flag off page',
-    });
-    await waitForPendingChange(page, canvasPage.entity_id);
-
-    const review = await openPublishReview(page);
-
-    await review.getByLabel('Select change Review flag off page').click();
-    await expect(review.getByText('1 of 1 changes selected')).toBeVisible();
-    await expect(
-      review.getByRole('button', { name: 'Review selected changes' }),
-    ).toBeHidden();
-
-    const reviewRow = review
-      .getByTestId('pending-change-row')
-      .filter({ hasText: 'Review flag off page' });
-    await reviewRow.getByRole('button', { name: 'More options' }).click();
-    await expect(
-      page.getByRole('menuitem', { name: 'Review changes' }),
-    ).toBeHidden();
-
-    await page.goto(`/canvas/review/canvas_page/${canvasPage.entity_id}`);
-
-    await expect(page).toHaveURL(/\/canvas\/editor$/);
-    await expect(page.getByTestId('review-changes-page')).toBeHidden();
   });
 });

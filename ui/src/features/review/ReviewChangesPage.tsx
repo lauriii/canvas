@@ -3,7 +3,6 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 
 import { useAppDispatch } from '@/app/hooks';
 import { usePublishPendingChanges } from '@/components/review/usePublishPendingChanges';
-import { isConflictUxEnabled } from '@/features/conflict/conflictUtils';
 import {
   findReviewIndex,
   getReviewQueue,
@@ -39,14 +38,7 @@ const getPendingChangeFromEntry = (
   pointer,
 });
 
-const ReviewChangesPage = () =>
-  isConflictUxEnabled() ? (
-    <EnabledReviewChangesPage />
-  ) : (
-    <Navigate to="/editor" replace />
-  );
-
-const EnabledReviewChangesPage = () => {
+const ReviewChangesPage = () => {
   const { entityType, entityId } = useParams<{
     entityType?: string;
     entityId?: string;

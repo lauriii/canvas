@@ -246,14 +246,14 @@ describe('UnpublishedChanges', () => {
     });
   });
 
-  it('does not expose side-by-side review handlers when conflict UX is disabled', () => {
+  it('exposes side-by-side review handlers when conflict UX is disabled', () => {
     mocks.conflictUxEnabled = false;
 
     render(<UnpublishedChanges />);
 
-    expect(mocks.publishReviewProps.onReviewSelectedChanges).toBeUndefined();
-    expect(mocks.publishReviewProps.onViewClick).toBeUndefined();
-    expect(mocks.publishReviewProps.isViewChangeAvailable).toBeUndefined();
+    expect(mocks.publishReviewProps.onReviewSelectedChanges).toBeDefined();
+    expect(mocks.publishReviewProps.onViewClick).toBeDefined();
+    expect(mocks.publishReviewProps.isViewChangeAvailable).toBeDefined();
   });
 
   it('refreshes the current page data form after publishing', async () => {

@@ -31,7 +31,6 @@ const mocks = vi.hoisted(() => ({
   publishPendingChanges: vi.fn(),
   pageComparisonProps: [] as any[],
   refetch: vi.fn(),
-  devConflictDetectionMode: true,
 }));
 
 vi.mock('@/app/hooks', () => ({
@@ -101,10 +100,6 @@ vi.mock('@/features/versionComparison/PageVersionComparison', async () => {
     },
   };
 });
-
-vi.mock('@/features/conflict/conflictUtils', () => ({
-  isConflictUxEnabled: () => mocks.devConflictDetectionMode,
-}));
 
 vi.mock('@/services/pendingChangesApi', () => ({
   useGetAllPendingChangesQuery: () => ({
@@ -202,7 +197,6 @@ describe('ReviewChangesPage', () => {
     mocks.discardChange.mockResolvedValue(undefined);
     mocks.refetch.mockResolvedValue(undefined);
     mocks.pageComparisonProps = [];
-    mocks.devConflictDetectionMode = true;
   });
 
   it('renders the selected Page change with review labels', () => {
@@ -399,16 +393,5 @@ describe('ReviewChangesPage', () => {
     expect(screen.getByTestId('page-version-comparison')).toHaveTextContent(
       'canvas_page:2',
     );
-  });
-
-  it('redirects to the editor when conflict detection mode is disabled', async () => {
-    mocks.devConflictDetectionMode = false;
-
-    renderReviewPage();
-
-    expect(await screen.findByText('Editor')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('page-version-comparison'),
-    ).not.toBeInTheDocument();
   });
 });

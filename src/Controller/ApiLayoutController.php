@@ -98,12 +98,9 @@ final class ApiLayoutController {
   public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
 
-    // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591732
-    $conflict_resolution_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
-
     // Determine if we are working with auto-save or published version of the
     // entity.
-    $auto_saved = !$conflict_resolution_dev_mode || $request->query->getBoolean(self::AUTO_SAVED_QUERY_KEY, default: TRUE);
+    $auto_saved = $request->query->getBoolean(self::AUTO_SAVED_QUERY_KEY, default: TRUE);
 
     // Store the original entity for comparison purposes.
     $original_entity = $entity;
@@ -238,7 +235,7 @@ final class ApiLayoutController {
     // Add 'updated' property that provides value for 'Updated' element in the
     // side-by-side comparison UI.
     // @todo Revisit as part of https://www.drupal.org/project/canvas/issues/3591544
-    if ($conflict_resolution_dev_mode && $entity instanceof Page) {
+    if ($entity instanceof Page) {
       // For published entities use actual entity revision time.
       if (!$auto_saved) {
         $data['updated'] = (int) $entity->getRevisionCreationTime();
@@ -592,7 +589,7 @@ final class ApiLayoutController {
     }
     // Determine if we are working with auto-save or published version of the
     // entity.
-    $auto_saved = !$this->moduleHandler->moduleExists('canvas_dev_cd') || $request->query->getBoolean(self::AUTO_SAVED_QUERY_KEY, default: TRUE);
+    $auto_saved = $request->query->getBoolean(self::AUTO_SAVED_QUERY_KEY, default: TRUE);
     if ($auto_saved) {
       // Get title from auto saved data if available.
       $auto_save_data = $this->autoSaveManager->getAutoSaveEntity($entity);

@@ -127,14 +127,13 @@ const PublishReview: React.FC<PublishReviewProps> = ({
       (change, index) => change === selectedAvailableChanges[index],
     );
 
-  const selectedReviewableChanges = useMemo(() => {
-    if (!conflictUxEnabled) {
-      return [];
-    }
-    return selectedAvailableChanges.filter((change) =>
-      isViewChangeAvailable ? isViewChangeAvailable(change) : true,
-    );
-  }, [conflictUxEnabled, isViewChangeAvailable, selectedAvailableChanges]);
+  const selectedReviewableChanges = useMemo(
+    () =>
+      selectedAvailableChanges.filter((change) =>
+        isViewChangeAvailable ? isViewChangeAvailable(change) : true,
+      ),
+    [isViewChangeAvailable, selectedAvailableChanges],
+  );
 
   const allSelected = useMemo(() => {
     if (!selectableChanges?.length) return false;
@@ -385,7 +384,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   {(isPublishing || hasPublished) && <CheckIcon />}
                 </Spinner>
               </Button>
-              {conflictUxEnabled && onReviewSelectedChanges && (
+              {onReviewSelectedChanges && (
                 <Button
                   size="1"
                   variant="ghost"
