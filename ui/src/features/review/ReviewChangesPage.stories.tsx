@@ -106,8 +106,7 @@ const onPrevious = fn().mockName('onPrevious');
 const onNext = fn().mockName('onNext');
 const onApplyVersionSelection = fn().mockName('onApplyVersionSelection');
 const onClose = fn().mockName('onClose');
-const onNavigateToCanvas = fn().mockName('onNavigateToCanvas');
-const onNavigateToReview = fn().mockName('onNavigateToReview');
+const onBack = fn().mockName('onBack');
 const onNewEditClick = fn().mockName('onNewEditClick');
 const onPublishedPreviewClick = fn().mockName('onPublishedPreviewClick');
 const onNewPreviewClick = fn().mockName('onNewPreviewClick');
@@ -184,7 +183,7 @@ const meta = {
   args: {
     label: 'Homepage',
     comparison: <ReviewComparison selectedVersion="new" />,
-    onClose,
+    onBack,
     reviewIndex: 0,
     reviewTotal: 3,
     selectedVersion: 'new',
@@ -196,8 +195,6 @@ const meta = {
     onPrevious,
     onNext,
     onApplyVersionSelection,
-    onNavigateToCanvas,
-    onNavigateToReview,
   },
   argTypes: {
     comparison: {

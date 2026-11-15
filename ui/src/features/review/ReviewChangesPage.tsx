@@ -137,14 +137,12 @@ const ReviewChangesPage = () => {
   const navigationSelectedPointers = hasInitializedSelection
     ? selectedPointers
     : defaultSelectedPointers;
+  const returnTo = routeState.returnTo;
+  const navigateBack = (fallback = '/editor') => navigate(returnTo ?? fallback);
   const routeStateForNavigation = {
     selectedPointers: navigationSelectedPointers,
     reviewPointers,
-  };
-  const navigateToReviewOverview = () => {
-    navigate('/review', {
-      state: routeStateForNavigation,
-    });
+    returnTo,
   };
   const navigateToReviewEntry = (entry: (typeof reviewQueue)[number]) => {
     navigate(getReviewRouteFromEntry(entry), {
@@ -156,13 +154,7 @@ const ReviewChangesPage = () => {
     (!entityType && !entityId && reviewQueue.length === 0);
 
   if (pendingChangesSnapshot === undefined) {
-    return (
-      <ReviewLoadingState
-        onClose={() => navigate('/editor')}
-        onNavigateToCanvas={() => navigate('/editor')}
-        onNavigateToReview={() => navigate('/review')}
-      />
-    );
+    return <ReviewLoadingState onBack={() => navigateBack()} />;
   }
 
   if (!entityType || !entityId) {
@@ -175,16 +167,14 @@ const ReviewChangesPage = () => {
           onPublish={async () => {
             const didPublish = await publishPendingChanges(selectedChanges);
             if (didPublish) {
-              navigate('/editor');
+              navigateBack();
             }
           }}
-          onClose={() => navigate('/editor')}
+          onClose={() => navigateBack()}
           onPrevious={() =>
             previousEntry && navigateToReviewEntry(previousEntry)
           }
           canPrevious={!!previousEntry}
-          onNavigateToCanvas={() => navigate('/editor')}
-          onNavigateToReview={navigateToReviewOverview}
         />
       );
     }
@@ -193,10 +183,7 @@ const ReviewChangesPage = () => {
       <Navigate
         to={getReviewRouteFromEntry(reviewQueue[0])}
         replace
-        state={{
-          selectedPointers: navigationSelectedPointers,
-          reviewPointers,
-        }}
+        state={routeStateForNavigation}
       />
     );
   }
@@ -206,10 +193,7 @@ const ReviewChangesPage = () => {
       <Navigate
         to={getReviewRouteFromEntry(reviewQueue[0])}
         replace
-        state={{
-          selectedPointers: navigationSelectedPointers,
-          reviewPointers,
-        }}
+        state={routeStateForNavigation}
       />
     ) : (
       <Navigate
@@ -218,6 +202,7 @@ const ReviewChangesPage = () => {
         state={{
           selectedPointers,
           reviewComplete: true,
+          returnTo,
         }}
       />
     );
@@ -306,7 +291,7 @@ const ReviewChangesPage = () => {
     if (selectedVersion === 'new') {
       const didPublish = await publishPendingChanges(selectedChanges);
       if (didPublish) {
-        navigate('/editor');
+        navigateBack();
       }
     }
   };
@@ -332,13 +317,11 @@ const ReviewChangesPage = () => {
           }
         />
       }
-      onClose={() =>
-        navigate(
+      onBack={() =>
+        navigateBack(
           `/editor/${activeChange.entity_type}/${activeChange.entity_id}`,
         )
       }
-      onNavigateToCanvas={() => navigate('/editor')}
-      onNavigateToReview={navigateToReviewOverview}
       reviewIndex={currentIndex}
       reviewTotal={reviewQueue.length}
       selectedVersion={selectedVersion}

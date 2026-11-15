@@ -167,6 +167,7 @@ const UnpublishedChanges = () => {
       state: {
         selectedPointers: selectedChanges.map((change) => change.pointer),
         reviewPointers: reviewableChanges.map((change) => change.pointer),
+        returnTo: `${location.pathname}${location.search}`,
       },
     });
   };

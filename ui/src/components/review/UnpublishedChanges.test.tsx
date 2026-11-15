@@ -219,6 +219,7 @@ describe('UnpublishedChanges', () => {
   });
 
   it('opens review with selected and reviewable pending change pointers', () => {
+    mocks.locationPathname = '/editor/canvas_page/5';
     render(<UnpublishedChanges />);
 
     const selectedPageChange: UnpublishedChange = {
@@ -242,6 +243,7 @@ describe('UnpublishedChanges', () => {
       state: {
         selectedPointers: ['canvas_page:1:en', 'js_component:hero:en'],
         reviewPointers: ['canvas_page:1:en'],
+        returnTo: '/editor/canvas_page/5',
       },
     });
   });
