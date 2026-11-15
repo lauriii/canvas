@@ -115,11 +115,6 @@ const PageHistory = ({ entityId, onCompare, onRestore }: PageHistoryProps) => {
           </li>
         ))}
       </ul>
-      {data.revisions.length < 2 && (
-        <Text as="p" size="1" color="gray" className={styles.note}>
-          Earlier versions appear here once changes to this page are published.
-        </Text>
-      )}
     </>
   );
 };
