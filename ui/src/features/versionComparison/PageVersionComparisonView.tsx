@@ -8,6 +8,7 @@ import {
   Flex,
   IconButton,
   Spinner,
+  Switch,
   Tabs,
   Text,
   Tooltip,
@@ -26,10 +27,16 @@ import {
   setEditorFrameViewPort,
 } from '@/features/ui/uiSlice';
 import { PageVersionChanges } from '@/features/versionComparison/PageVersionChanges';
+import { diffPageVersions } from '@/features/versionComparison/pageVersionDiff';
+import {
+  applyVersionHighlights,
+  getVersionHighlights,
+} from '@/features/versionComparison/pageVersionHighlights';
 import { buildFullPagePreviewDocument } from '@/features/versionComparison/pageVersionPreview';
 
 import type React from 'react';
 import type { PageVersionData } from '@/features/versionComparison/pageVersionDiff';
+import type { HighlightKind } from '@/features/versionComparison/pageVersionHighlights';
 
 import styles from './VersionComparisonPage.module.css';
 
@@ -191,6 +198,19 @@ export const PageVersionComparisonView = ({
       ));
   const [tab, setTab] = useState('visual');
   const hasChangesTab = 'data' in publishedVersion || 'data' in newVersion;
+  const changes = useMemo(
+    () =>
+      publishedVersion.data && newVersion.data
+        ? diffPageVersions(publishedVersion.data, newVersion.data)
+        : undefined,
+    [publishedVersion.data, newVersion.data],
+  );
+  const [showHighlights, setShowHighlights] = useState(true);
+  const highlights = useMemo(
+    () =>
+      changes && showHighlights ? getVersionHighlights(changes) : undefined,
+    [changes, showHighlights],
+  );
   const publishedContentHtml = useMemo(
     () => buildFullPagePreviewDocument(publishedVersion.html || EMPTY_HTML),
     [publishedVersion.html],
@@ -271,7 +291,23 @@ export const PageVersionComparisonView = ({
             </Tabs.Trigger>
           )}
         </Tabs.List>
-        {tab === 'visual' && <ViewportSelector />}
+        {tab === 'visual' && (
+          <Flex align="center" gap="4">
+            {changes && (
+              <Text as="label" size="1">
+                <Flex align="center" gap="2">
+                  <Switch
+                    size="1"
+                    checked={showHighlights}
+                    onCheckedChange={setShowHighlights}
+                  />
+                  Highlight changes
+                </Flex>
+              </Text>
+            )}
+            <ViewportSelector />
+          </Flex>
+        )}
       </Flex>
       <Tabs.Content value="visual" className={styles.tabContent}>
         <ComparisonGrid>
@@ -287,6 +323,7 @@ export const PageVersionComparisonView = ({
             <VisualFrame
               html={publishedContentHtml}
               loading={!!publishedVersion.loading}
+              highlights={highlights?.published}
               version="published"
               onScrollAreaMount={handleVisualScrollAreaMount}
               onScrollAreaScroll={handleVisualScroll}
@@ -306,6 +343,7 @@ export const PageVersionComparisonView = ({
             <VisualFrame
               html={newContentHtml}
               loading={!!newVersion.loading}
+              highlights={highlights?.new}
               version="new"
               onScrollAreaMount={handleVisualScrollAreaMount}
               onScrollAreaScroll={handleVisualScroll}
@@ -315,10 +353,7 @@ export const PageVersionComparisonView = ({
       </Tabs.Content>
       {hasChangesTab && (
         <Tabs.Content value="changes" className={styles.tabContent}>
-          <PageVersionChanges
-            before={publishedVersion.data}
-            after={newVersion.data}
-          />
+          <PageVersionChanges changes={changes} />
         </Tabs.Content>
       )}
     </Tabs.Root>
@@ -471,15 +506,19 @@ const PreviewCard = ({
   );
 };
 
+const NO_HIGHLIGHTS = new Map<string, HighlightKind>();
+
 const VisualFrame = ({
   html,
   loading,
+  highlights = NO_HIGHLIGHTS,
   version,
   onScrollAreaMount,
   onScrollAreaScroll,
 }: {
   html: string;
   loading: boolean;
+  highlights?: Map<string, HighlightKind>;
   version: PageVersionId;
   onScrollAreaMount?: (
     version: PageVersionId,
@@ -570,6 +609,45 @@ const VisualFrame = ({
       currentHeight === nextHeight ? currentHeight : nextHeight,
     );
   }, [previewMinHeight]);
+
+  const hasAppliedHighlightsRef = useRef(false);
+  useEffect(() => {
+    const document = previewFrameRef.current?.contentDocument;
+    // Leave the preview untouched until there is something to highlight.
+    if (
+      loading ||
+      !document ||
+      (!highlights.size && !hasAppliedHighlightsRef.current)
+    ) {
+      return;
+    }
+    applyVersionHighlights(document, highlights);
+    hasAppliedHighlightsRef.current = highlights.size > 0;
+    // The iframe has no body until its document loads; this effect runs
+    // again on load.
+    const body = document.body;
+    if (!highlights.size || !body || typeof MutationObserver === 'undefined') {
+      return;
+    }
+
+    // Components that render client-side add their elements after load.
+    let animationFrame: number | undefined;
+    const observer = new MutationObserver(() => {
+      if (animationFrame !== undefined) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+      animationFrame = window.requestAnimationFrame(() =>
+        applyVersionHighlights(document, highlights),
+      );
+    });
+    observer.observe(body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      if (animationFrame !== undefined) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [highlights, loading, previewDocumentVersion]);
 
   const handleFrameLoad = useCallback(() => {
     setPreviewDocumentVersion((version) => version + 1);

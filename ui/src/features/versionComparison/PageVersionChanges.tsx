@@ -1,15 +1,10 @@
-import { useMemo } from 'react';
 import { Badge, Box, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
 
 import { getDisplayNameForNode } from '@/features/layout/layoutUtils';
-import { diffPageVersions } from '@/features/versionComparison/pageVersionDiff';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import type { ComponentNode } from '@/features/layout/layoutModelSlice';
-import type {
-  PageVersionChange,
-  PageVersionData,
-} from '@/features/versionComparison/pageVersionDiff';
+import type { PageVersionChange } from '@/features/versionComparison/pageVersionDiff';
 import type { ComponentsList } from '@/types/Component';
 
 import styles from './VersionComparisonPage.module.css';
@@ -108,17 +103,12 @@ const ChangeRow = ({
 };
 
 export const PageVersionChanges = ({
-  before,
-  after,
+  changes,
 }: {
-  before?: PageVersionData;
-  after?: PageVersionData;
+  // Undefined while either version is loading.
+  changes?: PageVersionChange[];
 }) => {
   const { data: components } = useGetComponentsQuery();
-  const changes = useMemo(
-    () => (before && after ? diffPageVersions(before, after) : undefined),
-    [before, after],
-  );
 
   if (!changes) {
     return (
