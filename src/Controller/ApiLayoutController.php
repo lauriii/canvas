@@ -251,6 +251,27 @@ final class ApiLayoutController {
     return new PreviewEnvelope($this->buildPreviewRenderable($entity, $preview_entity), $data);
   }
 
+  /**
+   * Renders a revision of a page, for comparing it with other versions.
+   *
+   * Read-only: unlike ::get(), nothing is updated or auto-saved, so looking at
+   * an old revision never turns it into a draft.
+   *
+   * @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types.
+   */
+  public function getRevision(Page $canvas_page, Page $canvas_page_revision): PreviewEnvelope {
+    if ($canvas_page_revision->id() !== $canvas_page->id()) {
+      throw new NotFoundHttpException();
+    }
+    $langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->getId();
+    $revision = $canvas_page_revision->hasTranslation($langcode) ? $canvas_page_revision->getTranslation($langcode) : $canvas_page_revision;
+    \assert($revision instanceof Page);
+    return new PreviewEnvelope($this->buildPreviewRenderable($revision), [
+      'revision' => (int) $revision->getRevisionId(),
+      'updated' => (int) $revision->getRevisionCreationTime(),
+    ]);
+  }
+
   private function buildRegion(string $id, ?ComponentTreeItemList $items = NULL, ?array &$model = NULL, ?FieldableEntityInterface $preview_entity = NULL): array {
     if ($items) {
       // Auto-update component instances before serving them, which will make

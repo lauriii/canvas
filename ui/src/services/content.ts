@@ -49,6 +49,50 @@ export interface ContentListResult {
   totalCount: number | null;
 }
 
+/**
+ * One revision of a page, in the language being edited.
+ */
+export interface PageRevision {
+  id: number;
+  // When it was made, as a Unix timestamp.
+  created: number;
+  // Who made it, or NULL if their account was deleted.
+  author: string | null;
+  message: string | null;
+  title: string;
+  published: boolean;
+  // Whether this is the revision visitors see now.
+  live: boolean;
+}
+
+/**
+ * A page's unpublished changes, on top of its live revision.
+ */
+export interface PageDraft {
+  // When they were last saved, as a Unix timestamp.
+  updated: number;
+  // Who last saved them, or NULL if their account was deleted.
+  author: string | null;
+}
+
+export interface PageRevisionsResponse {
+  revisions: PageRevision[];
+  // NULL when the page has no unpublished changes.
+  draft: PageDraft | null;
+  canRestore: boolean;
+}
+
+export interface PageRevisionRequest {
+  entityId: string;
+  revisionId: number;
+}
+
+export interface PageRevisionPreviewResponse {
+  html: string;
+  revision: number;
+  updated: number;
+}
+
 export interface ContentListParams {
   entityType: string;
   search?: string;
@@ -71,7 +115,7 @@ const buildUpdateContentBody = ({
 export const contentApi = createApi({
   reducerPath: 'contentApi',
   baseQuery: baseQueryWithAutoSaves,
-  tagTypes: ['Content', 'StagedConfig', 'PendingChanges'],
+  tagTypes: ['Content', 'StagedConfig', 'PendingChanges', 'PageRevisions'],
   endpoints: (builder) => ({
     getContentList: builder.query<ContentListResult, ContentListParams>({
       query: ({ entityType, search, offset }) => {
@@ -296,6 +340,36 @@ export const contentApi = createApi({
         { type: 'Content', id: 'LIST' },
       ],
     }),
+    getPageRevisions: builder.query<PageRevisionsResponse, string>({
+      query: (entityId) =>
+        `/canvas/api/v0/content/canvas_page/${entityId}/revisions`,
+      providesTags: (_result, _error, entityId) => [
+        { type: 'PageRevisions', id: entityId },
+      ],
+    }),
+    // Renders a revision without touching the page's draft.
+    getPageRevisionPreview: builder.query<
+      PageRevisionPreviewResponse,
+      PageRevisionRequest
+    >({
+      query: ({ entityId, revisionId }) =>
+        `/canvas/api/v0/layout/canvas_page/${entityId}/revisions/${revisionId}`,
+    }),
+    // Makes a revision the page's draft. Nothing is published.
+    restorePageRevision: builder.mutation<
+      { hasDraft: boolean },
+      PageRevisionRequest
+    >({
+      query: ({ entityId, revisionId }) => ({
+        url: `/canvas/api/v0/content/canvas_page/${entityId}/revisions/${revisionId}/restore`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { entityId }) => [
+        { type: 'Content', id: 'LIST' },
+        // The page's unpublished changes are now the restored version.
+        { type: 'PageRevisions', id: entityId },
+      ],
+    }),
     setLangcode: builder.mutation<SetLangcodeResponse, SetLangcodeRequest>({
       query: ({ entityId, langcode }) => ({
         url: `/canvas/api/v0/content/canvas_page/${entityId}/langcode`,
@@ -314,4 +388,7 @@ export const {
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
   useSetLangcodeMutation,
+  useGetPageRevisionsQuery,
+  useGetPageRevisionPreviewQuery,
+  useRestorePageRevisionMutation,
 } = contentApi;
