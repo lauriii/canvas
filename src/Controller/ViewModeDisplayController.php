@@ -39,7 +39,7 @@ final class ViewModeDisplayController {
    *   A render array for the form or a redirect response.
    */
   public function __invoke(string $entity_type_id, string $bundle, string $view_mode_name, Request $request, RouteMatchInterface $route_match): array|CacheableResponseInterface {
-    $template = ContentTemplate::load("$entity_type_id.$bundle.$view_mode_name");
+    $template = ContentTemplate::loadFor($entity_type_id, $bundle, $view_mode_name);
 
     // Check if a ContentTemplate exists for this view mode and entity type.
     if ($template instanceof ConfigEntityInterface && $template->status()) {

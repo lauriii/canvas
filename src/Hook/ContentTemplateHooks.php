@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
-use Drupal\canvas\ContentTemplateRoutes;
+use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Entity\Page;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
 
@@ -67,29 +67,24 @@ final class ContentTemplateHooks {
 
   /**
    * Implements hook_entity_type_alter.
+   *
+   * Runs last, so that it sees the `field_ui_base_route` and link templates
+   * that other modules' implementations may set, like the rest of Canvas does.
+   * For example, Media's implementation sets the `canonical` link template
+   * that makes `media` eligible.
+   *
+   * @see \Drupal\canvas\ContentTemplateRepository::isSupportedEntityType()
+   * @see \Drupal\media\Hook\MediaHooks::entityTypeAlter()
    */
-  #[Hook('entity_type_alter')]
+  #[Hook('entity_type_alter', order: Order::Last)]
   public static function entityTypeAlter(array $definitions): void {
     /** @var \Drupal\Core\Entity\EntityTypeInterface $entity_type */
     foreach ($definitions as $entity_type) {
-      // Canvas pages don't have any structured data, and therefore don't
-      // support content templates (which require structured data anyway – that
-      // is, they need to be using at least one entity field prop source).
-      // @see docs/adr/0004-page-entity-type.md
-      if ($entity_type->id() === Page::ENTITY_TYPE_ID) {
-        continue;
-      }
-      // Canvas can only render fieldable content entities. Any content entity
-      // types with structured data (all of them except Canvas' own `Page`)
-      // must be assumed to use ContentTemplates, and hence should use that view
-      // builder.
       // Note: as soon as a ContentTemplate exists for a certain content entity
       // type + view mode, the original template will NOT be used anymore:
       // - not the view mode-specific one, such as `node--teaser.html.twig`
       // - not the generic one, such as `node.html.twig`
-      // @todo Remove the restriction that this only works with nodes, after
-      //   https://www.drupal.org/project/canvas/issues/3498525.
-      if ($entity_type->entityClassImplements(FieldableEntityInterface::class) && $entity_type->id() === 'node') {
+      if (ContentTemplateRepository::isSupportedEntityType($entity_type)) {
         // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::createInstance()
         $entity_type->setHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY, $entity_type->getViewBuilderClass())
           ->setViewBuilderClass(ContentTemplateAwareViewBuilder::class);
@@ -114,22 +109,15 @@ final class ContentTemplateHooks {
    */
   #[Hook('menu_local_tasks_alter')]
   public function menuLocalTasksAlter(array &$data, string $route_name, RefinableCacheableDependencyInterface &$cacheability): void {
-    // Add content template cacheability for routes where content templates
-    // apply, otherwise the content template links in the local tasks will not
-    // update when templates are created or deleted.
-    // Also apply to the main "Manage display" page so tabs update correctly
-    // when templates are created/deleted. That page is
-    // `entity.entity_view_display.node.default` on Drupal < 11.4, and the new
-    // display-mode overview (`entity.entity_view_display_overview.node`) as of
-    // Drupal 11.4.
+    // Add content template cacheability on Field UI's entity view display
+    // routes. Field UI only generates these routes for entity types with
+    // field_ui_base_route, which is a superset of the entity types Canvas
+    // supports, so this may add cacheability on a route Canvas has no template
+    // for. This covers both the "Manage display" page
+    // (`entity.entity_view_display.*`) on Drupal < 11.4, and the display-mode
+    // overview (`entity.entity_view_display_overview.*`) as of Drupal 11.4.
     // @see https://www.drupal.org/node/3574383
-    // @todo Remove the hardcoded node "entity_view_display" route check after
-    //   https://www.drupal.org/project/canvas/issues/3498525 is resolved.
-    $manage_display_routes = [
-      'entity.entity_view_display.node.default',
-      'entity.entity_view_display_overview.node',
-    ];
-    if (ContentTemplateRoutes::applies($route_name) || \in_array($route_name, $manage_display_routes, TRUE)) {
+    if (\str_starts_with($route_name, 'entity.entity_view_display.') || \str_starts_with($route_name, 'entity.entity_view_display_overview.')) {
       // Add list cache tags to invalidate when entity ContentTemplate is
       // created/deleted. This ensures menu local tasks rebuild when template
       // availability changes.
@@ -152,25 +140,38 @@ final class ContentTemplateHooks {
   public function preprocessMenuLocalTask(array &$variables): void {
     $url = $variables['element']['#link']['url'] ?? NULL;
 
-    // Only proceed if this is a routed URL and content template logic applies.
-    if (!$url instanceof Url || !$url->isRouted() || !ContentTemplateRoutes::applies($url->getRouteName())) {
+    // Only proceed if this is a routed URL on a view mode display route. The
+    // route name is matched by convention, so nothing guarantees the route
+    // has the parameters that Field UI's routes have: bail out rather than
+    // fail on any route that merely shares the naming pattern.
+    if (!$url instanceof Url || !$url->isRouted()) {
       return;
     }
-
     $entity_type_id = $this->routeMatch->getParameter('entity_type_id');
-    \assert(\is_string($entity_type_id));
+    if (!\is_string($entity_type_id) || !$this->entityTypeManager->hasDefinition($entity_type_id)) {
+      return;
+    }
+    if ($url->getRouteName() !== ContentTemplateRepository::getViewModeDisplayRouteName($entity_type_id)) {
+      return;
+    }
     $bundle_entity_type = $this->entityTypeManager
       ->getDefinition($entity_type_id)->getBundleEntityType();
 
     $route_parameters = $url->getRouteParameters();
-    $bundle = $route_parameters[$bundle_entity_type];
-    $view_mode_id = $route_parameters['view_mode_name'] ?? 'default';
-    $template_id = "$entity_type_id.$bundle.$view_mode_id";
+    // Field UI names the bundle route parameter after the bundle entity type,
+    // or `bundle` for entity types with plugin-based bundles (for example,
+    // commerce_license). Entity types without bundles (for example, user) have
+    // a single implicit bundle equal to the entity type ID, and their Field UI
+    // routes have no bundle route parameter.
+    // @see \Drupal\field_ui\Routing\RouteSubscriber::alterRoutes()
+    $bundle = $route_parameters[$bundle_entity_type ?? 'bundle'] ?? $entity_type_id;
+    if (!\is_string($bundle)) {
+      return;
+    }
+    $view_mode_id = $route_parameters['view_mode_name'] ?? EntityDisplayRepositoryInterface::DEFAULT_DISPLAY_MODE;
 
     // Check if a Canvas template exists.
-    $template = $this->entityTypeManager
-      ->getStorage(ContentTemplate::ENTITY_TYPE_ID)
-      ->load($template_id);
+    $template = ContentTemplate::loadFor($entity_type_id, $bundle, $view_mode_id);
 
     // Only modify the link if the template exists and is enabled.
     if (!$template instanceof ConfigEntityInterface || !$template->status()) {

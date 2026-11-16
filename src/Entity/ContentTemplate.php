@@ -125,6 +125,43 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   protected $status = FALSE;
 
   /**
+   * Builds the ID of the template for an entity type, bundle and view mode.
+   *
+   * @param string $entity_type_id
+   *   A content entity type ID.
+   * @param string $bundle
+   *   A bundle of that entity type. For entity types without bundles, this is
+   *   the entity type ID.
+   * @param string $view_mode
+   *   A view mode machine name.
+   *
+   * @return string
+   *   The corresponding template ID, whether or not such a template exists.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\StringPartsConstraint
+   */
+  public static function createId(string $entity_type_id, string $bundle, string $view_mode): string {
+    return \implode('.', [$entity_type_id, $bundle, $view_mode]);
+  }
+
+  /**
+   * Tries to load the template for an entity type, bundle and view mode.
+   *
+   * @param string $entity_type_id
+   *   A content entity type ID.
+   * @param string $bundle
+   *   A bundle of that entity type.
+   * @param string $view_mode
+   *   A view mode machine name.
+   *
+   * @return self|null
+   *   The template, or NULL if none exists.
+   */
+  public static function loadFor(string $entity_type_id, string $bundle, string $view_mode): ?self {
+    return self::load(self::createId($entity_type_id, $bundle, $view_mode));
+  }
+
+  /**
    * Tries to load a template for a particular entity, in a specific view mode.
    *
    * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
@@ -137,19 +174,19 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
    *   does not exist.
    */
   public static function loadForEntity(FieldableEntityInterface $entity, string $view_mode): ?self {
-    $id = implode('.', [
-      $entity->getEntityTypeId(),
-      $entity->bundle(),
-      $view_mode,
-    ]);
-    return self::load($id);
+    // Entity types without bundles return their entity type ID from ::bundle().
+    return self::loadFor($entity->getEntityTypeId(), $entity->bundle(), $view_mode);
   }
 
   /**
    * {@inheritdoc}
    */
   public function id(): string {
-    return $this->content_entity_type_id . '.' . $this->content_entity_type_bundle . '.' . $this->content_entity_type_view_mode;
+    return self::createId(
+      (string) $this->content_entity_type_id,
+      (string) $this->content_entity_type_bundle,
+      (string) $this->content_entity_type_view_mode,
+    );
   }
 
   /**
@@ -468,18 +505,10 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     // Determine the preview entity (if any), and ensure correct cacheability:
     // - for the query in ::getSuggestedPreviewEntity()
     // - for the access checking here
-    $preview_entity = $this->getSuggestedPreviewEntity();
     $preview_entity_cacheability = (new CacheableMetadata())
       ->addCacheContexts($storage->getEntityType()->getListCacheContexts())
       ->addCacheTags($storage->getEntityType()->getBundleListCacheTags($this->getTargetBundle()));
-    if ($preview_entity !== NULL) {
-      $preview_entity_access = $preview_entity->access('view', return_as_object: TRUE);
-      $preview_entity_cacheability->addCacheableDependency($preview_entity_access);
-      if (!$preview_entity_access->isAllowed()) {
-        // Do not return preview entity ID if not viewable.
-        $preview_entity = NULL;
-      }
-    }
+    $preview_entity = $this->getSuggestedPreviewEntity($preview_entity_cacheability);
 
     // Normalize component tree for API consumers.
     $component_tree = [];
@@ -500,7 +529,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
         'label' => $this->label(),
         'status' => $this->status,
         'id' => $this->id(),
-        'suggestedPreviewEntityId' => $preview_entity ? (int) $preview_entity->id() : NULL,
+        'suggestedPreviewEntityId' => $preview_entity ? self::normalizeEntityId($preview_entity) : NULL,
         'pageVariant' => $this->page_variant,
         'component_tree' => $component_tree,
       ],
@@ -516,7 +545,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
   public static function createFromClientSide(array $data): static {
     ['entityType' => $entity_type, 'bundle' => $bundle, 'viewMode' => $view_mode] = $data;
     return self::create([
-      'id' => "$entity_type.$bundle.$view_mode",
+      'id' => self::createId($entity_type, $bundle, $view_mode),
       'content_entity_type_id' => $entity_type,
       'content_entity_type_bundle' => $bundle,
       'content_entity_type_view_mode' => $view_mode,
@@ -579,32 +608,61 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     if ($entity_definition->entityClassImplements(EntityChangedInterface::class)) {
       $entity_query->sort('changed', 'DESC');
     }
-    else {
-      $entity_query->sort($id_key, 'DESC');
-    }
+    // Tie-break on ID, so the order is deterministic.
+    $entity_query->sort($id_key, 'DESC');
     return $entity_query;
   }
 
-  private function getSuggestedPreviewEntity(): ?ContentEntityInterface {
+  /**
+   * Returns the entity's ID as an integer if its ID field is an integer field.
+   *
+   * Entity storage returns integer IDs as strings.
+   */
+  private static function normalizeEntityId(ContentEntityInterface $entity): int|string {
+    $id = $entity->id();
+    \assert(\is_int($id) || \is_string($id));
+    $id_key = $entity->getEntityType()->getKey('id');
+    \assert(\is_string($id_key));
+    return $entity->getFieldDefinition($id_key)?->getType() === 'integer' ? (int) $id : $id;
+  }
+
+  /**
+   * Suggests the most recently changed entity the current user can view.
+   *
+   * The most recently changed entity is not necessarily viewable: for example,
+   * the anonymous user's profile never is, and an unpublished node may not be.
+   * Checks up to 10 candidates, like ::suggestPreviewContentEntities() lists.
+   *
+   * @param \Drupal\Core\Cache\CacheableMetadata $cacheability
+   *   Receives the cacheability of the access checks performed.
+   *
+   * @return \Drupal\Core\Entity\ContentEntityInterface|null
+   *   The suggested preview entity, or NULL if there is no viewable one.
+   *
+   * @see \Drupal\canvas\Controller\ApiUiContentTemplateControllers::suggestPreviewContentEntities()
+   */
+  private function getSuggestedPreviewEntity(CacheableMetadata $cacheability): ?ContentEntityInterface {
     \assert($this->content_entity_type_id !== NULL);
 
-    $query = self::getPreviewSuggestionQuery(
+    $results = self::getPreviewSuggestionQuery(
       $this->getTargetEntityTypeId(),
       $this->getTargetBundle(),
-      1
-    );
-    $results = $query->execute();
+      10
+    )->execute();
     \assert(\is_array($results));
 
-    if (empty($results)) {
-      return NULL;
-    }
-
-    $entity = $this->entityTypeManager()
+    $entities = $this->entityTypeManager()
       ->getStorage($this->getTargetEntityTypeId())
-      ->load(reset($results));
-    \assert($entity instanceof ContentEntityInterface);
-    return $entity;
+      ->loadMultiple($results);
+    foreach ($entities as $entity) {
+      \assert($entity instanceof ContentEntityInterface);
+      $access = $entity->access('view', return_as_object: TRUE);
+      $cacheability->addCacheableDependency($access);
+      if ($access->isAllowed()) {
+        return $entity;
+      }
+    }
+    return NULL;
   }
 
 }

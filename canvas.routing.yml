@@ -888,7 +888,7 @@ canvas.api.ui.content_template.suggestions.prop_sources:
     _format: 'json'
 
 canvas.api.ui.content_template.view_modes.list:
-  path: '/canvas/api/v0/ui/content_template/view_modes/node'
+  path: '/canvas/api/v0/ui/content_template/view_modes'
   defaults:
     _controller: 'Drupal\canvas\Controller\ApiUiContentTemplateControllers::listViewModes'
   requirements:

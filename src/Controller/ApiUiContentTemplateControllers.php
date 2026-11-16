@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
@@ -36,6 +37,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
     private readonly PropSourceSuggester $propSourceSuggester,
     private readonly EntityTypeBundleInfoInterface $bundleInfo,
     private readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
+    private readonly ContentTemplateRepository $contentTemplateRepository,
   ) {}
 
   /**
@@ -136,31 +138,31 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
   public function listViewModes(): JsonResponse {
     $data = [];
 
-    // @todo Generalize to other content entity types in https://www.drupal.org/i/3498525
-    $entity_type_id = 'node';
-    $entity_view_modes = $this->entityDisplayRepository->getViewModeOptions($entity_type_id);
-
-    foreach ($entity_view_modes as $view_mode => $view_mode_label) {
+    foreach ($this->contentTemplateRepository->getSupportedEntityTypeIds() as $entity_type_id) {
+      $entity_view_modes = $this->entityDisplayRepository->getViewModeOptions($entity_type_id);
       // @see \Drupal\Core\Entity\Entity\EntityViewMode
-      if ($view_mode === 'default') {
+      unset($entity_view_modes[EntityDisplayRepositoryInterface::DEFAULT_DISPLAY_MODE]);
+      if ($entity_view_modes === []) {
         continue;
       }
 
       $bundle_info = $this->bundleInfo->getBundleInfo($entity_type_id);
       $template_keys = $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->getQuery()
-        // TRICKY: not checking access is acceptable because the route requires
+        // TRICKY: not checking access is acceptable. The route requires
         // "create" access for ContentTemplates. This is only exposing labels
         // (the "view label" operation) and whether a ContentTemplate exists.
         ->accessCheck(FALSE)
         ->condition('content_entity_type_id', $entity_type_id)
-        ->condition('content_entity_type_view_mode', $view_mode)
         ->execute();
-      foreach (\array_keys($bundle_info) as $bundle) {
-        $template_id = "$entity_type_id.$bundle.$view_mode";
-        $data[$entity_type_id][$bundle][$view_mode] = [
-          'label' => $view_mode_label,
-          'hasTemplate' => \in_array($template_id, $template_keys, TRUE),
-        ];
+
+      foreach ($entity_view_modes as $view_mode => $view_mode_label) {
+        foreach (\array_keys($bundle_info) as $bundle) {
+          $template_id = ContentTemplate::createId($entity_type_id, $bundle, $view_mode);
+          $data[$entity_type_id][$bundle][$view_mode] = [
+            'label' => $view_mode_label,
+            'hasTemplate' => \in_array($template_id, $template_keys, TRUE),
+          ];
+        }
       }
     }
 

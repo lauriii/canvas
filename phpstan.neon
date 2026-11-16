@@ -43,6 +43,8 @@ parameters:
         class: Drupal\canvas\Entity\Pattern
       staged_config_update:
         class: Drupal\canvas\Entity\StagedConfigUpdate
+      content_template:
+        class: Drupal\canvas\Entity\ContentTemplate
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics

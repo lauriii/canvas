@@ -1173,7 +1173,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'required' => [],
       'slots' => [],
       'dataDependencies' => [],
-      'links' => [],
+      'links' => [
+        'delete-form' => \base_path() . 'canvas/api/v0/config/js_component/external_component',
+      ],
     ], $body);
     self::assertArrayNotHasKey('default_markup', $body);
     JavaScriptComponent::load('external_component')?->delete();
@@ -2716,8 +2718,6 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
    * @see \Drupal\canvas\Entity\ContentTemplate
    */
   public function testContentTemplate(): void {
-    // @todo Expand this test coverage in https://www.drupal.org/i/3498525, once more content entity types can have ContentTemplates, for now restricted to only `node`
-
     // Test with multiple bundles of each content entity type.
     NodeType::create(['type' => 'bunny', 'name' => 'Bunnies'])->save();
     NodeType::create(['type' => 'llama', 'name' => 'Llamas'])->save();
@@ -2735,20 +2735,31 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           'article' => [
             'label' => 'Articles',
             'viewModes' => [],
-            'deleteUrl' => NULL,
             'editFieldsUrl' => NULL,
+            'deleteUrl' => NULL,
           ],
           'bunny' => [
             'label' => 'Bunnies',
             'viewModes' => [],
-            'deleteUrl' => NULL,
             'editFieldsUrl' => NULL,
+            'deleteUrl' => NULL,
           ],
           'llama' => [
             'label' => 'Llamas',
             'viewModes' => [],
-            'deleteUrl' => NULL,
             'editFieldsUrl' => NULL,
+            'deleteUrl' => NULL,
+          ],
+        ],
+      ],
+      'user' => [
+        'label' => 'Users',
+        'bundles' => [
+          'user' => [
+            'label' => NULL,
+            'viewModes' => [],
+            'editFieldsUrl' => NULL,
+            'deleteUrl' => NULL,
           ],
         ],
       ],
@@ -2758,6 +2769,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'config:content_template_list',
       'config:node_type_list',
       'entity_bundles',
+      'entity_types',
       'http_response',
     ];
 
@@ -2796,7 +2808,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
 
     // The list response MUST contain unpublished ContentTemplates.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     $expected_list_normalization = $expected_empty_list_normalization;
     $expected_list_normalization['node']['bundles']['bunny']['viewModes']['full'] = $expected_full_bunny_normalization;
     $this->assertSame($expected_list_normalization, $body);
@@ -2840,10 +2852,6 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           'source' => ['pointer' => 'content_entity_type_id'],
         ],
         [
-          'detail' => 'The value you selected is not a valid choice.',
-          'source' => ['pointer' => 'content_entity_type_id'],
-        ],
-        [
           'detail' => 'The \'llama\' bundle does not exist on the \'fake_entity_type\' entity type.',
           'source' => ['pointer' => 'content_entity_type_bundle'],
         ],
@@ -2855,7 +2863,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny'], 'UNCACHEABLE (request policy)', 'HIT');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny', 'entity_types'], 'UNCACHEABLE (request policy)', 'HIT');
     $this->assertSame($expected_list_normalization, $body);
 
     // Create a ContentTemplate via the Canvas HTTP API, correctly: 201.
@@ -2889,14 +2897,14 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'viewModes' => [
         'full' => $expected_full_llama_normalization,
       ],
-      'deleteUrl' => NULL,
       'editFieldsUrl' => NULL,
+      'deleteUrl' => NULL,
     ];
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_list_normalization, $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'HIT');
     // @phpstan-ignore-next-line method.alreadyNarrowedType
     $this->assertSame($expected_list_normalization, $body);
 
@@ -2912,7 +2920,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Re-retrieve list: 200, now has suggested preview entity, Dynamic Page
     // Cache miss. Note the presence of the suggested preview entity's
     // individual cache tag: this is because it had its "view" access checked.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:bunny', 'node_list:llama'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:bunny', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     // Change the expectation from `NULL` to the entity ID.
     $expected_list_normalization['node']['bundles']['llama']['viewModes']['full']['suggestedPreviewEntityId'] = (int) $node->id();
     $this->assertSame($expected_list_normalization, $body);
@@ -2928,7 +2936,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Re-retrieve empty list: 200. Dynamic Page Cache miss. Note that the cache
     // tag related to the `bunny` NodeType has disappeared.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     unset($expected_list_normalization['node']['bundles']['bunny']['viewModes']['full']);
     $this->assertSame($expected_list_normalization, $body);
 
@@ -2941,11 +2949,11 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $expected_list_normalization['node']['bundles']['cat'] = [
       'label' => 'Cats',
       'viewModes' => [],
-      'deleteUrl' => NULL,
       'editFieldsUrl' => NULL,
+      'deleteUrl' => NULL,
     ];
     ksort($expected_list_normalization['node']['bundles']);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_list_normalization, $body);
 
     // PATCH the existing llama template (CLI push path).
@@ -2979,6 +2987,44 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Clean up the templates we just created/mutated.
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/node.cat.full'), [], 204, NULL, NULL, NULL, NULL);
+
+    // The suggested preview entity is determined for the current user, not for
+    // the anonymous user: an unpublished node the current user owns and may
+    // view is a valid preview entity even though anonymous users cannot see it.
+    \assert($this->loggedInUser instanceof UserInterface);
+    $rid = $this->drupalCreateRole(['view own unpublished content']);
+    \assert(\is_string($rid));
+    $this->loggedInUser->addRole($rid)->save();
+    $unpublished_node = Node::create([
+      'type' => 'llama',
+      'title' => 'Unpublished llama',
+      'status' => FALSE,
+      'uid' => $this->loggedInUser->id(),
+    ]);
+    $unpublished_node->save();
+    $body = \json_decode((string) $this->makeApiRequest('GET', $list_url, [])->getBody(), TRUE);
+    self::assertIsArray($body);
+    self::assertSame((int) $unpublished_node->id(), $body['node']['bundles']['llama']['viewModes']['full']['suggestedPreviewEntityId']);
+
+    // The suggested preview entity must be the most recently changed entity
+    // that the current user can view, not just the most recently changed one.
+    // The current user cannot view other users' profiles, only their own, so a
+    // blocked user created last must be skipped in favor of the current user.
+    // (On a real site, the anonymous user is such a never-viewable user.)
+    $this->createUser([], NULL, FALSE, ['status' => 0]);
+    $request_options[RequestOptions::JSON] = [
+      'entityType' => 'user',
+      'bundle' => 'user',
+      'viewMode' => 'full',
+      'status' => TRUE,
+      'component_tree' => [],
+    ];
+    $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
+    $body = \json_decode((string) $this->makeApiRequest('GET', $list_url, [])->getBody(), TRUE);
+    self::assertIsArray($body);
+    \assert($this->loggedInUser instanceof UserInterface);
+    self::assertSame((int) $this->loggedInUser->id(), $body['user']['bundles']['user']['viewModes']['full']['suggestedPreviewEntityId']);
+    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/user.user.full'), [], 204, NULL, NULL, NULL, NULL);
   }
 
   public function testColor(): void {

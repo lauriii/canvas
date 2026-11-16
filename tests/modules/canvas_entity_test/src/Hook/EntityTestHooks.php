@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_entity_test\Hook;
 
+use Drupal\canvas_entity_test\AlterBuildTestViewBuilder;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\entity_test\EntityTestViewBuilderOverriddenView;
 
 /**
  * Defines hooks for test entities.
@@ -31,6 +33,25 @@ final class EntityTestHooks {
         ->setLabel(new TranslatableMarkup('Revision ID, but a string'))
         ->setReadOnly(TRUE)
         ->setSetting('max_length', 36);
+    }
+  }
+
+  /**
+   * Implements hook_entity_type_alter().
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Config\ContentTemplateTest::testFieldUiBaseRouteSetByLaterEntityTypeAlter()
+   * @see \Drupal\Tests\canvas\Kernel\EntityHandlers\ContentTemplateAwareViewBuilderTest::testOverriddenViewWithoutTemplate()
+   * @see \Drupal\Tests\canvas\Kernel\EntityHandlers\ContentTemplateAwareViewBuilderTest::testAlterBuildInListWithAndWithoutTemplate()
+   */
+  #[Hook('entity_type_alter')]
+  public static function entityTypeAlter(array &$entity_types): void {
+    if (isset($entity_types['entity_test_uuid_id'])) {
+      $entity_types['entity_test_uuid_id']->set('field_ui_base_route', 'entity.entity_test_uuid_id.admin_form');
+      $entity_types['entity_test_uuid_id']->setViewBuilderClass(EntityTestViewBuilderOverriddenView::class);
+    }
+    if (isset($entity_types['entity_test_with_bundle'])) {
+      $entity_types['entity_test_with_bundle']->set('field_ui_base_route', 'entity.entity_test_bundle.edit_form');
+      $entity_types['entity_test_with_bundle']->setViewBuilderClass(AlterBuildTestViewBuilder::class);
     }
   }
 

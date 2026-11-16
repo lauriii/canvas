@@ -17,7 +17,7 @@ export type TemplateViewModeNavigation = Pick<
   TemplateViewMode,
   'entityType' | 'bundle' | 'viewMode'
 > & {
-  suggestedPreviewEntityId?: number | string;
+  suggestedPreviewEntityId?: number | string | null;
 };
 
 /**

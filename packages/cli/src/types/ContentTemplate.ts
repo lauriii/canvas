@@ -8,7 +8,7 @@ export interface ContentTemplate {
   bundle: string;
   viewMode: string;
   viewModeLabel?: string;
-  suggestedPreviewEntityId?: number | null;
+  suggestedPreviewEntityId?: number | string | null;
   pageVariant?: string | null;
   component_tree: CanvasComponentTree;
 }

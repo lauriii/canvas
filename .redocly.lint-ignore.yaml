@@ -155,10 +155,6 @@ openapi.yml:
       #/paths/~1canvas~1api~1v0~1layout~1{entityTypeId}~1{entityId}/get/responses/200/content/application~1json/schema/properties/layout/items/schema
     - >-
       #/paths/~1canvas~1api~1v0~1layout~1{entityTypeId}~1{entityId}/patch/responses/200/content/application~1json/schema/properties/layout/items/schema
-    - >-
-      #/paths/~1canvas~1api~1v0~1ui~1content_template~1view_modes~1node/get/responses/200/content/application~1json/examples/node/article
-    - >-
-      #/paths/~1canvas~1api~1v0~1ui~1content_template~1view_modes~1node/get/responses/200/content/application~1json/examples/node/page
   path-parameters-defined:
     - >-
       #/paths/~1canvas~1api~1v0~1config~1auto-save~1{entityTypeId}~1{configEntityId}/get/parameters

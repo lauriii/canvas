@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Core\Entity\Display\EntityDisplayInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Messenger\MessengerInterface;
-use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
@@ -23,7 +23,6 @@ final class FieldUiHooks {
   use StringTranslationTrait;
 
   public function __construct(
-    private readonly RouteMatchInterface $routeMatch,
     private readonly MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     TranslationInterface $string_translation,
@@ -32,17 +31,19 @@ final class FieldUiHooks {
   }
 
   /**
-   * Implements hook_form_FORM_ID_alter() for Manage display.
+   * Implements hook_form_FORM_ID_alter() for entity_view_display_edit_form.
    *
-   * Adds a Canvas call-to-action banner as a custom message type on the node
-   * "Manage display" page. The CTA encourages users to create content templates
-   * using Drupal Canvas instead of the standard "Manage display" table.
+   * Adds a Canvas call-to-action banner as a custom message type on the
+   * "Manage display" form of every view mode (the default display included)
+   * for entity types that support content templates. The CTA encourages users
+   * to create content templates using Drupal Canvas instead of the standard
+   * "Manage display" table.
    *
    * The CTA is only displayed when:
-   * - The user has access to Canvas UI
-   * - The current route is the node entity view display edit form
-   * - The display entity is for a node content type
+   * - The display being edited targets an entity type that supports content
+   *   templates
    * - No content templates exist for the bundle
+   * - The user has permission to create a content template
    *
    * @param array $form
    *   The form array.
@@ -51,9 +52,7 @@ final class FieldUiHooks {
    */
   #[Hook('form_entity_view_display_edit_form_alter')]
   public function formEntityViewDisplayEditFormAlter(array &$form, FormStateInterface $form_state): void {
-    // @todo Make this available for other entity types in
-    //   https://www.drupal.org/project/canvas/issues/3498525.
-    if ($this->routeMatch->getRouteName() !== 'entity.entity_view_display.node.default' || $this->messenger->messagesByType('canvas_cta')) {
+    if ($this->messenger->messagesByType('canvas_cta')) {
       return;
     }
 
@@ -66,6 +65,11 @@ final class FieldUiHooks {
 
     $entity_type_id = $display->getTargetEntityTypeId();
     $bundle = $display->getTargetBundle();
+
+    $target_entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+    if (!ContentTemplateRepository::isSupportedEntityType($target_entity_type)) {
+      return;
+    }
 
     // Check if any content templates exist for this bundle.
     $storage = $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID);

@@ -4058,9 +4058,9 @@ paths:
         '404':
           description: Non-existent content entity type, bundle or Component.
           $ref: '#/components/responses/ClientErrorResponse'
-  /canvas/api/v0/ui/content_template/view_modes/node:
+  /canvas/api/v0/ui/content_template/view_modes:
     get:
-      summary: Gets the list of view modes for the Node entity type.
+      summary: Gets the list of view modes for supported content entity types.
       responses:
         '200':
           description: List of Entity View Displays
@@ -4074,56 +4074,62 @@ paths:
                 additionalProperties:
                   title: List of Entity Bundles
                   type: object
-                  properties:
-                    label:
-                      type: string
-                    bundles:
+                  minProperties: 0
+                  additionalProperties:
+                    title: List of Entity View Displays
+                    type: object
+                    minProperties: 0
+                    additionalProperties:
+                      title: Entity View Display
                       type: object
-                      minProperties: 0
-                      additionalProperties:
-                        title: List of Entity View Displays
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            description: Entity View Display Id
-                          hasTemplate:
-                            type: boolean
-                            description: Boolean flag indicating if ContentTemplate for this Entity View Display exists
+                      properties:
+                        label:
+                          type: string
+                          description: Entity View Display label
+                        hasTemplate:
+                          type: boolean
+                          description: Boolean flag indicating if ContentTemplate for this Entity View Display exists
               examples:
-                node:
-                  article:
-                    rss:
-                      label: RSS
-                      hasTemplate: false
-                    search_index:
-                      label: Search index
-                      hasTemplate: false
-                    search_result:
-                      label: Search result highlighting input
-                      hasTemplate: false
-                    full:
-                      label: Full content
-                      hasTemplate: true
-                    teaser:
-                      label: Teaser
-                      hasTemplate: false
-                  page:
-                    rss:
-                      label: RSS
-                      hasTemplate: false
-                    search_index:
-                      label: Search index
-                      hasTemplate: false
-                    search_result:
-                      label: Search result highlighting input
-                      hasTemplate: false
-                    full:
-                      label: Full content
-                      hasTemplate: true
-                    teaser:
-                      label: Teaser
-                      hasTemplate: true
+                view modes per content entity type:
+                  value:
+                    node:
+                      article:
+                        rss:
+                          label: RSS
+                          hasTemplate: false
+                        search_index:
+                          label: Search index
+                          hasTemplate: false
+                        search_result:
+                          label: Search result highlighting input
+                          hasTemplate: false
+                        full:
+                          label: Full content
+                          hasTemplate: true
+                        teaser:
+                          label: Teaser
+                          hasTemplate: false
+                      page:
+                        rss:
+                          label: RSS
+                          hasTemplate: false
+                        search_index:
+                          label: Search index
+                          hasTemplate: false
+                        search_result:
+                          label: Search result highlighting input
+                          hasTemplate: false
+                        full:
+                          label: Full content
+                          hasTemplate: true
+                        teaser:
+                          label: Teaser
+                          hasTemplate: true
+                    taxonomy_term:
+                      tags:
+                        full:
+                          label: Full content
+                          hasTemplate: false
   /canvas/api/v0/ui/preview-assets:
     get:
       summary: Gets the global assets to load in component preview iframes, rendered with the front-end theme.
@@ -6179,8 +6185,8 @@ components:
           type: string
           description: ContentTemplate id, follows format of `entity_type.bundle.view_mode`.
         suggestedPreviewEntityId:
-          type: [integer, "null"]
-          description: Suggested content entity ID to use for preview. Can be null if no preview entity is available.
+          type: [integer, string, "null"]
+          description: Suggested content entity ID to use for preview. An integer for entity types with integer IDs, a string otherwise. Can be null if no preview entity is available.
         label:
           type: string
           description: Content Template entity label.

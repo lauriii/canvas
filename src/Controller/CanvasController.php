@@ -7,6 +7,7 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
+use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -62,6 +63,7 @@ final class CanvasController {
     private readonly CanvasExtensionPluginManager $extensionPluginManager,
     private readonly ThemeSettingsDiscovery $themeSettingsDiscovery,
     private readonly GlobalImports $globalImports,
+    private readonly ContentTemplateRepository $contentTemplateRepository,
     private readonly LanguageManagerInterface $languageManager,
   ) {}
 
@@ -120,16 +122,22 @@ HTML;
     $system_site_config = $this->configFactory->get('system.site');
     $entity_types_with_keys = [];
     $entity_type_labels = [];
-    foreach ($this->entityTypeManager->getDefinitions() as $entity_type_id => $entity_type_definition) {
-      if ($entity_type_id === 'node' || $entity_type_definition->entityClassImplements(ComponentTreeEntityInterface::class)) {
+    $content_template_entity_types = [];
+    $all_definitions = $this->entityTypeManager->getDefinitions();
+    foreach ($all_definitions as $entity_type_id => $entity_type_definition) {
+      $is_template_supported = ContentTemplateRepository::isSupportedEntityType($entity_type_definition);
+      if ($is_template_supported) {
+        $has_bundle_support = $entity_type_definition->hasKey('bundle');
+        $content_template_entity_types[$entity_type_id] = [
+          'label' => (string) $entity_type_definition->getLabel(),
+          'bundleCollectionLabel' => $this->contentTemplateRepository->getBundleCollectionLabel($entity_type_id),
+          'bundleLabel' => $has_bundle_support ? $entity_type_definition->getBundleLabel() : NULL,
+        ];
+      }
+      if ($is_template_supported || $entity_type_definition->entityClassImplements(ComponentTreeEntityInterface::class)) {
+        $bundles = $this->entityTypeBundleInfo->getBundleInfo($entity_type_id);
         $entity_types_with_keys[$entity_type_id] = $entity_type_definition->getKeys();
-        if ($entity_type_definition->getBundleEntityType()) {
-          $bundles = $this->entityTypeBundleInfo->getBundleInfo($entity_type_id);
-          $entity_type_labels[$entity_type_id] = \array_map(fn($bundle) => $bundle['label'], $bundles);
-        }
-        else {
-          $entity_type_labels[$entity_type_id] = $entity_type_definition->getLabel();
-        }
+        $entity_type_labels[$entity_type_id] = \array_map(fn($bundle) => $bundle['label'], $bundles);
       }
     }
     $extensions = $this->extensionPluginManager->getDefinitions();
@@ -223,6 +231,7 @@ HTML;
               : Url::fromRoute('canvas.boot.empty')->getInternalPath(),
             'entityTypeKeys' => $entity_types_with_keys,
             'entityTypeLabels' => $entity_type_labels,
+            'contentTemplateEntityTypes' => $content_template_entity_types,
             'devMode' => $dev_mode,
             // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
             'devConflictDetectionMode' => $dev_conflict_detection,

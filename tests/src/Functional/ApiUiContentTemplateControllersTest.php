@@ -964,10 +964,12 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
   }
 
   public function testViewModesList(): void {
+    $view_modes_url = Url::fromUri('base:/canvas/api/v0/ui/content_template/view_modes');
+
     // 1. Test endpoint response when no Template entities are available.
     $json = $this->assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/view_modes/node'),
+      url: $view_modes_url,
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: NULL,
@@ -977,6 +979,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     );
 
     // All View Modes for Article bundle are returned, no ContentTemplates exist.
+    // entity_test has no non-default view modes so it does not appear.
     self::assertEquals([
       'node' => [
         'article' => [
@@ -993,6 +996,18 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
             'hasTemplate' => FALSE,
           ],
           ...self::expectSearchViewModesOnDrupal113(),
+        ],
+      ],
+      'user' => [
+        'user' => [
+          'compact' => [
+            'label' => 'Compact',
+            'hasTemplate' => FALSE,
+          ],
+          'full' => [
+            'label' => 'User account',
+            'hasTemplate' => FALSE,
+          ],
         ],
       ],
     ], $json);
@@ -1012,7 +1027,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // 3. Test endpoint response, validate Full View Mode `hasTemplate` property of TRUE.
     $json = self::assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/view_modes/node'),
+      url: $view_modes_url,
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: NULL,
@@ -1039,6 +1054,18 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
           ...self::expectSearchViewModesOnDrupal113(),
         ],
       ],
+      'user' => [
+        'user' => [
+          'compact' => [
+            'label' => 'Compact',
+            'hasTemplate' => FALSE,
+          ],
+          'full' => [
+            'label' => 'User account',
+            'hasTemplate' => FALSE,
+          ],
+        ],
+      ],
     ], $json);
 
     // 4. Create ContentTemplate for Teaser View Mode.
@@ -1050,7 +1077,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // 5. Test endpoint response, validate Full and Teaser View Modes have `hasTemplate` property values of TRUE.
     $json = self::assertExpectedResponse(
       method: 'GET',
-      url: Url::fromUri('base:/canvas/api/v0/ui/content_template/view_modes/node'),
+      url: $view_modes_url,
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: NULL,
@@ -1075,6 +1102,18 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
             'hasTemplate' => FALSE,
           ],
           ...self::expectSearchViewModesOnDrupal113(),
+        ],
+      ],
+      'user' => [
+        'user' => [
+          'compact' => [
+            'label' => 'Compact',
+            'hasTemplate' => FALSE,
+          ],
+          'full' => [
+            'label' => 'User account',
+            'hasTemplate' => FALSE,
+          ],
         ],
       ],
     ], $json);

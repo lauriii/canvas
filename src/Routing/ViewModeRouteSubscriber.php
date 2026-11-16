@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Routing;
 
-use Drupal\canvas\ContentTemplateRoutes;
+use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Controller\ViewModeDisplayController;
 use Drupal\Core\Routing\RouteSubscriberBase;
 use Drupal\Core\Routing\RoutingEvents;
@@ -15,15 +15,17 @@ use Symfony\Component\Routing\RouteCollection;
  */
 final class ViewModeRouteSubscriber extends RouteSubscriberBase {
 
+  public function __construct(
+    private readonly ContentTemplateRepository $contentTemplateRepository,
+  ) {}
+
   /**
    * {@inheritdoc}
    */
   protected function alterRoutes(RouteCollection $collection): void {
-    $routes = $collection->all();
-    foreach ($routes as $route_name => $route) {
-      if (ContentTemplateRoutes::applies($route_name)) {
-        $route->setDefault('_controller', ViewModeDisplayController::class);
-      }
+    foreach ($this->contentTemplateRepository->getSupportedEntityTypeIds() as $entity_type_id) {
+      $route = $collection->get(ContentTemplateRepository::getViewModeDisplayRouteName($entity_type_id));
+      $route?->setDefault('_controller', ViewModeDisplayController::class);
     }
   }
 
