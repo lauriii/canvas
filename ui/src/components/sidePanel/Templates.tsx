@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import parse from 'html-react-parser';
 import { PlusIcon } from '@radix-ui/react-icons';
-import { Box, Button, Flex, Select, Text } from '@radix-ui/themes';
+import { Box, Button, Flex, Select, Skeleton, Text } from '@radix-ui/themes';
 
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
+import ErrorCard from '@/components/error/ErrorCard';
 import {
   AccordionDetails,
   AccordionRoot,
@@ -16,19 +17,37 @@ import { extractErrorMessageFromApiResponse } from '@/features/error-handling/er
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import {
   useCreateContentTemplateMutation,
+  useGetContentTemplatesQuery,
   useGetViewModesQuery,
 } from '@/services/componentAndLayout';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
+import type { DrupalSettings } from '@drupal-canvas/types';
 import type { ModeData } from '@/services/componentAndLayout';
 
 const canvasSettings = getCanvasSettings();
+const supportedEntityTypes: DrupalSettings['canvas']['contentTemplateEntityTypes'] =
+  canvasSettings?.contentTemplateEntityTypes ?? {};
+const entityTypeIds = Object.keys(supportedEntityTypes);
 
 const Templates = () => {
   const [openEntityTypes, setOpenEntityTypes] = useState<string[]>([
-    'content-types',
+    ...entityTypeIds,
     'page-templates',
   ]);
+  const { data, error } = useGetContentTemplatesQuery();
+
+  // Only entity types that actually have at least one template are listed.
+  // Until the templates have loaded nothing is known, so render a skeleton
+  // rather than every entity type: otherwise every empty accordion flashes on
+  // screen and then disappears once the response arrives.
+  const visibleEntityTypeIds = data
+    ? entityTypeIds.filter((entityTypeId) =>
+        Object.values(data[entityTypeId]?.bundles ?? {}).some(
+          (bundle) => Object.keys(bundle.viewModes).length > 0,
+        ),
+      )
+    : [];
 
   const onClickHandler = (categoryName: string) => {
     setOpenEntityTypes((state) => {
@@ -41,20 +60,38 @@ const Templates = () => {
 
   return (
     <>
+      <PermissionCheck hasPermission="contentTemplates">
+        <Flex direction="column" mb="4">
+          <AddTemplateButton />
+        </Flex>
+      </PermissionCheck>
       <AccordionRoot value={openEntityTypes}>
         <PermissionCheck hasPermission="contentTemplates">
-          <AccordionDetails
-            value="content-types"
-            title="Content types"
-            onTriggerClick={() => onClickHandler('content-types')}
+          <Skeleton
+            height="1.2rem"
+            loading={!data && !error}
+            width="100%"
+            my="3"
           >
-            <Flex direction="column" mb="4">
-              <AddTemplateButton />
-            </Flex>
-            <ErrorBoundary title="An unexpected error has occurred while fetching templates.">
-              <TemplateList />
-            </ErrorBoundary>
-          </AccordionDetails>
+            {error && (
+              <ErrorCard
+                title="An unexpected error has occurred while fetching templates."
+                error={String(extractErrorMessageFromApiResponse(error))}
+              />
+            )}
+          </Skeleton>
+          {visibleEntityTypeIds.map((entityTypeId) => (
+            <AccordionDetails
+              key={entityTypeId}
+              value={entityTypeId}
+              title={supportedEntityTypes[entityTypeId].bundleCollectionLabel}
+              onTriggerClick={() => onClickHandler(entityTypeId)}
+            >
+              <ErrorBoundary title="An unexpected error has occurred while fetching templates.">
+                <TemplateList entityTypeId={entityTypeId} />
+              </ErrorBoundary>
+            </AccordionDetails>
+          ))}
         </PermissionCheck>
         <PermissionCheck hasPermission="pageVariants">
           <AccordionDetails
@@ -94,23 +131,24 @@ const AddTemplateButton = () => {
 interface TemplateDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  contentType?: string | null;
-  entityType?: string | null;
 }
 
-const AddTemplateDialog = ({
-  isOpen,
-  setIsOpen,
-  contentType = null,
-  entityType = 'node',
-}: TemplateDialogProps) => {
+const AddTemplateDialog = ({ isOpen, setIsOpen }: TemplateDialogProps) => {
   const { navigateToTemplateEditor } = useEditorNavigation();
+  const defaultEntityType =
+    entityTypeIds.length === 1 ? entityTypeIds[0] : null;
   const [selectedContentType, setSelectedContentType] = useState<string | null>(
-    contentType,
+    null,
   );
   const [selectedEntityType, setSelectedEntityType] = useState<string | null>(
-    entityType,
+    defaultEntityType,
   );
+  const selectedEntityTypeMeta = selectedEntityType
+    ? supportedEntityTypes[selectedEntityType]
+    : null;
+  // Entity types without a separate bundle entity type have a single implicit
+  // bundle equal to the entity type ID — no bundle selection needed.
+  const hasBundleSelection = selectedEntityTypeMeta?.bundleLabel != null;
   const [selectedViewMode, setSelectedViewMode] = useState<string | null>();
 
   const [createTemplate, { reset, isSuccess, isError, error }] =
@@ -143,14 +181,26 @@ const AddTemplateDialog = ({
       redirectToSelectedAfterCreation();
       setSelectedContentType('');
       setSelectedViewMode(null);
-      setSelectedEntityType('null');
+      setSelectedEntityType(defaultEntityType);
       reset();
     }
-  }, [isSuccess, reset, setIsOpen, redirectToSelectedAfterCreation]);
+  }, [
+    isSuccess,
+    reset,
+    setIsOpen,
+    redirectToSelectedAfterCreation,
+    defaultEntityType,
+  ]);
 
   useEffect(() => {
     setSelectedViewMode('');
   }, [selectedContentType]);
+
+  useEffect(() => {
+    // For entity types with no separate bundle, auto-select the implicit bundle.
+    setSelectedContentType(hasBundleSelection ? null : selectedEntityType);
+    setSelectedViewMode(null);
+  }, [selectedEntityType, hasBundleSelection]);
 
   const handleCreateTemplate = () => {
     createTemplate({
@@ -173,10 +223,12 @@ const AddTemplateDialog = ({
     [data, selectedContentType, selectedEntityType],
   );
 
-  const entityBundleLabels =
-    typeof entityType === 'string' &&
-    canvasSettings?.entityTypeLabels?.[entityType];
-  const bundleLabelType = typeof entityBundleLabels;
+  // `canvasSettings` is untyped at runtime, so annotate what the controller
+  // guarantees: a map of bundle machine name to bundle label.
+  const entityBundleLabels: Record<string, string> = selectedEntityType
+    ? (canvasSettings?.entityTypeLabels?.[selectedEntityType] ?? {})
+    : {};
+  const showEntityTypeDropdown = entityTypeIds.length > 1;
   return (
     <Dialog
       open={isOpen}
@@ -213,88 +265,123 @@ const AddTemplateDialog = ({
       >
         <Box>
           <Text as="p" size="1" color="gray">
-            Creates a new template for a content type using existing view modes
-            as the template name.
+            Creates a new template using existing view modes as the template
+            name.
           </Text>
         </Box>
-        {!contentType && (
+        {showEntityTypeDropdown && (
           <Flex direction="column" gap="2">
             <Box>
-              <DialogFieldLabel htmlFor="content-type">
-                Content type
+              <DialogFieldLabel htmlFor="entity-type">
+                Entity type
               </DialogFieldLabel>
             </Box>
             <Select.Root
-              name="content-type"
+              name="entity-type"
               required
-              value={selectedContentType || undefined}
-              onValueChange={(value) => setSelectedContentType(value as string)}
+              value={selectedEntityType || undefined}
+              onValueChange={(value) => setSelectedEntityType(value)}
               size="1"
             >
               <Select.Trigger
-                id="content-type"
-                placeholder="Select content type…"
+                id="entity-type"
+                placeholder="Select entity type…"
                 style={{ width: '100%' }}
               />
               <Select.Content>
-                {bundleLabelType === 'object' &&
-                  Object.entries(entityBundleLabels).map(([type, label]) => (
-                    <Select.Item key={type} value={type}>
-                      {String(label)}
+                {Object.entries(supportedEntityTypes)
+                  // Entity types without a non-default view mode have nothing
+                  // to offer: the view modes endpoint omits them.
+                  .filter(([id]) => id in (data ?? {}))
+                  .map(([id, { label }]) => (
+                    <Select.Item key={id} value={id}>
+                      {label}
                     </Select.Item>
                   ))}
               </Select.Content>
             </Select.Root>
           </Flex>
         )}
-        <Flex direction="column" gap="2">
-          <Box>
-            <DialogFieldLabel htmlFor="template-name">
-              Template
-            </DialogFieldLabel>
-          </Box>
-          <Select.Root
-            name="template name"
-            required
-            disabled={!selectedContentType}
-            value={selectedViewMode || ''}
-            onValueChange={(value) => setSelectedViewMode(value)}
-            size="1"
-          >
-            <Select.Trigger
-              id="template-name"
-              placeholder={
-                availableTemplates === 0
-                  ? 'No more available templates'
-                  : 'Available templates…'
-              }
-              style={{ width: '100%' }}
+        {hasBundleSelection && (
+          <Flex direction="column" gap="2">
+            <Box>
+              <DialogFieldLabel htmlFor="content-type">
+                {selectedEntityTypeMeta?.bundleLabel ?? 'Bundle'}
+              </DialogFieldLabel>
+            </Box>
+            <Select.Root
+              name="content-type"
+              required
+              disabled={!selectedEntityType}
+              value={selectedContentType || ''}
+              onValueChange={(value) => setSelectedContentType(value as string)}
+              size="1"
+            >
+              <Select.Trigger
+                id="content-type"
+                placeholder={`Select ${selectedEntityTypeMeta?.bundleLabel?.toLowerCase() ?? 'bundle'}…`}
+                style={{ width: '100%' }}
+              />
+              <Select.Content>
+                {Object.entries(entityBundleLabels).map(([type, label]) => (
+                  <Select.Item key={type} value={type}>
+                    {label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+          </Flex>
+        )}
+        {selectedContentType && (
+          <Flex direction="column" gap="2">
+            <Box>
+              <DialogFieldLabel htmlFor="template-name">
+                Template
+              </DialogFieldLabel>
+            </Box>
+            <Select.Root
+              name="template name"
+              required
               disabled={!selectedContentType}
-            />
-            <Select.Content>
-              <Select.Group>
-                {!!selectedEntityType &&
-                  selectedContentType &&
-                  Object.entries(
-                    data?.[selectedEntityType]?.[selectedContentType] || {},
-                  ).map(([mode, modeData]) => {
-                    const typedModeData = modeData as unknown as ModeData;
-                    return (
-                      <Select.Item
-                        key={mode}
-                        value={mode}
-                        disabled={typedModeData.hasTemplate}
-                      >
-                        {typedModeData.label}{' '}
-                        {typedModeData.hasTemplate &&
-                          '(template already exists)'}
-                      </Select.Item>
-                    );
-                  })}
-              </Select.Group>
-            </Select.Content>
-          </Select.Root>
-        </Flex>
+              value={selectedViewMode || ''}
+              onValueChange={(value) => setSelectedViewMode(value)}
+              size="1"
+            >
+              <Select.Trigger
+                id="template-name"
+                placeholder={
+                  availableTemplates === 0
+                    ? 'No more available templates'
+                    : 'Available templates…'
+                }
+                style={{ width: '100%' }}
+                disabled={!selectedContentType}
+              />
+              <Select.Content>
+                <Select.Group>
+                  {!!selectedEntityType &&
+                    selectedContentType &&
+                    Object.entries(
+                      data?.[selectedEntityType]?.[selectedContentType] || {},
+                    ).map(([mode, modeData]) => {
+                      const typedModeData = modeData as unknown as ModeData;
+                      return (
+                        <Select.Item
+                          key={mode}
+                          value={mode}
+                          disabled={typedModeData.hasTemplate}
+                        >
+                          {typedModeData.label}{' '}
+                          {typedModeData.hasTemplate &&
+                            '(template already exists)'}
+                        </Select.Item>
+                      );
+                    })}
+                </Select.Group>
+              </Select.Content>
+            </Select.Root>
+          </Flex>
+        )}
       </Flex>
     </Dialog>
   );

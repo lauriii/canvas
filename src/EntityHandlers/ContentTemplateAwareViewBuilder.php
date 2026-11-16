@@ -8,17 +8,26 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\EntityViewBuilderInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Decorates a view builder so it can take advantage of content templates.
+ *
+ * Without an enabled content template, the decorated (original) view builder
+ * renders the entity, and this class only adds the cacheability needed to
+ * start using a template as soon as one is created or enabled. With an enabled
+ * template, this class renders the entity using EntityViewBuilder's flow and
+ * the template replaces the entity view display.
  *
  * @see \Drupal\canvas\Hook\ContentTemplateHooks::entityTypeAlter()
  */
@@ -111,49 +120,130 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
   }
 
   /**
+   * Whether an enabled content template renders any of the given entities.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface[] $entities
+   *   The entities to render.
+   * @param string $view_mode
+   *   The requested view mode, before `hook_entity_view_mode_alter()`.
+   */
+  private function hasEnabledTemplate(array $entities, string $view_mode): bool {
+    foreach ($entities as $entity) {
+      \assert($entity instanceof FieldableEntityInterface);
+      // Let modules change the view mode, like ::getBuildDefaults() does.
+      $entity_view_mode = $view_mode;
+      $this->moduleHandler()->alter([$this->entityTypeId . '_view_mode', 'entity_view_mode'], $entity_view_mode, $entity);
+      if ($this->loadTemplate($entity, $entity_view_mode)?->status()) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Without an enabled content template, the decorated view builder renders the
+   * entity, including its own ::view() override, if it has one.
+   */
+  public function view(EntityInterface $entity, $view_mode = 'full', $langcode = NULL) {
+    if ($this->hasEnabledTemplate([$entity], $view_mode)) {
+      return parent::view($entity, $view_mode, $langcode);
+    }
+    $build = $this->decorated->view($entity, $view_mode, $langcode);
+    \assert($entity instanceof FieldableEntityInterface);
+    $this->addCacheability($build, $this->loadTemplate($entity, $build['#view_mode'] ?? $view_mode));
+    return $build;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Which view builder renders a list depends on its entities:
+   * 1. No entity has an enabled content template: the decorated view builder
+   *    renders the list, as it would without Canvas.
+   * 2. At least one entity has an enabled content template: this view builder
+   *    renders the whole list, in one batch. This happens when a list has
+   *    entities of several bundles and only some bundles have a template. For
+   *    the entities without a template it calls the decorated view builder's
+   *    ::getBuildDefaults(), ::buildComponents() and ::alterBuild(), so they
+   *    get the same defaults, fields and alterations.
+   *
+   * In case 2, the decorated view builder's ::view() and ::viewMultiple() are
+   * not called: they would render the whole list without templates.
+   */
+  public function viewMultiple(array $entities = [], $view_mode = 'full', $langcode = NULL) {
+    if ($this->hasEnabledTemplate($entities, $view_mode)) {
+      return parent::viewMultiple($entities, $view_mode, $langcode);
+    }
+    $build_list = $this->decorated->viewMultiple($entities, $view_mode, $langcode);
+    foreach ($entities as $key => $entity) {
+      \assert($entity instanceof FieldableEntityInterface);
+      $this->addCacheability($build_list[$key], $this->loadTemplate($entity, $build_list[$key]['#view_mode'] ?? $view_mode));
+    }
+    return $build_list;
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function getBuildDefaults(EntityInterface $entity, $view_mode) {
-    $defaults = parent::getBuildDefaults($entity, $view_mode);
+    // PHP allows calling the decorated view builder's protected method, because
+    // it is declared in EntityViewBuilder, which both classes extend.
+    $defaults = $this->decorated instanceof EntityViewBuilder
+      ? $this->decorated->getBuildDefaults($entity, $view_mode)
+      : parent::getBuildDefaults($entity, $view_mode);
     \assert($entity instanceof FieldableEntityInterface);
-    $template = $this->loadTemplate($entity, $view_mode);
-
-    // The rendered output varies based on whether we're in the Canvas editor UI
-    // (preview mode). Use a specialized cache context that's narrower than
-    // `route.name` to avoid creating separate cache entries per route, which
-    // would hurt cache hit ratios for teasers rendered on multiple pages.
-    // @see \Drupal\canvas\Cache\CanvasEditorUiCacheContext
-    $defaults['#cache']['contexts'][] = 'route.name.is_canvas_editor_ui';
-    // Only add the auto-save cache tag on preview routes to avoid invalidating
-    // all rendered nodes on the live site when auto-saves change. This cache
-    // tag ensures preview mode shows the latest auto-saved content.
-    if ($this->isPreview()) {
-      $defaults['#cache']['tags'][] = AutoSaveManager::CACHE_TAG;
-    }
-
-    // If a template exists, no matter if disabled, this render array depends
-    // on it changing.
-    if ($template) {
-      CacheableMetadata::createFromRenderArray($defaults)
-        ->addCacheableDependency($template)
-        ->applyTo($defaults);
-    }
-    // We need to ensure that as soon as a content template is added, we are
-    // using it.
-    else {
-      CacheableMetadata::createFromRenderArray($defaults)
-        ->addCacheTags(
-          $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->getEntityType()->getListCacheTags()
-        )->applyTo($defaults);
-    }
+    $template = $this->loadTemplate($entity, $defaults['#view_mode']);
+    $this->addCacheability($defaults, $template);
 
     // Content templates own the complete output, including new entities and
     // non-default revisions, which do not have render cache keys.
     if ($template && $template->status()) {
       unset($defaults['#theme']);
     }
+    return $defaults;
+  }
 
-    $keys = NestedArray::getValue($defaults, ['#cache', 'keys']);
+  /**
+   * Adds the cacheability for the content template (or its absence).
+   *
+   * @param array $build
+   *   The render array of a single entity.
+   * @param \Drupal\canvas\Entity\ContentTemplate|null $template
+   *   The content template for the entity and view mode, if any.
+   */
+  private function addCacheability(array &$build, ?ContentTemplate $template): void {
+    // The rendered output varies based on whether we're in the Canvas editor UI
+    // (preview mode). Use a specialized cache context that's narrower than
+    // `route.name` to avoid creating separate cache entries per route, which
+    // would hurt cache hit ratios for teasers rendered on multiple pages.
+    // @see \Drupal\canvas\Cache\CanvasEditorUiCacheContext
+    $build['#cache']['contexts'][] = 'route.name.is_canvas_editor_ui';
+    // Only add the auto-save cache tag on preview routes to avoid invalidating
+    // all rendered nodes on the live site when auto-saves change. This cache
+    // tag ensures preview mode shows the latest auto-saved content.
+    if ($this->isPreview()) {
+      $build['#cache']['tags'][] = AutoSaveManager::CACHE_TAG;
+    }
+
+    // If a template exists, no matter if disabled, this render array depends
+    // on it changing.
+    if ($template) {
+      CacheableMetadata::createFromRenderArray($build)
+        ->addCacheableDependency($template)
+        ->applyTo($build);
+    }
+    // We need to ensure that as soon as a content template is added, we are
+    // using it.
+    else {
+      CacheableMetadata::createFromRenderArray($build)
+        ->addCacheTags(
+          $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID)->getEntityType()->getListCacheTags()
+        )->applyTo($build);
+    }
+
+    $keys = NestedArray::getValue($build, ['#cache', 'keys']);
     if ($keys !== NULL) {
       if ($template && $template->status()) {
         // This entity has render caching, so add a cache key indicating whether
@@ -163,9 +253,36 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
       else {
         $keys[] = 'without-canvas';
       }
-      NestedArray::setValue($defaults, ['#cache', 'keys'], $keys);
+      NestedArray::setValue($build, ['#cache', 'keys'], $keys);
     }
-    return $defaults;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Only calls the decorated view builder for an entity without an enabled
+   * content template. With one, the render array is the template's component
+   * tree, not what an existing ::alterBuild() expects.
+   */
+  protected function alterBuild(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode): void {
+    \assert($entity instanceof FieldableEntityInterface);
+    if ($this->decorated instanceof EntityViewBuilder && !$this->loadTemplate($entity, $view_mode)?->status()) {
+      $this->decorated->alterBuild($build, $entity, $display, $view_mode);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function viewField(FieldItemListInterface $items, $display_options = []) {
+    return $this->decorated->viewField($items, $display_options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function viewFieldItem(FieldItemInterface $item, $display = []) {
+    return $this->decorated->viewFieldItem($item, $display);
   }
 
   /**

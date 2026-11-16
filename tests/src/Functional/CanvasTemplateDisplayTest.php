@@ -11,6 +11,7 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\entity_test\EntityTestHelper;
 use Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay;
 use Drupal\node\NodeTypeInterface;
 use Drupal\Tests\BrowserTestBase;
@@ -61,6 +62,10 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
     'node',
     // The module being tested.
     'canvas',
+    // Provides `entity_test`: a `bundle` entity key without a bundle entity
+    // type, whose Field UI base route path contains `{bundle}`.
+    // @see \Drupal\entity_test\Routing\EntityTestRoutes::routes()
+    'entity_test',
   ];
 
   /**
@@ -227,6 +232,129 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
     $this->drupalGet("admin/structure/types/manage/$bundle/display/teaser");
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextNotContains('The website encountered an unexpected error');
+
+    // With an enabled template, the Canvas template permission must not decide
+    // access to Layout Builder's routes, which use the same access check as the
+    // Field UI view display routes.
+    // @see \Drupal\layout_builder\Plugin\SectionStorage\DefaultsSectionStorage::buildRoutes()
+    $this->createContentTemplate($bundle, 'teaser', TRUE);
+    $layout_path = "admin/structure/types/manage/$bundle/display/teaser/layout";
+    // 1. Without the template permission, but with "administer node display".
+    $this->drupalCreateRole(['configure any layout'], 'layout_admin');
+    $this->currentUser->addRole('layout_admin')->save();
+    $this->drupalGet($layout_path);
+    $this->assertSession()->statusCodeEquals(200);
+    // 2. With the template permission, but without "administer node display".
+    $template_admin = $this->drupalCreateUser();
+    \assert($template_admin instanceof UserInterface);
+    $template_admin->addRole('layout_admin')->addRole('canvas_template_admin')->save();
+    $this->drupalLogin($template_admin);
+    $this->drupalGet($layout_path);
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests the template link for an entity type without a bundle entity type.
+   *
+   * The user entity type has no bundle entity type, so its Field UI routes
+   * have no bundle route parameter. The template link must still point to the
+   * Canvas template editor using the implicit bundle (the entity type ID).
+   */
+  public function testBundlelessEntityTypeTemplateLink(): void {
+    $account = $this->drupalCreateUser([
+      'administer account settings',
+      'administer user display',
+    ]);
+    \assert($account instanceof UserInterface);
+    $account->addRole('canvas_template_admin')->save();
+    $this->drupalLogin($account);
+
+    $this->viewDisplayStorage->create([
+      'targetEntityType' => 'user',
+      'bundle' => 'user',
+      'mode' => 'compact',
+      'status' => TRUE,
+    ])->save();
+
+    $template = $this->contentTemplateStorage->create([
+      'id' => 'user.user.compact',
+      'content_entity_type_id' => 'user',
+      'content_entity_type_bundle' => 'user',
+      'content_entity_type_view_mode' => 'compact',
+      'component_tree' => [],
+      'status' => TRUE,
+    ]);
+    \assert($template instanceof ConfigEntityInterface);
+    $template->save();
+
+    $this->drupalGet('admin/config/people/accounts/display');
+    $this->assertSession()->pageTextNotContains('Undefined array key');
+    // Exactly one template link exists, pointing at the Canvas template editor
+    // for the implicit `user` bundle.
+    $this->assertSession()->elementsCount('xpath', self::TEMPLATE_LINK_XPATH, 1);
+    $this->assertSession()->elementAttributeContains('xpath', self::TEMPLATE_LINK_XPATH, 'href', 'canvas/template/user/user/compact');
+
+    // The view mode display route redirects to the Canvas template editor.
+    // @see \Drupal\canvas\Access\ViewModeAccessCheck
+    // @see \Drupal\canvas\Controller\ViewModeDisplayController
+    $this->drupalGet('admin/config/people/accounts/display/compact');
+    $this->assertStringContainsString('canvas/template/user/user/compact', $this->getSession()->getCurrentUrl());
+  }
+
+  /**
+   * Tests the template link for an entity type with plugin-based bundles.
+   *
+   * Entity types with a `bundle` entity key but no bundle entity type get Field
+   * UI routes with a `bundle` route parameter. The template link must read that
+   * parameter rather than fall back to the entity type ID, so the bundle name
+   * deliberately differs from the entity type ID.
+   */
+  public function testPluginBundleEntityTypeTemplateLink(): void {
+    $account = $this->drupalCreateUser([
+      'administer entity_test content',
+      'administer entity_test display',
+      'administer entity_test fields',
+    ]);
+    \assert($account instanceof UserInterface);
+    $account->addRole('canvas_template_admin')->save();
+    $this->drupalLogin($account);
+
+    EntityTestHelper::createBundle('plugin_bundle', 'Plugin bundle', 'entity_test');
+    $this->viewDisplayStorage->create([
+      'targetEntityType' => 'entity_test',
+      'bundle' => 'plugin_bundle',
+      'mode' => 'full',
+      'status' => TRUE,
+    ])->save();
+
+    $template = $this->contentTemplateStorage->create([
+      'id' => 'entity_test.plugin_bundle.full',
+      'content_entity_type_id' => 'entity_test',
+      'content_entity_type_bundle' => 'plugin_bundle',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [],
+      'status' => TRUE,
+    ]);
+    \assert($template instanceof ConfigEntityInterface);
+    $template->save();
+
+    $this->drupalGet('entity_test/structure/plugin_bundle/display');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->elementsCount('xpath', self::TEMPLATE_LINK_XPATH, 1);
+    $this->assertSession()->elementAttributeContains('xpath', self::TEMPLATE_LINK_XPATH, 'href', 'canvas/template/entity_test/plugin_bundle/full');
+
+    // The view mode display route redirects to the Canvas template editor.
+    // @see \Drupal\canvas\Access\ViewModeAccessCheck
+    // @see \Drupal\canvas\Controller\ViewModeDisplayController
+    $this->drupalGet('entity_test/structure/plugin_bundle/display/full');
+    $this->assertStringContainsString('canvas/template/entity_test/plugin_bundle/full', $this->getSession()->getCurrentUrl());
+
+    // The content template list must build the "Edit fields" link with the
+    // same `bundle` route parameter.
+    $this->drupalGet('canvas/api/v0/config/content_template');
+    $this->assertSession()->statusCodeEquals(200);
+    $list = \json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    $this->assertStringEndsWith('/entity_test/structure/plugin_bundle/fields', $list['entity_test']['bundles']['plugin_bundle']['editFieldsUrl']);
   }
 
   /**

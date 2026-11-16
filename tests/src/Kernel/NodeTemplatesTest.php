@@ -235,6 +235,7 @@ HTML;
       'user_view',
       'node:1',
       'node_view',
+      'config:content_template_list',
       // TRICKY: this cache tag is present because the config entity does exist,
       // but is disabled. It was assessed whether it should be used, hence its
       // cache tag is present.

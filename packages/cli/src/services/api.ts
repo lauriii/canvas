@@ -827,7 +827,7 @@ export class ApiService {
   > {
     try {
       const response = await this.client.get(
-        '/canvas/api/v0/ui/content_template/view_modes/node',
+        '/canvas/api/v0/ui/content_template/view_modes',
       );
       return response.data;
     } catch (error) {

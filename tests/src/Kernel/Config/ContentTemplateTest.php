@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 // cspell:ignore Aangedreven Holle daar staan voor Hallo wereld Ceci
 
+use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -16,6 +17,7 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
@@ -26,6 +28,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -43,6 +46,7 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
   use ContentTypeCreationTrait;
   use GenerateComponentConfigTrait;
   use ConstraintViolationsTestTrait;
+  use UserCreationTrait;
 
   private const UUID_SDC_UNSTRUCTURED_DATA = '435d1d20-a697-4d36-9892-9d61c825c99c';
   private const UUID_SDC_STRUCTURED_DATA = '57afe4ed-c593-4457-a741-2ac5053be928';
@@ -107,6 +111,19 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     $definition = $manager->getDefinition(Page::ENTITY_TYPE_ID);
     \assert($definition instanceof EntityTypeInterface);
     $this->assertFalse($definition->hasHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY));
+  }
+
+  /**
+   * Tests a `field_ui_base_route` set by a later `hook_entity_type_alter()`.
+   *
+   * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityTypeAlter
+   */
+  public function testFieldUiBaseRouteSetByLaterEntityTypeAlter(): void {
+    $this->enableModules(['entity_test', 'canvas_entity_test']);
+    $definition = \Drupal::entityTypeManager()->getDefinition('entity_test_uuid_id');
+    \assert($definition instanceof EntityTypeInterface);
+    $this->assertSame('entity.entity_test_uuid_id.admin_form', $definition->get('field_ui_base_route'));
+    $this->assertSame(ContentTemplateAwareViewBuilder::class, $definition->getViewBuilderClass());
   }
 
   /**
@@ -524,6 +541,48 @@ final class ContentTemplateTest extends CanvasKernelTestBase {
     ], $build['#cache']['tags']);
     // Verify the specialized cache context is present.
     $this->assertContains('route.name.is_canvas_editor_ui', $build['#cache']['contexts']);
+  }
+
+  /**
+   * Tests the suggested preview entity ID keeps the type of the entity's ID.
+   *
+   * `entity_test_uuid_id` has UUIDs as IDs and is made eligible for content
+   * templates by `canvas_entity_test`.
+   *
+   * @see \Drupal\canvas_entity_test\Hook\EntityTestHooks::entityTypeAlter()
+   */
+  #[TestWith(['node', 'helpful', 1])]
+  #[TestWith(['entity_test_uuid_id', 'entity_test_uuid_id', '7c2ac8d8-5bcd-4a84-a3f9-4f7c2a0b7d11'])]
+  public function testSuggestedPreviewEntityIdType(string $entity_type_id, string $bundle, int|string $expected_id): void {
+    $this->enableModules(['entity_test', 'canvas_entity_test']);
+    $this->installEntitySchema('user');
+    $this->installEntitySchema($entity_type_id);
+    $this->setUpCurrentUser(permissions: ['access content', 'view test entity']);
+    $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+    \assert($entity_type instanceof EntityTypeInterface);
+    $this->assertTrue(ContentTemplateRepository::isSupportedEntityType($entity_type));
+    $values = [
+      $entity_type->getKey('bundle') => $bundle,
+      $entity_type->getKey('label') => 'Sample',
+    ];
+    if (\is_string($expected_id)) {
+      $values[$entity_type->getKey('id')] = $expected_id;
+    }
+    \Drupal::entityTypeManager()->getStorage($entity_type_id)->create($values)->save();
+    EntityViewMode::create([
+      'id' => "$entity_type_id.canvas_test",
+      'label' => 'Canvas test',
+      'targetEntityType' => $entity_type_id,
+    ])->save();
+    $template = ContentTemplate::create([
+      'id' => "$entity_type_id.$bundle.canvas_test",
+      'content_entity_type_id' => $entity_type_id,
+      'content_entity_type_bundle' => $bundle,
+      'content_entity_type_view_mode' => 'canvas_test',
+      'component_tree' => [],
+    ]);
+
+    $this->assertSame($expected_id, $template->normalizeForClientSide()->values['suggestedPreviewEntityId']);
   }
 
 }

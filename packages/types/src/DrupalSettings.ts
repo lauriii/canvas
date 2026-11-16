@@ -52,7 +52,14 @@ export interface DrupalSettings {
       };
     };
     entityTypeLabels: {
-      [entityType: string]: string | { [key: string]: string };
+      [entityType: string]: { [bundle: string]: string };
+    };
+    contentTemplateEntityTypes: {
+      [entityTypeId: string]: {
+        label: string;
+        bundleCollectionLabel: string;
+        bundleLabel: string | null;
+      };
     };
     viewports?: {
       [viewportId: string]: number | string;

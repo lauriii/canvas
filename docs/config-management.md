@@ -275,7 +275,13 @@ A `ContentTemplate` config entity can be created by Ambitious Site Builders to a
 When rendering content entities, a content template will be used to render the entity if, and _only_ if, two things are true:
 
 1. There is a `ContentTemplate` for that content entity type and bundle, in the view mode that is being rendered.
-2. The content entity type is `Node`.
+2. The content entity type is eligible for content templates, which means all of these are true:
+   1. It opted into Field UI (`field_ui_base_route`): it has view modes for templates to target, and site builders can add the Canvas field that exposed slots may need (see https://www.drupal.org/i/3526189).
+   2. It is stored: its entity storage is not `ContentEntityNullStorage` (for example, a contact form message is not stored).
+   3. It has a page of its own: its `canonical` link template is not its `edit-form` link template (for example, a content block has no page of its own; media has one only if the "Standalone media URL" setting is enabled). Special case: `Comment` is excluded, because its `canonical` URL redirects to the commented entity.
+   4. It does not implement `ComponentTreeEntityInterface` (for example, Canvas' own `Page`).
+
+Which content entity types can be _edited_ in Canvas is a separate question, tracked in https://www.drupal.org/i/3498525.
 
 If a `ContentTemplate` is used for rendering a content entity, then `hook_entity_display_build_alter()` will NOT be invoked for that entity, because that hook (and all its implementations) assume field formatters are used to render (all or some) fields in sequence, which is not the case when using Canvas.
 
@@ -283,7 +289,6 @@ If a `ContentTemplate` is used for rendering a content entity, then `hook_entity
 - A UI to create content templates, and manage existing templates: https://www.drupal.org/i/3518248
 - Later, when support for exposed slots is added, a second requirement will be added: "The entity is opted into Drupal
 Canvas, which means it has an `Canvas field`."
-- Later, after https://www.drupal.org/i/3498525, remove the second requirement: support more than just `Node`.
 
 ### 3.6 `StagedConfigUpdate` config entity
 

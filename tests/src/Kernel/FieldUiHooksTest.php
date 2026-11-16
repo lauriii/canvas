@@ -13,7 +13,6 @@ use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerInterface;
-use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
@@ -76,8 +75,8 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
    *   The content entity bundle (e.g., 'article').
    * @param bool $create_template
    *   Whether to create a content template.
-   * @param string|null $route_name
-   *   Optional route name override for testing.
+   * @param string $view_mode
+   *   The view mode of the display being edited.
    */
   #[DataProvider('viewDisplayEditFormAlterDataProvider')]
   public function testEntityViewDisplayEditFormAlter(
@@ -86,9 +85,11 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
     string $entity_type,
     string $bundle,
     bool $create_template,
-    ?string $route_name,
+    string $view_mode,
   ): void {
-    $this->createContentType(['type' => $bundle]);
+    if ($entity_type === 'node') {
+      $this->createContentType(['type' => $bundle]);
+    }
     if ($create_template) {
       $this->createContentTemplate($entity_type, $bundle, 'full');
     }
@@ -101,13 +102,10 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
     $form_state = $this->createMock(FormStateInterface::class);
     $form_object = $this->createMock(EntityFormInterface::class);
     $messenger = $this->createMock(MessengerInterface::class);
-    $route_match = $this->createMock(RouteMatchInterface::class);
     $view_display = $this->createMock(EntityViewDisplayInterface::class);
     $view_display->method('getTargetEntityTypeId')->willReturn($entity_type);
     $view_display->method('getTargetBundle')->willReturn($bundle);
-
-    $route_name = $route_name ?? "entity.entity_view_display.$entity_type.default";
-    $route_match->method('getRouteName')->willReturn($route_name);
+    $view_display->method('getMode')->willReturn($view_mode);
 
     if ($cta_should_exist) {
       $messenger->expects($this->once())
@@ -146,10 +144,9 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
       ->willReturn($form_object);
 
     $field_ui_hooks = new FieldUiHooks(
-      $route_match,
       $messenger,
       $this->container->get(EntityTypeManagerInterface::class),
-      $this->container->get(TranslationInterface::class)
+      $this->container->get(TranslationInterface::class),
     );
     $field_ui_hooks->formEntityViewDisplayEditFormAlter($form, $form_state);
   }
@@ -168,7 +165,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => FALSE,
         'entity_type' => 'node',
         'bundle' => 'article',
-        'route_name' => NULL,
+        'view_mode' => 'default',
       ],
       'permission with at-least one template present' => [
         'permissions' => [ContentTemplate::ADMIN_PERMISSION],
@@ -176,15 +173,33 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => TRUE,
         'entity_type' => 'node',
         'bundle' => 'article',
-        'route_name' => NULL,
+        'view_mode' => 'default',
       ],
-      'permission with at-least one template present but different route' => [
+      // The CTA is shown on the form of every view mode, not only the default.
+      'permission with template not present, non-default view mode' => [
         'permissions' => [ContentTemplate::ADMIN_PERMISSION],
-        'cta_should_exist' => FALSE,
-        'create_template' => TRUE,
+        'cta_should_exist' => TRUE,
+        'create_template' => FALSE,
         'entity_type' => 'node',
         'bundle' => 'article',
-        'route_name' => 'entity.entity_view_display.node.full',
+        'view_mode' => 'teaser',
+      ],
+      'permission with template not present, bundleless entity type' => [
+        'permissions' => [ContentTemplate::ADMIN_PERMISSION],
+        'cta_should_exist' => TRUE,
+        'create_template' => FALSE,
+        'entity_type' => 'user',
+        'bundle' => 'user',
+        'view_mode' => 'default',
+      ],
+      // `path_alias` has no `field_ui_base_route`, so it cannot have templates.
+      'permission but entity type does not support templates' => [
+        'permissions' => [ContentTemplate::ADMIN_PERMISSION],
+        'cta_should_exist' => FALSE,
+        'create_template' => FALSE,
+        'entity_type' => 'path_alias',
+        'bundle' => 'path_alias',
+        'view_mode' => 'default',
       ],
       'no permission with template not present' => [
         'permissions' => [],
@@ -192,7 +207,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => TRUE,
         'entity_type' => 'node',
         'bundle' => 'article',
-        'route_name' => NULL,
+        'view_mode' => 'default',
       ],
       'no permission with at-least one template present' => [
         'permissions' => [],
@@ -200,7 +215,7 @@ final class FieldUiHooksTest extends CanvasKernelTestBase {
         'create_template' => TRUE,
         'entity_type' => 'node',
         'bundle' => 'article',
-        'route_name' => NULL,
+        'view_mode' => 'default',
       ],
     ];
   }

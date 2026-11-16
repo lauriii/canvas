@@ -16,6 +16,7 @@ services:
       - { name: needs_destruction }
   Drupal\canvas\PropShape\EphemeralPropShapeRepository: {}
   Drupal\canvas\ComponentIncompatibilityReasonRepository: {}
+  Drupal\canvas\ContentTemplateRepository: {}
   Drupal\canvas\PageVariantResolver:
     public: true
   Drupal\canvas\JsonSchemaDefinitionsStreamwrapper:

@@ -16,6 +16,7 @@ import {
   useUpdateContentTemplateMutation,
 } from '@/services/componentAndLayout';
 import { useGetPageVariantsQuery } from '@/services/pageVariants';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 import { hasPermission } from '@/utils/permissions';
 
 import type {
@@ -25,10 +26,16 @@ import type {
 
 import nodeStyles from '@/components/sidePanel/SidebarNode.module.css';
 
+type TemplateListProps = {
+  entityTypeId: string;
+};
+
 type BundleListItemProps = {
+  entityTypeId: string;
+  bundleKey: string;
   bundle: TemplateInBundle;
 };
-const TemplateList = () => {
+const TemplateList = ({ entityTypeId }: TemplateListProps) => {
   const { showBoundary } = useErrorBoundary();
 
   const { data, isLoading, isFetching, error } = useGetContentTemplatesQuery();
@@ -38,6 +45,8 @@ const TemplateList = () => {
     }
   }, [error, showBoundary]);
 
+  const bundles = data?.[entityTypeId]?.bundles;
+
   return (
     <>
       <Skeleton
@@ -46,10 +55,17 @@ const TemplateList = () => {
         width="100%"
         my="3"
       >
-        {!!data?.node?.bundles &&
-          Object.entries(data.node.bundles).map(([bundleKey, bundle]) => (
-            <BundleListItem key={bundleKey} bundle={bundle} />
-          ))}
+        {!!bundles &&
+          Object.entries(bundles)
+            .filter(([, bundle]) => Object.keys(bundle.viewModes).length > 0)
+            .map(([bundleKey, bundle]) => (
+              <BundleListItem
+                key={bundleKey}
+                entityTypeId={entityTypeId}
+                bundleKey={bundleKey}
+                bundle={bundle}
+              />
+            ))}
       </Skeleton>
       <Skeleton
         loading={isLoading || isFetching}
@@ -67,7 +83,11 @@ const TemplateList = () => {
   );
 };
 
-const BundleListItem = ({ bundle }: BundleListItemProps) => {
+const BundleListItem = ({
+  entityTypeId,
+  bundleKey,
+  bundle,
+}: BundleListItemProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const menuItems = [];
 
@@ -85,6 +105,11 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
     );
   }
   if (bundle.deleteUrl) {
+    // Only bundles that are config entities have a delete URL, so their entity
+    // type has a bundle label, such as "Content type" or "Vocabulary".
+    const bundleLabel =
+      getCanvasSettings()?.contentTemplateEntityTypes?.[entityTypeId]
+        ?.bundleLabel;
     if (menuItems.length > 0) {
       menuItems.push(<UnifiedMenu.Separator key="pre-delete-separator" />);
     }
@@ -95,7 +120,7 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
         color="red"
         onClick={() => window.open(bundle.deleteUrl, '_blank')}
       >
-        Delete content type
+        {bundleLabel ? `Delete ${bundleLabel.toLowerCase()}` : 'Delete'}
         <Flex align="end">
           <NewTabIcon />
         </Flex>
@@ -110,20 +135,29 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
     );
   }
 
+  const listItems = (
+    <Flex pl="0" direction="column">
+      {Object.entries(bundle.viewModes).map(([key, viewMode]) => (
+        <TemplateListItem key={`${viewMode.id}-${key}`} viewMode={viewMode} />
+      ))}
+    </Flex>
+  );
+
+  if (!bundle.label) {
+    return listItems;
+  }
+
   return (
     <SidebarFolder
-      id={bundle.label}
+      // Bundle labels are not unique across entity types.
+      id={`${entityTypeId}.${bundleKey}`}
       name={bundle.label}
       menuItems={menuItems.length ? menuItems : undefined}
       isOpen={isOpen}
       onOpenChange={setIsOpen}
       className={nodeStyles.contextualAccordionVariant}
     >
-      <Flex pl="0" direction="column">
-        {Object.entries(bundle.viewModes).map(([key, viewMode]) => (
-          <TemplateListItem key={`${viewMode.id}-${key}`} viewMode={viewMode} />
-        ))}
-      </Flex>
+      {listItems}
     </SidebarFolder>
   );
 };

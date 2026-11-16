@@ -7,6 +7,7 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\AssetRenderer;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Pattern;
@@ -59,6 +60,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     private readonly AccessManagerInterface $accessManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly ComponentSourceManager $componentSourceManager,
+    private readonly ContentTemplateRepository $contentTemplateRepository,
   ) {}
 
   /**
@@ -160,8 +162,6 @@ final class ApiConfigControllers extends ApiControllerBase {
     // @phpstan-ignore-next-line argument.type
     $flat_json = json_decode($response->getContent(), TRUE);
 
-    // @todo Generalize beyond nodes in https://www.drupal.org/i/3498525
-    $supported_entity_type_ids = ['node'];
     $individual_bundle_entity_cache_tag_prefixes_to_ignore = [];
 
     // 1. Create the hierarchy:
@@ -171,59 +171,47 @@ final class ApiConfigControllers extends ApiControllerBase {
     $additional_cacheability = new CacheableMetadata();
     // Update whenever the list of entity types changes, not just when the set
     // of ContentTemplates config entities changes.
-    // @todo Uncomment in https://www.drupal.org/i/3498525
-    // $additional_cacheability->addCacheTags(['entity_types']);
+    $additional_cacheability->addCacheTags(['entity_types']);
     // Update whenever the list of bundles changes. Bundles may be defined via
     // hook_entity_bundle_info()  or via a bundle entity type.
     // @see \Drupal\Core\Entity\EntityTypeBundleInfo::getAllBundleInfo()
     $additional_cacheability->addCacheTags(['entity_bundles']);
-    foreach ($supported_entity_type_ids as $entity_type_id) {
+    foreach ($this->contentTemplateRepository->getSupportedEntityTypeIds() as $entity_type_id) {
       $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
       \assert($entity_type instanceof EntityTypeInterface);
       $bundle_entity_type_id = $entity_type->getBundleEntityType();
 
-      $label = $entity_type->getCollectionLabel();
-      if ($bundle_entity_type_id) {
-        $bundle_entity_type = $this->entityTypeManager->getDefinition($bundle_entity_type_id);
-        \assert($bundle_entity_type instanceof EntityTypeInterface);
-        $label = $bundle_entity_type->getCollectionLabel();
-      }
+      $label = $this->contentTemplateRepository->getBundleCollectionLabel($entity_type_id);
       $bundle_info = $this->bundleInfo->getBundleInfo($entity_type_id);
       $bundles = [];
       foreach ($bundle_info as $bundle_key => $info) {
+        // Plugin-based-bundle entity types (e.g. commerce_license) have no
+        // bundle entity type but still expect a `bundle` route parameter.
+        $bundle_route_params = [($bundle_entity_type_id ?? 'bundle') => $bundle_key];
+
         /** @var \Drupal\Core\Access\AccessResultInterface $edit_fields_access_check */
-        $edit_fields_access_check = $this->accessManager->checkNamedRoute("entity.$entity_type_id.field_ui_fields", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
+        $edit_fields_access_check = $this->accessManager->checkNamedRoute("entity.$entity_type_id.field_ui_fields", $bundle_route_params, $this->currentUser, TRUE);
         \assert($edit_fields_access_check instanceof AccessResultInterface);
         $edit_fields_access = $edit_fields_access_check->isAllowed();
-        /** @var \Drupal\Core\Access\AccessResultInterface $delete_access_check */
-        $delete_access_check = $this->accessManager->checkNamedRoute("entity.$bundle_entity_type_id.delete_form", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
-        \assert($delete_access_check instanceof AccessResultInterface);
-        $delete_access = $delete_access_check->isAllowed();
+
+        $additional_cacheability->addCacheableDependency($edit_fields_access_check);
 
         $bundles[$bundle_key] = [
           'label' => $info['label'],
           'viewModes' => [],
+          'editFieldsUrl' => $edit_fields_access ? Url::fromRoute("entity.$entity_type_id.field_ui_fields", $bundle_route_params)->toString() : NULL,
+          'deleteUrl' => NULL,
         ];
-        if ($delete_access) {
-          $delete_url = Url::fromRoute("entity.$bundle_entity_type_id.delete_form", [$bundle_entity_type_id => $bundle_key])
-            ->toString();
-          $bundles[$bundle_key]['deleteUrl'] = $delete_url;
-        }
-        else {
-          $bundles[$bundle_key]['deleteUrl'] = NULL;
-        }
-        if ($edit_fields_access) {
-          $edit_fields_url = Url::fromRoute("entity.$entity_type_id.field_ui_fields", [$bundle_entity_type_id => $bundle_key])
-            ->toString();
-          $bundles[$bundle_key]['editFieldsUrl'] = $edit_fields_url;
-        }
-        else {
-          $bundles[$bundle_key]['editFieldsUrl'] = NULL;
-        }
 
-        $additional_cacheability
-          ->addCacheableDependency($delete_access_check)
-          ->addCacheableDependency($edit_fields_access_check);
+        if ($bundle_entity_type_id !== NULL) {
+          /** @var \Drupal\Core\Access\AccessResultInterface $delete_access_check */
+          $delete_access_check = $this->accessManager->checkNamedRoute("entity.$bundle_entity_type_id.delete_form", [$bundle_entity_type_id => $bundle_key], $this->currentUser, TRUE);
+          \assert($delete_access_check instanceof AccessResultInterface);
+          $additional_cacheability->addCacheableDependency($delete_access_check);
+          if ($delete_access_check->isAllowed()) {
+            $bundles[$bundle_key]['deleteUrl'] = Url::fromRoute("entity.$bundle_entity_type_id.delete_form", [$bundle_entity_type_id => $bundle_key])->toString();
+          }
+        }
       }
 
       $hierarchical_json[$entity_type_id] = [
@@ -237,6 +225,7 @@ final class ApiConfigControllers extends ApiControllerBase {
         $hierarchical_json[$entity_type_id]['bundles'][$entity_type_id]['label'] = NULL;
       }
       if ($bundle_entity_type_id) {
+        $bundle_entity_type = $this->entityTypeManager->getDefinition($bundle_entity_type_id);
         \assert($bundle_entity_type instanceof ConfigEntityTypeInterface);
         $additional_cacheability->addCacheTags($bundle_entity_type->getListCacheTags());
         $individual_bundle_entity_cache_tag_prefixes_to_ignore[] = \sprintf("config:%s.", $bundle_entity_type->getConfigPrefix());
@@ -262,9 +251,11 @@ final class ApiConfigControllers extends ApiControllerBase {
       $additional_cacheability->getCacheTags(),
       function (string $tag) use ($individual_bundle_entity_cache_tag_prefixes_to_ignore) {
         foreach ($individual_bundle_entity_cache_tag_prefixes_to_ignore as $prefix) {
-          return !str_starts_with($tag, $prefix);
+          if (str_starts_with($tag, $prefix)) {
+            return FALSE;
+          }
         }
-        return FALSE;
+        return TRUE;
       }
     ));
 
@@ -416,8 +407,14 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // If problematic cache contexts are present or if the markup is empty,
     // attempt to re-render in a way that the Component preview is strongly
-    // cacheable while still sufficiently accurate.
-    if (!empty($problematic_cache_contexts) || empty($representation->values['default_markup'])) {
+    // cacheable while still sufficiently accurate. Only entities with a
+    // preview get one: for the others (for example, ContentTemplate) there is
+    // no markup to make cacheable, and re-normalizing as the anonymous user
+    // would compute user-specific values, such as the suggested preview
+    // entity, for the wrong user.
+    // @see \Drupal\canvas\ClientSideRepresentation::renderPreviewIfAny()
+    $has_preview = \array_key_exists('default_markup', $representation->values);
+    if ($has_preview && (!empty($problematic_cache_contexts) || empty($representation->values['default_markup']))) {
       $ignorable_cache_contexts = ['session', 'user'];
 
       if (array_diff($problematic_cache_contexts, $ignorable_cache_contexts)) {
