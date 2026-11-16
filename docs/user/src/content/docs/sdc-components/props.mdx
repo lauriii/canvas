@@ -128,6 +128,12 @@ URL input for internal or external links. Choose the format based on what you ac
 - **`format: uri`** — Absolute URLs only. The value must include a scheme (e.g. `https://example.com`, `internal:/node/1`). Use when the link must always be a full URI.
 - **`format: uri-reference`** — Absolute or relative. The value may be a full URI or a path such as `/about` or `../page.html`. Use when relative paths or mixed link types are allowed.
 
+`format: iri` and `format: iri-reference` behave the same as `uri` and
+`uri-reference`.
+
+A link prop must use one of these formats. Without it, content templates
+cannot map the prop to a link field or to the URL of the content entity.
+
 **Schema Definition (absolute only):**
 ```yaml
 link:
@@ -215,6 +221,72 @@ event_date:
   {{ event_date|date('F j, Y') }}
 </time>
 ```
+
+### Date and time
+
+Date and time picker input for selecting a date with a time.
+
+**Schema Definition:**
+```yaml
+event_start:
+  type: string
+  format: date-time
+  title: 'Event start'
+  examples: ['2016-09-16T20:20:39+00:00']
+```
+
+**Twig Usage:**
+```twig
+<time datetime="{{ event_start }}">
+  {{ event_start|date('F j, Y H:i') }}
+</time>
+```
+
+### Email
+
+Email input for an email address.
+
+**Schema Definition:**
+```yaml
+contact_email:
+  type: string
+  format: email
+  title: 'Contact email'
+  examples: ['hello@example.com']
+```
+
+**Twig Usage:**
+```twig
+<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+```
+
+### String formats
+
+The `format` keyword on a `string` prop selects the widget and validation.
+Canvas supports these formats:
+
+| Format | Widget | Accepted values |
+|--------|--------|-----------------|
+| `date` | Date picker | A date, for example `2024-12-25`. |
+| `date-time` | Date and time picker | A date and time (RFC 3339), for example `2016-09-16T20:20:39+00:00`. |
+| `email` | Email | An email address, for example `hello@example.com`. |
+| `idn-email` | Email | An internationalized email address. |
+| `uri` | Link | An absolute URI, for example `https://example.com`. |
+| `uri-reference` | Link | An absolute URI or a relative path, for example `/about`. |
+| `iri` | Link | Same as `uri`. |
+| `iri-reference` | Link | Same as `uri-reference`. |
+
+These formats are part of JSON Schema, but Canvas does not support them:
+`time`, `duration`, `hostname`, `idn-hostname`, `ipv4`, `ipv6`, `uuid`,
+`uri-template`, `json-pointer`, `relative-json-pointer`, and `regex`. A
+component with a prop that uses one of these formats is not available in
+Canvas.
+
+The `uri`, `uri-reference`, `iri`, and `iri-reference` formats also accept:
+
+- `x-allowed-schemes`: limits the URI schemes, for example `[http, https]`.
+- `contentMediaType`: limits the target to a media type, for example `image/*`.
+  See [Image](/sdc-components/image).
 
 ### Array
 
