@@ -24,7 +24,7 @@
     "packages:dev": "turbo run dev --filter='./packages/*'",
     "packages:test": "turbo run test --filter='./packages/*'",
     "packages:type-check": "turbo run type-check --filter='./packages/*'",
-    "test:playwright": "playwright install && playwright test",
+    "test:playwright": "playwright install --only-shell chromium && playwright test",
     "build": "npm run build --workspace=@drupal-canvas/ui",
     "lint:eslint": "npm run test:eslint && eslint",
     "lint:openapi": "redocly lint openapi.yml modules/canvas_headless/openapi.yml",

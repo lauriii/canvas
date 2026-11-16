@@ -103,6 +103,7 @@ jsxs
 keypair
 keypairs
 keytype
+kubelet
 langcode
 lcobucci
 leftbar

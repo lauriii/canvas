@@ -676,14 +676,22 @@ playwright:
   before_script:
     - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .canvas-ui ]
-    # Tests only run in headless Chromium, so the headless shell is all that's
-    # needed. A no-op when the image already has this Playwright version's.
-    - npx playwright install --only-shell chromium
   script:
-    - npm ci
+    # Installs the Chromium headless shell, which is a no-op when the image
+    # already has this Playwright version's, then runs the tests.
     - npm run test:playwright -- --shard=$SHARD
   after_script:
     - cp -R _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/blob-report $CI_PROJECT_DIR/blob-report
+    # Prints the tests that failed in this attempt to the job log. The `flaky
+    # tests report` job compares the attempts of a retried job, to find tests
+    # that pass on a job retry. The log outlives the blob report artifact.
+    - |
+      cd _drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
+      if [ -d blob-report ]; then
+        npx playwright merge-reports --reporter=json ./blob-report > /tmp/playwright-shard.json \
+          && node scripts/flaky-tests-report.js --shard-summary /tmp/playwright-shard.json \
+          || echo "Could not summarize the Playwright results."
+      fi
   artifacts:
     when: always
     expire_in: 1 day
@@ -703,6 +711,8 @@ playwright-reports:
     - mkdir -p test-results
     - npx playwright merge-reports --reporter=html ./blob-report
     - npx playwright merge-reports --reporter=junit ./blob-report > test-results/playwright.xml
+    # Read by the `flaky tests report` job.
+    - npx playwright merge-reports --reporter=json ./blob-report > test-results/playwright.json
     - |
       cat > test-results/links.json << EOF
       {
@@ -752,6 +762,39 @@ playwright-reports:
       junit:
         - test-results/playwright.xml
       annotations: test-results/links.json
+
+# Records Playwright tests that failed and then passed on a retry, jobs that
+# failed for a reason other than their script (for example, a terminated
+# runner pod), and merged merge requests. Scans all pipelines of the project,
+# and adds recent data to the CSV files already published under `flaky-tests/`,
+# so the record outlives the artifacts and logs. See
+# docs/testing/playwright.md#flaky-tests.
+flaky tests report:
+  stage: report
+  image: *image-node
+  interruptible: false
+  needs: []
+  cache: []
+  rules:
+    - *nightly-rule
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+  script:
+    - |
+      # With a path prefix, CI_PAGES_URL usually ends with the prefix already.
+      BASE_URL="${CI_PAGES_URL%/}"
+      case "$BASE_URL" in */flaky-tests) ;; *) BASE_URL="$BASE_URL/flaky-tests" ;; esac
+      export FLAKY_TESTS_PREVIOUS_URL="$BASE_URL"
+      node scripts/flaky-tests-report.js flaky-tests
+  artifacts:
+    when: always
+    paths:
+      - flaky-tests/
+  pages:
+    publish: flaky-tests
+    path_prefix: flaky-tests
+    expire_in: never
 
 # Builds and tests every npm workspace package. Runs against an installed
 # Drupal site because the CLI's integration tests exercise the Internal HTTP
