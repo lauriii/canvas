@@ -1,5 +1,9 @@
 import useSwr from 'swr';
 
+// Canvas's island client renderer gives SWR a server-rendered island's
+// fallback through these. @see ./canvas-client.ts
+export { SWRConfig, unstable_serialize } from 'swr';
+
 export default function canvasUseSwr(key: any, fetcher: any, options: any) {
   function dataPane(useSWRNext: any) {
     return (key: any, fetcher: any, config: any) => {

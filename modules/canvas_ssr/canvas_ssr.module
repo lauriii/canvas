@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Canvas SSR module.
+ */
+
+use Drupal\canvas_ssr\Element\AstroIslandSsr;
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function canvas_ssr_element_info_alter(array &$info): void {
+  // Render islands on the server where possible.
+  if (isset($info['astro_island'])) {
+    $info['astro_island']['#pre_render'] = [
+      [AstroIslandSsr::class, 'preRenderIsland'],
+    ];
+  }
+}

@@ -602,6 +602,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         '@/lib/jsonapi-utils' => \sprintf('%s/packages/astro-hydration/dist/jsonapi-utils.js?2.1.0-alpha3', $module_path),
         '@/lib/drupal-utils' => \sprintf('%s/packages/astro-hydration/dist/drupal-utils.js?2.1.0-alpha3', $module_path),
         'swr' => \sprintf('%s/packages/astro-hydration/dist/swr.js?2.1.0-alpha3', $module_path),
+        '@drupal-canvas/astro-hydration/hydration-data' => \sprintf('%s/packages/astro-hydration/dist/hydration-data.js?2.1.0-alpha3', $module_path),
         'drupal-canvas' => \sprintf('%s/packages/astro-hydration/dist/drupal-canvas.js?2.1.0-alpha3', $module_path),
         'drupal-canvas/react' => \sprintf('%s/packages/astro-hydration/dist/drupal-canvas-react.js?2.1.0-alpha3', $module_path),
         '@tailwindcss/typography' => \sprintf('%s/packages/astro-hydration/dist/tailwindcss-typography.js?2.1.0-alpha3', $module_path),

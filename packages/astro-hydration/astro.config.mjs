@@ -56,6 +56,15 @@ const resolveDrupalCanvasSubpath = (source, importer) => {
 };
 
 
+// Import map entries for Canvas's own use, not for Code Components, which
+// the island client renderer imports by these specifiers. Keys mirror
+// GlobalImports.php.
+// @see docs/adr/0024-import-map-entries-for-canvas-own-use.md
+// @see \Drupal\canvas\GlobalImports::getImportMap()
+const internalImportMapSpecifiers = new Set([
+  '@drupal-canvas/astro-hydration/hydration-data',
+]);
+
 /**
  * Keeps import map libraries external in Astro's client build.
  */
@@ -148,6 +157,9 @@ const externalizeImportMapLibraries = () => ({
       if (source.startsWith('\0')) {
         return null;
       }
+      if (internalImportMapSpecifiers.has(source)) {
+        return { id: source, external: true };
+      }
       const specifier = resolveDrupalCanvasSubpath(source, importer);
       return specifier ? { id: specifier, external: true } : null;
     },
@@ -207,6 +219,7 @@ export default defineConfig({
                   'tailwind-merge': 'tailwind-merge.js',
                   'astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
                   'astro-hydration/src/lib/swr.ts': 'swr.js',
+                  'astro-hydration/src/lib/hydration-data.ts': 'hydration-data.js',
                   'astro-hydration/src/lib/canvas-client.ts': 'canvas-client.js',
                   'drupal-canvas': 'drupal-canvas.js',
                 };

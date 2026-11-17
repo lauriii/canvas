@@ -62,6 +62,12 @@ class GlobalImports {
         '@drupal-api-client/json-api-client' => \sprintf('%s%s/packages/astro-hydration/dist/jsonapi-client.js', $base_path, $canvas_path),
         '@/lib/jsonapi-utils' => \sprintf('%s%s/packages/astro-hydration/dist/jsonapi-utils.js', $base_path, $canvas_path),
         '@/lib/drupal-utils' => \sprintf('%s%s/packages/astro-hydration/dist/drupal-utils.js', $base_path, $canvas_path),
+
+        // Canvas's own, not for Code Components: Canvas SSR and the island
+        // client renderer share it, so it's left out of the externals in
+        // packages/vite-compat/src/index.ts.
+        // @see docs/adr/0024-import-map-entries-for-canvas-own-use.md
+        '@drupal-canvas/astro-hydration/hydration-data' => \sprintf('%s%s/packages/astro-hydration/dist/hydration-data.js', $base_path, $canvas_path),
       ],
       ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS => [],
     ];

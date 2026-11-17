@@ -1,0 +1,7 @@
+name: Drupal Canvas SSR
+description: Server-side rendering of Drupal Canvas code components.
+type: module
+package: Drupal Canvas
+core_version_requirement: ^11.4
+dependencies:
+  - canvas:canvas

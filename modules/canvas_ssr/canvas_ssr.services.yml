@@ -1,0 +1,331 @@
+parameters:
+  # SSR's time limits, in milliseconds. See \Drupal\canvas_ssr\Timeouts for
+  # what each one limits. A site's services.yml may set any of them; those
+  # it leaves out get their defaults. Each must be at least twice the one
+  # before it: medium twice short, and long twice medium.
+  canvas_ssr.timeouts:
+    short: 100
+    medium: 2000
+    long: 10000
+
+  # The built-in properties the realm setup module tames before it freezes
+  # every built-in. A site adds to canvas_ssr.additional_tamed_properties
+  # rather than changing these. See docs/CONFIGURATION.md for the format.
+  canvas_ssr.tamed_properties:
+    globals:
+      Object.prototype: [toString, valueOf]
+      Array.prototype: [toString, push, concat, '[Symbol.iterator]']
+      Function.prototype: [constructor, bind, toString]
+      Promise.prototype: [constructor]
+      '%%TypedArray%%.prototype': ['*']
+      '%%Generator%%': [constructor, name, toString]
+      '%%IteratorPrototype%%': [toString, '[Symbol.iterator]']
+      Error.prototype: [constructor, message, name, toString]
+      AggregateError.prototype: [constructor, message, name, toString]
+      EvalError.prototype: [constructor, message, name, toString]
+      RangeError.prototype: [constructor, message, name, toString]
+      ReferenceError.prototype: [constructor, message, name, toString]
+      SyntaxError.prototype: [constructor, message, name, toString]
+      TypeError.prototype: [constructor, message, name, toString]
+      URIError.prototype: [constructor, message, name, toString]
+      Date.prototype: ['get*', 'set*']
+    modules: {}
+  canvas_ssr.additional_tamed_properties:
+    globals: {}
+    modules: {}
+
+services:
+  Drupal\canvas_ssr\JsModules\SiteImportMap:
+    arguments:
+      - !service_closure '@Drupal\canvas\GlobalImports'
+      - '@cache_tags.invalidator.checksum'
+    tags:
+      # Drops the site import map when the asset library changes
+      # mid-request.
+      - { name: cache_tags_invalidator }
+
+  Drupal\canvas_ssr\JsModules\AllProvidedModules:
+    arguments:
+      - !tagged_iterator canvas_ssr.js_module_provider
+    tags:
+      # Drops the merged modules when a provider's cache tag is invalidated.
+      # So the service must be shared, and its constructor cheap, since any
+      # invalidation builds it. See AllProvidedModules::invalidateTags().
+      - { name: cache_tags_invalidator }
+
+  # The site import map with the provided modules' specifiers added. It
+  # follows both, so it needs no invalidator of its own.
+  Drupal\canvas_ssr\JsModules\SsrImportMap:
+    arguments:
+      - '@Drupal\canvas_ssr\JsModules\SiteImportMap'
+      - '@Drupal\canvas_ssr\JsModules\AllProvidedModules'
+
+  Drupal\canvas_ssr\DrupalSettings\AllProvidedData:
+    arguments:
+      - !tagged_iterator canvas_ssr.site_data_provider
+      - !tagged_iterator canvas_ssr.page_data_provider
+    tags:
+      # Forgets values whose tags are invalidated mid-request, and all of
+      # them at the end of the request.
+      - { name: cache_tags_invalidator }
+      - { name: needs_destruction }
+
+  Drupal\canvas_ssr\DrupalSettings\DrupalSettingsResolver:
+    arguments:
+      - '@Drupal\canvas_ssr\DrupalSettings\AllProvidedData'
+      - '@Drupal\canvas_ssr\DrupalSettings\CanvasInterfaceTranslations'
+
+  Drupal\canvas_ssr\DrupalSettings\CanvasInterfaceTranslations:
+    arguments:
+      # A closure: the provider needs the breadcrumb builder, which needs
+      # routing, which needs the cache tags invalidators, BaseModules among
+      # them, which needs this.
+      - !service_closure '@Drupal\canvas\CodeComponentDataProvider'
+
+  Drupal\canvas_ssr\JsModules\TamedProperties:
+    arguments:
+      - '%canvas_ssr.tamed_properties%'
+      - '%canvas_ssr.additional_tamed_properties%'
+      - '@logger.channel.canvas_ssr'
+
+  Drupal\canvas_ssr\JsModules\ModuleEvaluationHooks:
+    arguments:
+      - '@Drupal\canvas_ssr\JsModules\TamedProperties'
+      - '@canvas_ssr.throttled_logger'
+
+  Drupal\canvas_ssr\JsModules\Provider\SsrOnlyModuleProvider:
+    arguments:
+      - '@extension.path.resolver'
+      - '@Drupal\canvas_ssr\JsModules\TamedProperties'
+    tags:
+      # Highest, so its SSR-only modules can replace other providers' ones,
+      # like swr.
+      - { name: canvas_ssr.js_module_provider, priority: 100 }
+
+  Drupal\canvas_ssr\DrupalSettings\Provider\CanvasSiteDataProvider:
+    arguments:
+      - '@Drupal\canvas\CodeComponentDataProvider'
+      - '@theme.manager'
+    tags:
+      - { name: canvas_ssr.site_data_provider }
+
+  Drupal\canvas_ssr\DrupalSettings\Provider\CanvasPageDataProvider:
+    arguments:
+      - '@Drupal\canvas\CodeComponentDataProvider'
+      - '@current_route_match'
+      - '@breadcrumb'
+    tags:
+      - { name: canvas_ssr.page_data_provider }
+
+  Drupal\canvas_ssr\JsModules\Provider\CanvasPushedManifestModuleProvider:
+    arguments:
+      - '@entity_type.manager'
+      - '@file_system'
+      - '@file_url_generator'
+    tags:
+      # Above the dist provider, so a site's pushed code wins.
+      - { name: canvas_ssr.js_module_provider, priority: 50 }
+
+  Drupal\canvas_ssr\JsModules\Provider\CanvasDistModuleProvider:
+    arguments:
+      - '@extension.path.resolver'
+    tags:
+      - { name: canvas_ssr.js_module_provider, priority: 0 }
+
+  logger.channel.canvas_ssr:
+    parent: logger.channel_base
+    arguments: ['canvas_ssr']
+
+  Drupal\canvas_ssr\JsParser\JsModuleParser:
+    arguments:
+      - '@canvas_ssr.throttled_logger'
+      - '@Drupal\canvas_ssr\JsParser\ParsedModuleCache'
+      - '%canvas_ssr.timeouts%'
+
+  # Results are keyed by a hash of the source, so they can't go stale. The
+  # file parsing bin outlives cache clears.
+  Drupal\canvas_ssr\JsParser\ParsedModuleCache:
+    arguments:
+      - '@cache.file_parsing'
+      - '@lock'
+    tags:
+      - { name: needs_destruction }
+
+  # The default runner. It's a candidate for RunnerSelector at the default
+  # priority, 0, so a runner module outranks it with any positive one.
+  #
+  # Without a binary it's unavailable and the selector moves on. The status
+  # report says why when no runner is available.
+  # It finds its binary in vendor/bin, as its README says.
+  Drupal\canvas_ssr\JsRunner\Deno\DenoRunner:
+    arguments:
+      $timeouts: '%canvas_ssr.timeouts%'
+      $logger: '@canvas_ssr.throttled_logger'
+    tags:
+      - { name: canvas_ssr.runner, priority: 0 }
+
+  # Builds a base the runner couldn't take during a request, once the
+  # response is sent. It runs after every response, so its services are
+  # closures.
+  Drupal\canvas_ssr\EventSubscriber\TransientErrorSubscriber:
+    arguments:
+      - '@page_cache_kill_switch'
+      - '@datetime.time'
+    tags:
+      - { name: event_subscriber }
+
+  Drupal\canvas_ssr\EventSubscriber\PendingBaseSubscriber:
+    arguments:
+      - !service_closure '@Drupal\canvas_ssr\JsRunner\RunnerInterface'
+      - !service_closure '@Drupal\canvas_ssr\JsModules\BaseModules'
+      - !service_closure '@cache_tags.invalidator'
+      - !service_closure '@Drupal\canvas_ssr\HostStatus'
+      - '@canvas_ssr.throttled_logger'
+    tags:
+      - { name: event_subscriber }
+
+  # What each web server reports about SSR, kept where every one can read
+  # it, since the status report is served by just one.
+  Drupal\canvas_ssr\HostStatus:
+    arguments:
+      - '@canvas_ssr.host_status'
+      - '@Drupal\canvas_ssr\JsRunner\RunnerInterface'
+
+  canvas_ssr.host_status:
+    class: Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+    factory: ['@keyvalue.expirable', 'get']
+    arguments: ['canvas_ssr.host_status']
+    public: false
+
+  # For what could recur on every request. A cache directory the runner
+  # can't use is a warning found on every request until it's fixed, so it's
+  # logged hourly on each host. So is a render giving up on a base, a notice,
+  # which recurs if every new host is slow at first, and a component's JS
+  # taking too long to parse, a warning, which recurs on a busy host. A
+  # directory that changed while in use is an error, an event whose
+  # frequency says what's deleting it, so it's logged up to once a minute.
+  canvas_ssr.throttled_logger:
+    class: Drupal\canvas_ssr\Log\ThrottledLogger
+    arguments:
+      - '@logger.channel.canvas_ssr'
+      - '@canvas_ssr.throttled_logged'
+      - { notice: 3600, warning: 3600, error: 60 }
+    public: false
+
+  canvas_ssr.throttled_logged:
+    class: Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+    factory: ['@keyvalue.expirable', 'get']
+    arguments: ['canvas_ssr.throttled_logged']
+    public: false
+
+  # Picks the first available runner. Without any, it's UnavailableRunner,
+  # and every island falls back to CSR.
+  Drupal\canvas_ssr\JsRunner\RunnerSelector:
+    arguments:
+      # Highest priority first.
+      - !tagged_iterator canvas_ssr.runner
+
+  Drupal\canvas_ssr\JsRunner\RunnerGuard:
+    arguments:
+      - '@Drupal\canvas_ssr\JsRunner\RunnerSelector'
+    tags:
+      # Resets at the end of each request, so no realm outlives it.
+      - { name: needs_destruction }
+
+  cache_context.canvas_ssr_nested:
+    class: Drupal\canvas_ssr\Cache\NestedRenderCacheContext
+    arguments:
+      - '@Drupal\canvas_ssr\JsRunner\RunnerGuard'
+    tags:
+      - { name: cache.context }
+
+  # Every caller reaches the selected runner through the guard.
+  Drupal\canvas_ssr\JsRunner\RunnerInterface: '@Drupal\canvas_ssr\JsRunner\RunnerGuard'
+
+  Drupal\canvas_ssr\Renderer:
+    arguments:
+      - '@Drupal\canvas_ssr\ComponentInfo\BoundaryCheckers'
+      - '@Drupal\canvas\AutoSave\AutoSaveManager'
+      - '@Drupal\canvas_ssr\DrupalSettings\DrupalSettingsResolver'
+      - '@Drupal\canvas_ssr\JsRunner\RunnerInterface'
+      - '@Drupal\canvas_ssr\Fetch\FetchInterface'
+      - '@Drupal\canvas_ssr\Fetch\Marshaler\FetchMarshaler'
+      - '@logger.channel.canvas_ssr'
+      - '@Drupal\canvas_ssr\JsModules\BaseModules'
+      - '@Drupal\canvas_ssr\JsModules\SsrImportMap'
+      - '@Drupal\canvas_ssr\ComponentInfo\ComponentModules'
+      - '@Drupal\canvas_ssr\HostStatus'
+      - '@Drupal\canvas_ssr\JsModules\ModuleEvaluationHooks'
+      - '@canvas_ssr.throttled_logger'
+      - '@Drupal\canvas_ssr\Fetch\FetchingLibraries'
+    tags:
+      # Forgets what it remembered about the base at the end of a request.
+      - { name: needs_destruction }
+
+  Drupal\canvas_ssr\ComponentInfo\ComponentModules:
+    arguments:
+      - '@file_url_generator'
+      - '@Drupal\canvas_ssr\JsParser\JsModuleParser'
+      - '@Drupal\canvas_ssr\Fetch\FetchingLibraries'
+
+  Drupal\canvas_ssr\Fetch\FetchingLibraries:
+    arguments:
+      - '@Drupal\canvas_ssr\JsModules\SsrImportMap'
+      - '@Drupal\canvas_ssr\JsModules\AllProvidedModules'
+      - '@cache.default'
+    tags:
+      # Forgets which provided modules import a fetching library when they
+      # change mid-request, and at the end of the request.
+      - { name: cache_tags_invalidator }
+      - { name: needs_destruction }
+
+  Drupal\canvas_ssr\JsModules\BaseModules:
+    arguments:
+      - '@entity_type.manager'
+      - !tagged_iterator canvas_ssr.js_module_provider
+      - '@Drupal\canvas_ssr\DrupalSettings\DrupalSettingsResolver'
+      - '@Drupal\canvas_ssr\JsModules\SiteImportMap'
+      - '@variation_cache.canvas_ssr'
+      - '@Drupal\canvas_ssr\ComponentInfo\BoundaryCheckers'
+      - '@Drupal\canvas_ssr\ComponentInfo\ComponentModules'
+      - '@Drupal\canvas_ssr\JsModules\ModuleEvaluationHooks'
+    tags:
+      # Forgets the base when what it's built from changes mid-request.
+      - { name: cache_tags_invalidator }
+
+  # Keeps a base id for each set of cache context values the base varies by,
+  # such as each base path the site is served under.
+  variation_cache.canvas_ssr:
+    class: Drupal\Core\Cache\VariationCacheInterface
+    factory: ['@variation_cache_factory', 'get']
+    arguments: [default]
+
+  Drupal\canvas_ssr\Fetch\Marshaler\FetchMarshaler: {}
+
+  # Always here, since the system module serves menu linksets. The JSON:API
+  # policy is in CanvasSsrServiceProvider.
+  Drupal\canvas_ssr\Fetch\Policy\MenuLinksetPathPolicy:
+    tags:
+      - { name: canvas_ssr.path_policy }
+
+  Drupal\canvas_ssr\Fetch\SameSiteFetch:
+    arguments:
+      - '@http_kernel'
+      - '@request_stack'
+      - '@renderer'
+      - '@path_processor_manager'
+      - !tagged_iterator canvas_ssr.path_policy
+      - '@language_manager'
+
+  Drupal\canvas_ssr\Fetch\FetchInterface: '@Drupal\canvas_ssr\Fetch\SameSiteFetch'
+
+  Drupal\canvas_ssr\ComponentInfo\BoundaryCheckers:
+    arguments:
+      - !tagged_iterator canvas_ssr.boundary_checker
+
+  Drupal\canvas_ssr\ComponentInfo\BoundaryChecker\ReactBoundaryChecker:
+    arguments:
+      - '@Drupal\canvas_ssr\JsParser\JsModuleParser'
+    tags:
+      # Default priority, so another checker can take react or preact over.
+      - { name: canvas_ssr.boundary_checker }

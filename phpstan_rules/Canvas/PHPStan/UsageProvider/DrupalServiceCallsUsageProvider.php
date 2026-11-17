@@ -54,7 +54,7 @@ final class DrupalServiceCallsUsageProvider extends ReflectionBasedMemberUsagePr
     );
 
     foreach ($servicesFiles as $servicesFile) {
-      $yaml = Yaml::parseFile($servicesFile);
+      $yaml = Yaml::parseFile($servicesFile, Yaml::PARSE_CUSTOM_TAGS);
       if (!\is_array($yaml) || !isset($yaml['services']) || !\is_array($yaml['services'])) {
         continue;
       }
