@@ -36,7 +36,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
   public function testValidation(array $items, array $expected_violations): void {
     $this->generateComponentConfig();
     $validator = \Drupal::service(BasicRecursiveValidatorFactory::class)->createValidator();
-    $violations = $validator->validate($items, new ComponentTreeStructureConstraint(['basePropertyPath' => 'layout']));
+    $violations = $validator->validate($items, new ComponentTreeStructureConstraint(basePropertyPath: 'layout'));
     $this->assertSame($expected_violations, self::violationsToArray($violations));
   }
 
@@ -49,7 +49,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
     $item_list = $this->createDanglingComponentTreeItemList();
     $item_list->setValue($items);
     $validator = \Drupal::service(BasicRecursiveValidatorFactory::class)->createValidator();
-    $violations = $validator->validate($item_list, new ComponentTreeStructureConstraint(['basePropertyPath' => 'layout']));
+    $violations = $validator->validate($item_list, new ComponentTreeStructureConstraint(basePropertyPath: 'layout'));
     $this->assertSame($expected_violations, self::violationsToArray($violations));
   }
 

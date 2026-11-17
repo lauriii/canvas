@@ -69,7 +69,6 @@ abstract class SequenceDependentConstraintValidatorBase extends ConstraintValida
       default => $this->getTargetConfigObject($constraint),
     };
 
-    \assert($constraint->propertyPathToSequence !== NULL);
     $target_sequence = $target_config_object->get($constraint->propertyPathToSequence);
     // Verify the target property is indeed a sequence; if not, that's a logical
     // error in the config schema, not in concrete config.

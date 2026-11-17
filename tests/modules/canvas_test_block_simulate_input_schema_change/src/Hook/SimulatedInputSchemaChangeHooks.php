@@ -35,8 +35,10 @@ readonly class SimulatedInputSchemaChangeHooks {
           'label' => 'Foo',
           'constraints' => [
             'Choice' => [
-              1,
-              2,
+              'choices' => [
+                1,
+                2,
+              ],
             ],
           ],
         ],
@@ -47,8 +49,10 @@ readonly class SimulatedInputSchemaChangeHooks {
           'label' => 'Change',
           'constraints' => [
             'Choice' => [
-              'is scary',
-              'is necessary',
+              'choices' => [
+                'is scary',
+                'is necessary',
+              ],
             ],
           ],
         ],

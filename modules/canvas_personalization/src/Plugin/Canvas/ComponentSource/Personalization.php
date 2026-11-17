@@ -14,13 +14,13 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
+use Drupal\Core\Validation\ConstraintManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\Choice;
@@ -66,6 +66,7 @@ final class Personalization extends ComponentSourceBase implements
     string $plugin_id,
     array $plugin_definition,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
+    private readonly ConstraintManager $constraintManager,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -77,6 +78,7 @@ final class Personalization extends ComponentSourceBase implements
       $plugin_id,
       $plugin_definition,
       $container->get(BasicRecursiveValidatorFactory::class),
+      $container->get('validation.constraint'),
     );
   }
 
@@ -222,38 +224,38 @@ final class Personalization extends ComponentSourceBase implements
   }
 
   public function validateComponentInput(array $inputValues, string $component_instance_uuid, ?FieldableEntityInterface $entity): ConstraintViolationListInterface {
-    $variant_id_constraints = new Sequentially([
-      new Type('string'),
+    $variant_id_constraints = new Sequentially(constraints: [
+      new Type(type: 'string'),
       new NotBlank(),
       // @see `type: machine_name`
       new Regex(pattern: '/^[a-z0-9_]+$/'),
       // @todo Remove.
-      new Choice([static::POC_ONLY_HARDCODED_VARIANTS_HALLOWEEN, static::POC_ONLY_HARDCODED_VARIANTS_DEFAULT]),
+      new Choice(choices: [static::POC_ONLY_HARDCODED_VARIANTS_HALLOWEEN, static::POC_ONLY_HARDCODED_VARIANTS_DEFAULT]),
     ]);
-    $segment_id_constraints = new Sequentially([
-      new Type('string'),
+    $segment_id_constraints = new Sequentially(constraints: [
+      new Type(type: 'string'),
       new NotBlank(),
-      new ConfigExistsConstraint(['prefix' => \sprintf('canvas_personalization.%s.', Segment::ENTITY_TYPE_ID)]),
+      $this->constraintManager->create('ConfigExists', ['prefix' => \sprintf('canvas_personalization.%s.', Segment::ENTITY_TYPE_ID)]),
     ]);
 
     $component_constraints = match ($this->getType()) {
       self::SWITCH => new Collection(
         fields: [
-          'variants' => new Required([
-            new Type('array'),
+          'variants' => new Required(constraints: [
+            new Type(type: 'array'),
             new NotBlank(),
-            new All([$variant_id_constraints]),
+            new All(constraints: [$variant_id_constraints]),
           ]),
         ],
         allowExtraFields: FALSE,
       ),
       self::CASE => new Collection(
         fields: [
-          'variant_id' => new Required([$variant_id_constraints]),
-          'segments' => new Required([
-            new Type('array'),
+          'variant_id' => new Required(constraints: [$variant_id_constraints]),
+          'segments' => new Required(constraints: [
+            new Type(type: 'array'),
             new NotBlank(),
-            new All([$segment_id_constraints]),
+            new All(constraints: [$segment_id_constraints]),
           ]),
         ],
         allowExtraFields: FALSE,

@@ -69,16 +69,17 @@ canvas.component.*:
         # @todo Remove this constraint after https://www.drupal.org/i/3520484#stable is done.
         # 💡When developing or testing ComponentSource plugins ahead of this being a public API, install the `canvas_dev_mode` module. Thanks for helping make Drupal Canvas awesome! 😊
         Choice:
-          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
-          - sdc
-          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
-          - js
-          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
-          - block
-          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
-          - marker
-          # @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
-          - theme_page_template
+          choices:
+            # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent
+            - sdc
+            # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent
+            - js
+            # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
+            - block
+            # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+            - marker
+            # @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
+            - theme_page_template
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     versioned_properties:
@@ -173,8 +174,9 @@ canvas.js_component.*:
       requiredKey: false
       constraints:
         Choice:
-          - react
-          - external
+          choices:
+            - react
+            - external
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props.properties.required
     required:
       type: sequence
@@ -284,14 +286,15 @@ canvas.js_component.*:
             label: 'Canvas Drupal settings needed by the component'
             constraints:
               Choice:
-                - v0.baseUrl
-                - v0.branding
-                - v0.breadcrumbs
-                - v0.jsonapiSettings
-                - v0.langcode
-                - v0.mainEntity
-                - v0.pageTitle
-                - v0.themeAssets
+                choices:
+                  - v0.baseUrl
+                  - v0.branding
+                  - v0.breadcrumbs
+                  - v0.jsonapiSettings
+                  - v0.langcode
+                  - v0.mainEntity
+                  - v0.pageTitle
+                  - v0.themeAssets
         entityFields:
           # Should be omitted when there's no entity field data dependencies.
           requiredKey: false
@@ -391,7 +394,8 @@ canvas.page_region.*:
           pattern: '/^[a-z]+[a-z0-9_]+$/'
         Length:
           max: 64
-        ThemeRegionExists: '%parent.theme'
+        ThemeRegionExists:
+          theme: '%parent.theme'
         # @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::MAIN_CONTENT_REGION
         NotEqualTo:
           value: 'content'
@@ -403,7 +407,8 @@ canvas.page_region.*:
       constraints:
         NotBlank: [ ]
         ExtensionName: [ ]
-        ExtensionExists: theme
+        ExtensionExists:
+          type: theme
     component_tree:
       type: canvas.component_tree
       # A region that is left empty may be `null`.
@@ -602,7 +607,8 @@ canvas.component_source_settings.sdc:
   mapping:
     prop_field_definitions:
       constraints:
-        KeyForEverySdcProp: "%parent.%parent.%parent.%parent.source_local_id"
+        KeyForEverySdcProp:
+          sdcPluginId: "%parent.%parent.%parent.%parent.source_local_id"
 
 # Every ComponentSource plugin MUST define two config schema types:
 # 1. One for the ComponentSource-specific per-Component config entity local/intra-source ID: typically a plugin ID or a
@@ -845,7 +851,8 @@ canvas.component_source_local_id.marker:
   constraints:
     FullyValidatable: ~
     Choice:
-      - page_content
+      choices:
+        - page_content
 canvas.component_source_settings.marker:
   type: canvas.component_source_settings.*
   label: 'Marker component settings'
@@ -864,7 +871,8 @@ canvas.component_source_local_id.theme_page_template:
     # Matches the `theme` validation of `type: canvas.page_region.*`.
     NotBlank: [ ]
     ExtensionName: [ ]
-    ExtensionExists: theme
+    ExtensionExists:
+      type: theme
 canvas.component_source_settings.theme_page_template:
   type: canvas.component_source_settings.*
   label: 'Theme page template component settings'
@@ -1054,7 +1062,8 @@ canvas.asset_library_manifest_entry:
       label: 'Managed file URI'
       constraints:
         NotBlank: []
-        UriScheme: ['public']
+        UriScheme:
+          allowedSchemes: ['public']
     path:
       type: string
       label: 'Original relative disk path'
@@ -1217,17 +1226,16 @@ canvas.content_template.*.*.*:
       constraints:
         # @todo Also validate that the bundle actually fulfills Canvas's requirements.
         # @see https://www.drupal.org/project/canvas/issues/3518272
-        EntityBundleExists: '%parent.content_entity_type_id'
+        EntityBundleExists:
+          entityTypeId: '%parent.content_entity_type_id'
     content_entity_type_view_mode:
       type: string
       label: 'View mode machine name'
       constraints:
-        # @todo Use `ConfigExists` once https://www.drupal.org/project/drupal/issues/3518273 is
-        #   fixed in core.
         # @todo Core entity types ship with a `full` view mode, but it's not guaranteed to
         #   exist for every content entity type. Ensure Canvas creates it when opting a content
         #   entity bundle into Canvas rendering in https://www.drupal.org/i/3518248.
-        BetterConfigExists:
+        ConfigExists:
           prefix: 'core.entity_view_mode.[%parent.content_entity_type_id].'
     component_tree:
       type: canvas.component_tree
@@ -1279,7 +1287,8 @@ canvas.content_template.*.*.*:
           #    label: 'Intro'
           #    component_uuid: 98bcab26-e434-4ad4-9eaf-0520bdb32fcc
           #    slot_name: body
-          ValidExposedSlot: full
+          ValidExposedSlot:
+            viewMode: full
         mapping:
           component_uuid:
             type: uuid
@@ -1333,9 +1342,7 @@ canvas.staged_config_update.*:
         Length:
           # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
           max: 166
-        # @todo Use `ConfigExists` once https://www.drupal.org/project/drupal/issues/3518273 is
-        #   fixed in core.
-        BetterConfigExists:
+        ConfigExists:
           prefix: ''
     actions:
       type: sequence
@@ -1384,7 +1391,7 @@ canvas.staged_language_config_override.*:
       label: 'Language code'
       constraints:
         NotBlank: [ ]
-        BetterConfigExists:
+        ConfigExists:
           prefix: 'language.entity.'
     config_name:
       # We do not use `machine_name` since config entities have `.` in their IDs.
@@ -1395,9 +1402,7 @@ canvas.staged_language_config_override.*:
         Length:
           # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
           max: 166
-        # @todo Use `ConfigExists` once https://www.drupal.org/project/drupal/issues/3518273 is
-        #   fixed in core.
-        BetterConfigExists:
+        ConfigExists:
           prefix: ''
     data:
       # The sparse override data has no fixed schema — it mirrors the structure of whatever config entity it targets.
@@ -1439,7 +1444,7 @@ canvas.folder.*:
         type: string
         label: 'Folder items IDs'
         constraints:
-          BetterConfigExists:
+          ConfigExists:
             prefix: 'canvas.[%parent.%parent.configEntityTypeId].'
           OneFolderPerItemLimitConstraint:
             id: '%parent.%parent.uuid'

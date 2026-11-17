@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
@@ -18,6 +19,15 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 class ComponentTreeStructureConstraint extends SymfonyConstraint {
 
   public const string PLUGIN_ID = 'ComponentTreeStructure';
-  public string $basePropertyPath = '';
+
+  #[HasNamedArguments]
+  public function __construct(
+    // The property path that violations are reported under.
+    public string $basePropertyPath = '',
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
+  }
 
 }

@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
 
@@ -32,35 +33,19 @@ final class UriTargetFileExtensionsConstraint extends SymfonyConstraint {
   public const string PLUGIN_ID = 'UriTargetFileExtensions';
 
   /**
-   * Validation constraint option: file extensions the URI target may use.
+   * The file extensions the URI target may use.
    *
    * @var list<string>
    */
-  public $allowedExtensions;
+  public array $allowedExtensions;
 
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions() : array {
-    return ['allowedExtensions'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getDefaultOption() : string {
-    return 'allowedExtensions';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __construct(mixed $options = NULL, ?array $groups = NULL, mixed $payload = NULL) {
-    parent::__construct($options, $groups, $payload);
-    $extensions = $options['allowedExtensions'];
-    if (!\is_array($extensions) || $extensions === [] || !\array_is_list($extensions)) {
+  #[HasNamedArguments]
+  public function __construct(array $allowedExtensions, ?array $groups = NULL, mixed $payload = NULL) {
+    parent::__construct(groups: $groups, payload: $payload);
+    if ($allowedExtensions === [] || !\array_is_list($allowedExtensions)) {
       throw new InvalidArgumentException('The option "allowedExtensions" must be a non-empty list of file extensions.');
     }
+    $this->allowedExtensions = $allowedExtensions;
   }
 
   /**

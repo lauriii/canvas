@@ -37,7 +37,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
       description: new TranslatableMarkup("Whether to place the components 'inside' a target that has no children yet, or 'above'/'below' the component named by reference_uuid."),
       required: TRUE,
       constraints: [
-        'Choice' => ['above', 'below', 'inside'],
+        'Choice' => ['choices' => ['above', 'below', 'inside']],
       ],
     ),
     'reference_uuid' => new ContextDefinition(

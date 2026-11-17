@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
 
 /**
@@ -19,15 +20,15 @@ use Symfony\Component\Validator\Constraint;
 )]
 final class UniqueColorNameConstraint extends Constraint {
 
-  public string $id;
-
-  public string $notUnique = 'Color name %value is already in use by another color.';
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions(): array {
-    return ['id'];
+  #[HasNamedArguments]
+  public function __construct(
+    public string $id,
+    // The violation message when the name is already in use.
+    public string $notUnique = 'Color name %value is already in use by another color.',
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
   }
 
 }

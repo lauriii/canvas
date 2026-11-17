@@ -34,7 +34,7 @@ final class ValidSlotNameConstraintValidator extends RegexValidator {
     }
     \assert(\is_string($value));
 
-    parent::validate($value, new Regex($constraint::VALID_NAME, '%value is not a valid slot name.'));
+    parent::validate($value, new Regex(pattern: $constraint::VALID_NAME, message: '%value is not a valid slot name.'));
   }
 
 }

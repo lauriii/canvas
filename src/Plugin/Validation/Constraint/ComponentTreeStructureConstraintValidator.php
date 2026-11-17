@@ -7,7 +7,6 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -15,6 +14,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
+use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Core\Validation\Plugin\Validation\Constraint\LengthConstraint;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -36,6 +36,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
+    private readonly ConstraintManager $constraintManager,
   ) {
   }
 
@@ -46,6 +47,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     return new static(
       $container->get(EntityTypeManagerInterface::class),
       $container->get(BasicRecursiveValidatorFactory::class),
+      $container->get('validation.constraint'),
     );
   }
 
@@ -105,38 +107,38 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     // Constraint to validate each component instance, which is represented in
     // the value by a "uuid,component" tuple.
     $component_instance_constraint = new Sequentially(
-      [
-        new Collection([
-          'uuid' => new Required([
-            new Type('string'),
+      constraints: [
+        new Collection(fields: [
+          'uuid' => new Required(constraints: [
+            new Type(type: 'string'),
             new NotBlank(),
             new Uuid(),
           ]),
-          'component_id' => new Required([
-            new Type('string'),
+          'component_id' => new Required(constraints: [
+            new Type(type: 'string'),
             new NotBlank(),
-            new ConfigExistsConstraint(['prefix' => 'canvas.component.']),
+            $this->constraintManager->create('ConfigExists', ['prefix' => 'canvas.component.']),
           ]),
-          'component_version' => new Required([
-            new Type('string'),
+          'component_version' => new Required(constraints: [
+            new Type(type: 'string'),
             new NotBlank(),
-            new ValidConfigEntityVersionConstraint([
-              'configPrefix' => 'canvas.component.',
-              'configName' => '%parent.component_id',
-            ]),
+            new ValidConfigEntityVersionConstraint(
+              configPrefix: 'canvas.component.',
+              configName: '%parent.component_id',
+            ),
           ]),
-          'parent_uuid' => new Optional([
+          'parent_uuid' => new Optional(constraints: [
             new NotBlank(allowNull: TRUE),
             new Uuid(),
           ]),
-          'slot' => new Optional([
+          'slot' => new Optional(constraints: [
             new NotBlank(allowNull: TRUE),
-            new Type('string'),
+            new Type(type: 'string'),
             new ValidSlotNameConstraint(),
           ]),
-          'label' => new Optional([
+          'label' => new Optional(constraints: [
             new NotBlank(allowNull: TRUE),
-            new Type('string'),
+            new Type(type: 'string'),
             new LengthConstraint(max: 255),
           ]),
         ], allowExtraFields: TRUE),
@@ -153,10 +155,10 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     $violations = $non_typed_data_validator->validate($value, [
       // Use sequentially because if the data is not an array, or is so mangled
       // that we can't continue, we don't want to attempt subsequent validation.
-      new Sequentially([
-        new Type('array'),
-        new All([$component_instance_constraint]),
-        new Callback(self::validateUuidUniqueness(...)),
+      new Sequentially(constraints: [
+        new Type(type: 'array'),
+        new All(constraints: [$component_instance_constraint]),
+        new Callback(callback: self::validateUuidUniqueness(...)),
       ]),
     ]);
 

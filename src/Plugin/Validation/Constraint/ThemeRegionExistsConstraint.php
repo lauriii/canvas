@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
@@ -18,25 +19,16 @@ use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 )]
 class ThemeRegionExistsConstraint extends SymfonyConstraint {
 
-  public string $message = "Region '@region' does not exist in theme '@theme'.";
-
-  /**
-   * The machine name of the theme for which this must be a valid region.
-   */
-  public string $theme;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions(): array {
-    return ['theme'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getDefaultOption(): ?string {
-    return 'theme';
+  #[HasNamedArguments]
+  public function __construct(
+    // The machine name of the theme for which this must be a valid region.
+    public string $theme,
+    // The violation message when the region does not exist.
+    public string $message = "Region '@region' does not exist in theme '@theme'.",
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
   }
 
 }

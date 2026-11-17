@@ -37,8 +37,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
       required: TRUE,
       constraints: [
         'AllowedValues' => [
-          'title',
-          'description',
+          'choices' => [
+            'title',
+            'description',
+          ],
         ],
       ],
     ),

@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 #[Constraint(
@@ -16,25 +17,14 @@ final class UriTemplateWithVariablesConstraint extends SymfonyConstraint {
 
   public const string PLUGIN_ID = 'UriTemplateWithVariables';
 
-  /**
-   * The variables that are required to be present in the URI template.
-   *
-   * @var string[]
-   */
-  public array $requiredVariables = [];
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions() : array {
-    return ['requiredVariables'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getDefaultOption() : ?string {
-    return NULL;
+  #[HasNamedArguments]
+  public function __construct(
+    // The variables that are required to be present in the URI template.
+    public array $requiredVariables = [],
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
   }
 
 }
