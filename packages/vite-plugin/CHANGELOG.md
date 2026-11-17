@@ -1,5 +1,17 @@
 # @drupal-canvas/vite-plugin
 
+## 0.4.0
+
+### Minor Changes
+
+- ce07517: Support Vite 8.
+
+### Patch Changes
+
+- d678d4d: Expose the site's interface language as `langcode` in the site data,
+  so that `useDateFormatter()` formats dates in the site's language in Workbench
+  previews.
+
 ## 0.3.0
 
 ### Minor Changes

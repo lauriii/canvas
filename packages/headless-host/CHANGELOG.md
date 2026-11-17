@@ -1,5 +1,26 @@
 # @drupal-canvas/headless-host
 
+## 0.6.0
+
+### Minor Changes
+
+- e8b34a9: Add a `reset` flag to geometry events to distinguish host resets from
+  valid empty frontend reports.
+
+### Patch Changes
+
+- ce07517: Fix the preview iframe staying at a probe height after the app
+  reloads during a height probe.
+
+  - The host restores the pre-probe height when the iframe loads a new document.
+  - Height reports from the new document are applied instead of ignored.
+
+- Updated dependencies [6573ef1]
+- Updated dependencies [0c03680]
+- Updated dependencies [0c03680]
+- Updated dependencies [e8b34a9]
+  - @drupal-canvas/headless@0.12.0
+
 ## 0.5.0
 
 ### Minor Changes

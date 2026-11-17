@@ -1,5 +1,20 @@
 # @drupal-canvas/headless-astro
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [6573ef1]
+- Updated dependencies [d678d4d]
+- Updated dependencies [eb96892]
+- Updated dependencies [0c03680]
+- Updated dependencies [7b4dfd4]
+- Updated dependencies [0c03680]
+- Updated dependencies [0c03680]
+- Updated dependencies [e8b34a9]
+  - @drupal-canvas/headless@0.12.0
+  - drupal-canvas@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

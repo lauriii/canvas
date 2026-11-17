@@ -1,5 +1,44 @@
 # @drupal-canvas/cli
 
+## 0.27.0
+
+### Minor Changes
+
+- 0c03680: Send the strings that components translate with `t()` and
+  `formatPlural()` from `useTranslation()` to Drupal, so that they can be
+  translated on the site.
+
+  - Strings and their contexts are found when they are written as string
+    literals in the component's own source code. Drupal also provides
+    translations for imported components, using each component’s own strings.
+  - `build` and `push` fail for a component with a string that Drupal cannot
+    store, such as an empty one, and report its file and line.
+
+### Patch Changes
+
+- 6573ef1: Update bundled dependencies to address security advisories.
+- d678d4d: Add the `v0.langcode` entry to `dataDependencies.drupalSettings` for
+  components that import `useDateFormatter` or `useSiteContext` from
+  `drupal-canvas/react`, so that published pages format dates in the active
+  Drupal locale.
+- ce07517: Update to Vite 8.
+- f13be7c: Preserve original URIs and options for unchanged component link props
+  when pulling and pushing pages and page templates. Edited URLs continue to
+  create links with empty options.
+- c71a564: `canvas pull` no longer adds `@drupal-canvas/headless` or
+  `@drupal-canvas/headless-*` dependencies from the pulled `package.json`. The
+  site may store a `package.json` pushed from a headless codebase, and those
+  dependencies would make the next `canvas push` treat every component as
+  external. Headless SDK dependencies already declared in the local
+  `package.json` are kept.
+- Updated dependencies [d678d4d]
+- Updated dependencies [eb96892]
+- Updated dependencies [0c03680]
+- Updated dependencies [7b4dfd4]
+- Updated dependencies [6573ef1]
+  - drupal-canvas@0.8.0
+  - @drupal-canvas/eslint-config@0.10.2
+
 ## 0.26.2
 
 ### Patch Changes

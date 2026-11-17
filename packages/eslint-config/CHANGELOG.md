@@ -1,5 +1,13 @@
 # @drupal-canvas/eslint-config
 
+## 0.10.2
+
+### Patch Changes
+
+- 6573ef1: Report a missing component default export at the first line of code
+  with typescript-eslint 8.72 and later, as with earlier versions and the
+  default parser.
+
 ## 0.10.1
 
 ### Patch Changes
