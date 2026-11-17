@@ -36,7 +36,14 @@ final class ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest 
   }
 
   public function test(): void {
-    $this->expectDeprecation(self::EXPECT_DEPRECATION_3566701);
+    // expectUserDeprecationMessage() needs Drupal 11.4, and Drupal 12 removed
+    // expectDeprecation().
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      $this->expectUserDeprecationMessage(self::EXPECT_DEPRECATION_3566701);
+    }
+    else {
+      $this->expectDeprecation(self::EXPECT_DEPRECATION_3566701);
+    }
 
     $raw_inputs_for_first_component_instance = ContentTemplate::load('node.page.full')
       ?->getComponentTree()

@@ -47,7 +47,14 @@ final class RecipeWithContentTemplateDynamicPropSourcesToEntityFieldPropSourcesU
  */
   #[IgnoreDeprecations]
   public function test(): void {
-    $this->expectDeprecation(ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest::EXPECT_DEPRECATION_3566701);
+    // expectUserDeprecationMessage() needs Drupal 11.4, and Drupal 12 removed
+    // expectDeprecation().
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      $this->expectUserDeprecationMessage(ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest::EXPECT_DEPRECATION_3566701);
+    }
+    else {
+      $this->expectDeprecation(ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest::EXPECT_DEPRECATION_3566701);
+    }
 
     // The recipe should apply without errors, because the components used by
     // the content should be available by the time the content is imported.
