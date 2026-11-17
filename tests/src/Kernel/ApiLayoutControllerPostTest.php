@@ -35,6 +35,7 @@ use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -712,14 +713,14 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @testWith ["image-optional-with-example", "<img src=\"https://example.com/cat.jpg\" alt=\"Boring placeholder\" />"]
-   *           ["image-optional-without-example", ""]
-   *           ["image-required-with-example", "<img src=\"!!REFERENCED_MEDIA!!\" alt=\"The bones equal dollars\" />"]
-   *           ["image-optional-with-example-and-additional-prop", "<h1><!-- canvas-prop-start-166c9eee-35e9-4795-8c6f-24537728e95e/heading -->Heading the right direction?<!-- canvas-prop-end-166c9eee-35e9-4795-8c6f-24537728e95e/heading --></h1><img src=\"/Canvas/MODULE/PATH/tests/modules/canvas_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg\" alt=\"A good dog\" width=\"601\" height=\"402\"></img>"]
-   *
    * Note: `image-required-without-example` is not tested because it does not meet the requirement.
+   *
    * @see \Drupal\Tests\canvas\Kernel\Config\ComponentTest::testComponentAutoCreate()
    */
+  #[TestWith(['image-optional-with-example', '<img src="https://example.com/cat.jpg" alt="Boring placeholder" />'])]
+  #[TestWith(['image-optional-without-example', ''])]
+  #[TestWith(['image-required-with-example', '<img src="!!REFERENCED_MEDIA!!" alt="The bones equal dollars" />'])]
+  #[TestWith(['image-optional-with-example-and-additional-prop', '<h1><!-- canvas-prop-start-166c9eee-35e9-4795-8c6f-24537728e95e/heading -->Heading the right direction?<!-- canvas-prop-end-166c9eee-35e9-4795-8c6f-24537728e95e/heading --></h1><img src="/Canvas/MODULE/PATH/tests/modules/canvas_test_sdc/components/image-optional-with-example-and-additional-prop/gracie.jpg" alt="A good dog" width="601" height="402"></img>'])]
   public function testImageComponentPermutations(string $sdc, string $expected_preview_html): void {
     $content = $this->parentRequest(Request::create('/canvas/api/v0/layout/node/1'))->getContent();
     $this->assertIsString($content);

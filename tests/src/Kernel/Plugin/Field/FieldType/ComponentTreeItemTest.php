@@ -28,6 +28,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\TestWith;
 
 #[CoversClass(ComponentTreeItem::class)]
 #[CoversClass(ValidComponentTreeItemConstraintValidator::class)]
@@ -129,10 +130,10 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @testWith ["not-a-uuid", {"0.parent_uuid": "This is not a valid UUID."}]
-   *           ["", {"0.parent_uuid": "This value should not be blank."}]
    * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
+  #[TestWith(['not-a-uuid', ['0.parent_uuid' => 'This is not a valid UUID.']])]
+  #[TestWith(['', ['0.parent_uuid' => 'This value should not be blank.']])]
   public function testInvalidParentUuid(string $parent_uuid, array $expected_violations): void {
     $this->generateComponentConfig();
     $item_list = $this->createDanglingComponentTreeItemList();
@@ -152,18 +153,18 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   }
 
   /**
-   * @testWith ["not-a-slot", {"1.slot": "Invalid component subtree. This component subtree contains an invalid slot name for component <em class=\"placeholder\">sdc.canvas_test_sdc.props-slots</em>: <em class=\"placeholder\">not-a-slot</em>. Valid slot names are: <em class=\"placeholder\">the_body, the_footer, the_colophon</em>."}]
-   *           ["", {"1.slot": "This value should not be blank."}]
-   *           ["_", {"1.slot": "<em class=\"placeholder\">&quot;_&quot;</em> is not a valid slot name."}]
-   *           ["-", {"1.slot": "<em class=\"placeholder\">&quot;-&quot;</em> is not a valid slot name."}]
-   *           ["_invalid", {"1.slot": "<em class=\"placeholder\">&quot;_invalid&quot;</em> is not a valid slot name."}]
-   *           ["-invalid", {"1.slot": "<em class=\"placeholder\">&quot;-invalid&quot;</em> is not a valid slot name."}]
-   *           ["invalid-", {"1.slot": "<em class=\"placeholder\">&quot;invalid-&quot;</em> is not a valid slot name."}]
-   *           ["invalid_", {"1.slot": "<em class=\"placeholder\">&quot;invalid_&quot;</em> is not a valid slot name."}]
-   *           [null, {"1.slot": "Invalid component tree item with UUID <em class=\"placeholder\">8b6b47ec-1167-433b-975d-e2d97739f5a6</em>. A slot name must be present if a parent uuid is provided."}]
-   *           ["the_body", {}]
    * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
    */
+  #[TestWith(['not-a-slot', ['1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em>: <em class="placeholder">not-a-slot</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.']])]
+  #[TestWith(['', ['1.slot' => 'This value should not be blank.']])]
+  #[TestWith(['_', ['1.slot' => '<em class="placeholder">&quot;_&quot;</em> is not a valid slot name.']])]
+  #[TestWith(['-', ['1.slot' => '<em class="placeholder">&quot;-&quot;</em> is not a valid slot name.']])]
+  #[TestWith(['_invalid', ['1.slot' => '<em class="placeholder">&quot;_invalid&quot;</em> is not a valid slot name.']])]
+  #[TestWith(['-invalid', ['1.slot' => '<em class="placeholder">&quot;-invalid&quot;</em> is not a valid slot name.']])]
+  #[TestWith(['invalid-', ['1.slot' => '<em class="placeholder">&quot;invalid-&quot;</em> is not a valid slot name.']])]
+  #[TestWith(['invalid_', ['1.slot' => '<em class="placeholder">&quot;invalid_&quot;</em> is not a valid slot name.']])]
+  #[TestWith([NULL, ['1.slot' => 'Invalid component tree item with UUID <em class="placeholder">8b6b47ec-1167-433b-975d-e2d97739f5a6</em>. A slot name must be present if a parent uuid is provided.']])]
+  #[TestWith(['the_body', []])]
   public function testInvalidSlot(?string $slot, array $expected_violations): void {
     $root_uuid = '947c196f-f108-43fd-a446-03a08100d579';
     $child_uuid = '8b6b47ec-1167-433b-975d-e2d97739f5a6';

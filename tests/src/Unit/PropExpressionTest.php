@@ -76,7 +76,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
  * Tests to string.
  */
-  #[DataProvider('provider')]
+  #[DataProvider('providerToString')]
   public function testToString(string $string_representation, StructuredDataPropExpressionInterface $expression): void {
     $this->assertSame($string_representation, (string) $expression);
   }
@@ -84,7 +84,7 @@ class PropExpressionTest extends UnitTestCase {
   /**
  * Tests from string.
  */
-  #[DataProvider('provider')]
+  #[DataProvider('providerFromString')]
   public function testFromString(string $string_representation, StructuredDataPropExpressionInterface $expression, null|string|array $expected_deprecation_message): void {
     // TRICKY: work around PHPUnit limitations. ::expectDeprecation() does not
     // work here.
@@ -253,6 +253,20 @@ class PropExpressionTest extends UnitTestCase {
     // it instantly forgets that that also means any method on it can be called.
     // @phpstan-ignore-next-line method.notFound
     self::assertSame($expected_reference_chain_prefixes, $expression->getReferenceChainPrefixes());
+  }
+
+  /**
+   * Passes only the arguments testToString() accepts.
+   */
+  public static function providerToString(): array {
+    return \array_map(static fn (array $case): array => \array_slice($case, 0, 2), self::provider());
+  }
+
+  /**
+   * Passes only the arguments testFromString() accepts.
+   */
+  public static function providerFromString(): array {
+    return \array_map(static fn (array $case): array => \array_slice($case, 0, 3), self::provider());
   }
 
   /**
@@ -1478,10 +1492,10 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * Tests invalid field prop expression due to multiple field names without multiple bundles.
    *
-   * @testWith [null]
-   *           ["article"]
    * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
+  #[TestWith([NULL])]
+  #[TestWith(['article'])]
   public function testInvalidFieldPropExpressionDueToMultipleFieldNamesWithoutMultipleBundles(?string $bundle): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('When targeting a (single bundle of) an entity type, only a single field name can be specified.');
@@ -1499,10 +1513,10 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * Tests invalid field prop expression due to multiple field prop names without multiple bundles.
    *
-   * @testWith [null]
-   *           ["article"]
    * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
+  #[TestWith([NULL])]
+  #[TestWith(['article'])]
   public function testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleBundles(?string $bundle): void {
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('When targeting a (single bundle of) an entity type, only a single field property name can be specified.');
@@ -1524,7 +1538,14 @@ class PropExpressionTest extends UnitTestCase {
    */
   #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToMultipleFieldPropNamesWithoutMultipleFieldNames(): void {
-    $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    // expectUserDeprecationMessage() needs Drupal 11.4, and Drupal 12 removed
+    // expectDeprecation().
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      $this->expectUserDeprecationMessage(self::EXPECT_DEPRECATION_3563451);
+    }
+    else {
+      $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    }
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('A field property name must be specified for every field name, and in the same order.');
     new FieldPropExpression(
@@ -1549,7 +1570,14 @@ class PropExpressionTest extends UnitTestCase {
    */
   #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToOnlyNullFieldPropNames(): void {
-    $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    // expectUserDeprecationMessage() needs Drupal 11.4, and Drupal 12 removed
+    // expectDeprecation().
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      $this->expectUserDeprecationMessage(self::EXPECT_DEPRECATION_3563451);
+    }
+    else {
+      $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    }
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('At least one of the field names must have a field property specified; otherwise it should be omitted (␀ can only be used when a subset of the bundles does not provide a certain value).');
     new FieldPropExpression(
@@ -1573,7 +1601,14 @@ class PropExpressionTest extends UnitTestCase {
    */
   #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToDuplicateBundles(): void {
-    $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    // expectUserDeprecationMessage() needs Drupal 11.4, and Drupal 12 removed
+    // expectDeprecation().
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      $this->expectUserDeprecationMessage(self::EXPECT_DEPRECATION_3563451);
+    }
+    else {
+      $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    }
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('Duplicate bundles are nonsensical.');
     new FieldPropExpression(
@@ -1587,15 +1622,22 @@ class PropExpressionTest extends UnitTestCase {
   /**
    * Tests invalid field prop expression due to field name mismatch.
    *
-   * @testWith [{"foo": "field_media_image", "bar": "field_media_image_1", "baz": "field_media_image_2"}]
-   *           [{"foo": "field_media_image", "baz": "field_media_image_2"}]
-   *           [{}]
-   *           [{"foo": "field_media_image", "bar": "field_media_image_1"}]
    * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression::__construct
    */
+  #[TestWith([['foo' => 'field_media_image', 'bar' => 'field_media_image_1', 'baz' => 'field_media_image_2']])]
+  #[TestWith([['foo' => 'field_media_image', 'baz' => 'field_media_image_2']])]
+  #[TestWith([[]])]
+  #[TestWith([['foo' => 'field_media_image', 'bar' => 'field_media_image_1']])]
   #[IgnoreDeprecations]
   public function testInvalidFieldPropExpressionDueToFieldNameMismatch(array $field_name): void {
-    $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    // expectUserDeprecationMessage() needs Drupal 11.4, and Drupal 12 removed
+    // expectDeprecation().
+    if (version_compare(\Drupal::VERSION, '11.4', '>=')) {
+      $this->expectUserDeprecationMessage(self::EXPECT_DEPRECATION_3563451);
+    }
+    else {
+      $this->expectDeprecation(self::EXPECT_DEPRECATION_3563451);
+    }
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('A field name must be specified for every bundle, and in the same order.');
     new FieldPropExpression(
