@@ -7,6 +7,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
@@ -40,37 +41,35 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
   public string $propSourceTypePresenceMessage = "The '@prop_source_type_prefix' prop source type must be present.";
   public string $propSourceTypeAbsenceMessage = "The '@prop_source_type_prefix' prop source type must be absent.";
 
-  /**
-   * Requirements for component tree's inputs: absence and/or presence.
-   *
-   * Accepts for both `absence` and `presence` either NULL (no requirement) or a
-   * list of:
-   * - a prop source type (i.e., the value of a PropSource enum case)
-   *
-   * @var array{'absence': ?array<PropSourceTypePrefix>, 'presence': ?array<PropSourceTypePrefix>}
-   *
-   * @see \Drupal\canvas\PropSource\PropSource
-   */
-  public array $inputs;
-
-  /**
-   * Requirements for component tree's components: absence and/or presence.
-   *
-   * Accepts for both `absence` and `presence` either NULL (no requirement) or a
-   * list of:
-   * - a Component config entity ID
-   * - a (plugin) interface
-   *
-   * @var array{'absence': ?array<ComponentConfigEntityId|class-string>, 'presence': ?array<ComponentConfigEntityId|class-string>}
-   */
-  public array $tree;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __construct(mixed $options = NULL, ?array $groups = NULL, mixed $payload = NULL) {
-    parent::__construct($options, $groups, $payload);
-
+  #[HasNamedArguments]
+  public function __construct(
+    /**
+     * Requirements for the component tree's inputs.
+     *
+     * Accepts for both `absence` and `presence` either NULL (no requirement)
+     * or a list of:
+     * - a prop source type (i.e., the value of a PropSource enum case)
+     *
+     * @var array{'absence': ?array<PropSourceTypePrefix>, 'presence': ?array<PropSourceTypePrefix>}
+     *
+     * @see \Drupal\canvas\PropSource\PropSource
+     */
+    public array $inputs,
+    /**
+     * Requirements for the component tree's components.
+     *
+     * Accepts for both `absence` and `presence` either NULL (no requirement)
+     * or a list of:
+     * - a Component config entity ID
+     * - a (plugin) interface
+     *
+     * @var array{'absence': ?array<ComponentConfigEntityId|class-string>, 'presence': ?array<ComponentConfigEntityId|class-string>}
+     */
+    public array $tree,
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
     // Match the constraint option validation logic in ::normalizeOptions(), but
     // for the nested key-value pairs.
     $missing_nested_options = [];
@@ -127,13 +126,6 @@ class ComponentTreeMeetsRequirementsConstraint extends SymfonyConstraint {
       // not yet exist at this time.
       // @see \Drupal\canvas\Entity\Component
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions(): array {
-    return ['inputs', 'tree'];
   }
 
 }

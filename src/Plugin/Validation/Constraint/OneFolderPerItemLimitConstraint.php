@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
 
 /**
@@ -18,15 +19,17 @@ use Symfony\Component\Validator\Constraint;
   type: ['string']
 )]
 final class OneFolderPerItemLimitConstraint extends Constraint {
-  public string $configEntityTypeId;
-  public string $id;
-  public string $limitViolated = 'Folder item %item_id is already assigned to folder %folder_name';
 
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions(): array {
-    return ['id', 'configEntityTypeId'];
+  #[HasNamedArguments]
+  public function __construct(
+    public string $id,
+    public string $configEntityTypeId,
+    // The violation message when the limit is violated.
+    public string $limitViolated = 'Folder item %item_id is already assigned to folder %folder_name',
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
   }
 
 }

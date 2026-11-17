@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
@@ -22,40 +23,26 @@ final class UriSchemeConstraint extends SymfonyConstraint {
 
   public const string PLUGIN_ID = 'UriScheme';
 
-  public string $messageInvalidUriScheme = "'@scheme' is not allowed, must be one of the allowed schemes: @allowed-schemes.";
-
   /**
    * If an absolute URL, an allowlist of schemes can be specified.
    *
-   * @var non-empty-array<string>
+   * @var list<string>
    */
   public array $allowedSchemes;
 
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions() : array {
-    return [
-      'allowedSchemes',
-    ];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getDefaultOption(): string {
-    return 'allowedSchemes';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function normalizeOptions(mixed $options): array {
-    $normalized = parent::normalizeOptions($options);
-    // Ensure deterministic instances of this class.
+  #[HasNamedArguments]
+  public function __construct(
+    array $allowedSchemes,
+    // The violation message when the URI scheme is not allowed.
+    public string $messageInvalidUriScheme = "'@scheme' is not allowed, must be one of the allowed schemes: @allowed-schemes.",
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
+    // Sort the schemes to ensure deterministic instances of this class.
     // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::dataTypeShapeRequirementMatchesFinalConstraintSet()
-    sort($normalized['allowedSchemes']);
-    return $normalized;
+    sort($allowedSchemes);
+    $this->allowedSchemes = $allowedSchemes;
   }
 
 }

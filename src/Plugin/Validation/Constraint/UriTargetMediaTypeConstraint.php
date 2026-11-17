@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 use Symfony\Component\Validator\Exception\InvalidArgumentException;
 
@@ -32,34 +33,15 @@ final class UriTargetMediaTypeConstraint extends SymfonyConstraint {
 
   public const string PLUGIN_ID = 'UriTargetMediaType';
 
-  /**
-   * Validation constraint option to define the MIME type targeted by this URI.
-   *
-   * @var string
-   */
-  public $mimeType;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions() : array {
-    return ['mimeType'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getDefaultOption() : string {
-    return 'mimeType';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __construct(mixed $options = NULL, ?array $groups = NULL, mixed $payload = NULL) {
-    parent::__construct($options, $groups, $payload);
-    $mime_type = $options['mimeType'];
-    if (!(self::isValidWildCard($mime_type) || self::isValid($mime_type))) {
+  #[HasNamedArguments]
+  public function __construct(
+    // The MIME type targeted by this URI; may be a wildcard (e.g. `image/*`).
+    public string $mimeType,
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
+    if (!(self::isValidWildCard($mimeType) || self::isValid($mimeType))) {
       throw new InvalidArgumentException('The option "mimeType" must be a valid MIME type or wildcard.');
     }
   }

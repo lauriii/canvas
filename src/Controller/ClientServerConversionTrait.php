@@ -61,7 +61,7 @@ trait ClientServerConversionTrait {
       // Validate the items represent a valid tree.
       /** @var \Symfony\Component\Validator\Validator\RecursiveValidator $validator */
       $validator = \Drupal::service(BasicRecursiveValidatorFactory::class)->createValidator();
-      $violations = $validator->validate($items, new ComponentTreeStructureConstraint(['basePropertyPath' => 'layout.children']));
+      $violations = $validator->validate($items, new ComponentTreeStructureConstraint(basePropertyPath: 'layout.children'));
       if ($violations->count() > 0) {
         throw new ConstraintViolationException($violations);
       }

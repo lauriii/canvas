@@ -34,9 +34,9 @@ trait BlockComponentTreeSchemaUpdateTestTrait {
     };
     $canvas_test_block_input_schema_change_poc_versions = match(TRUE) {
       // The 11.4.x version
-      version_compare(\Drupal::VERSION, "11.4", '>=') => ["468f7d2205e249d9", "f90417fe5e93dc5e"],
+      version_compare(\Drupal::VERSION, "11.4", '>=') => ["abe721cccd8b0087", "f90417fe5e93dc5e"],
       // The 11.3.x version (the minimum supported).
-      default => ["dbe845f73dc45b04", "0b5af0d270d99618"],
+      default => ["be1c58840b392d8f", "0b5af0d270d99618"],
     };
     yield 'tree with no blocks with update' => [
       [

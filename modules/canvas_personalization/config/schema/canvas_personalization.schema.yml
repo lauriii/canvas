@@ -33,8 +33,9 @@ canvas.component_source_local_id.p13n:
   constraints:
     FullyValidatable: ~
     Choice:
-      - switch
-      - case
+      choices:
+        - switch
+        - case
 canvas.component_source_settings.p13n:
   type: canvas.component_source_settings.*
   label: 'Personalization component settings'

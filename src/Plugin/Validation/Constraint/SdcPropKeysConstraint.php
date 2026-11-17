@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
@@ -34,23 +35,15 @@ class SdcPropKeysConstraint extends SymfonyConstraint {
    */
   public string $extraneousMessage = 'Configuration present for a non-existent SDC prop: %prop_machine_name.';
 
-  /**
-   * The ID of the SDC whose props must be present as keys on a `type: mapping`.
-   */
-  public string $sdcPluginId;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions(): array {
-    return ['sdcPluginId'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getDefaultOption(): ?string {
-    return 'sdcPluginId';
+  #[HasNamedArguments]
+  public function __construct(
+    // The ID of the SDC whose props must be present as keys on a
+    // `type: mapping`.
+    public string $sdcPluginId,
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
   }
 
 }

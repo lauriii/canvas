@@ -58,13 +58,14 @@ final class SegmentationRulesHooks {
       /*
        * NotBlank: [ ]
        * ExtensionName: [ ]
-       * ExtensionExists: theme
+       * ExtensionExists:
+       *   type: theme
        */
       // @todo Fix this in core in https://www.drupal.org/i/3527385
       $definitions[self::CONDITION_CURRENT_THEME]['constraints']['FullyValidatable'] = NULL;
       $definitions[self::CONDITION_CURRENT_THEME]['mapping']['theme']['constraints']['NotBlank'] = [];
       $definitions[self::CONDITION_CURRENT_THEME]['mapping']['theme']['constraints']['ExtensionName'] = [];
-      $definitions[self::CONDITION_CURRENT_THEME]['mapping']['theme']['constraints']['ExtensionExists'] = 'theme';
+      $definitions[self::CONDITION_CURRENT_THEME]['mapping']['theme']['constraints']['ExtensionExists'] = ['type' => 'theme'];
     }
     if (isset($definitions[self::CONDITION_USER_ROLE])) {
       /*

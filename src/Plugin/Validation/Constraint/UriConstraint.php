@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
@@ -28,18 +29,18 @@ final class UriConstraint extends SymfonyConstraint {
 
   public const string PLUGIN_ID = 'Uri';
 
-  public string $messageInvalidUri = "This value should be a valid URI.";
-  public string $messageInvalidUriReference = "This value should be a valid URI reference.";
-
-  public bool $allowReferences;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions() : array {
-    return [
-      'allowReferences',
-    ];
+  #[HasNamedArguments]
+  public function __construct(
+    // Whether URI references (relative URIs) are allowed.
+    public bool $allowReferences,
+    // The violation message when the URI is invalid.
+    public string $messageInvalidUri = "This value should be a valid URI.",
+    // The violation message when the URI reference is invalid.
+    public string $messageInvalidUriReference = "This value should be a valid URI reference.",
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
   }
 
   public function isSupersetOf(UriConstraint $constraint) : bool {

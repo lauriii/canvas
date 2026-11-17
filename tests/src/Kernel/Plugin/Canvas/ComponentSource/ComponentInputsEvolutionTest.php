@@ -340,9 +340,9 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
     $active_version = match(TRUE) {
       // The 11.4.x version.
-      version_compare(\Drupal::VERSION, "11.4", '>=') => "468f7d2205e249d9",
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "abe721cccd8b0087",
       // The 11.3.x version (the minimum supported).
-      default => "dbe845f73dc45b04",
+      default => "be1c58840b392d8f",
     };
     $existing_versions = match(TRUE) {
       // The 11.4.x versions.
@@ -352,9 +352,9 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     };
     $expected_version = match(TRUE) {
       // The 11.4.x version.
-      version_compare(\Drupal::VERSION, "11.4", '>=') => "50b3371c8773be55",
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "c1eca12f927fb89a",
       // The 11.3.x version (the minimum supported).
-      default => "ecbfb3dfb7ce5717",
+      default => "365fde88eb533f4b",
     };
 
     // Before the update.
@@ -422,9 +422,9 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     };
     $expected_version = match(TRUE) {
       // The 11.4.x version.
-      version_compare(\Drupal::VERSION, "11.4", '>=') => "56523fd6281e62f3",
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "a2bfa2c48c8571fb",
       // The 11.3.x version (the minimum supported).
-      default => "7d5753e9157ece58",
+      default => "579ae0247081fde6",
     };
 
     // @see \Drupal\canvas_test_block_simulate_input_schema_change\Hook\SimulatedInputSchemaChangeHooks::blockAlter()
@@ -621,9 +621,9 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $raw_component_tree = $pattern->get('component_tree');
     $active_version = match(TRUE) {
       // The 11.4.x version.
-      version_compare(\Drupal::VERSION, "11.4", '>=') => "468f7d2205e249d9",
+      version_compare(\Drupal::VERSION, "11.4", '>=') => "abe721cccd8b0087",
       // The 11.3.x version (the minimum supported).
-      default => "dbe845f73dc45b04",
+      default => "be1c58840b392d8f",
     };
     foreach ($raw_component_tree as $key => $component_instance) {
       if (\in_array($component_instance['uuid'], $pattern_component_instances_to_update, TRUE)) {

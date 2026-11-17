@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\Attribute\Constraint;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
 /**
@@ -56,25 +57,15 @@ final class StringSemanticsConstraint extends SymfonyConstraint {
    */
   const STRUCTURED = 'structured';
 
-  /**
-   * Validation constraint option to define the semantics of this string.
-   *
-   * @var string
-   */
-  public $semantic = self::STRUCTURED;
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRequiredOptions() : array {
-    return ['semantic'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getDefaultOption() : string {
-    return 'semantic';
+  #[HasNamedArguments]
+  public function __construct(
+    // The semantics of this string: one of the PROSE, MARKUP or STRUCTURED
+    // constants.
+    public string $semantic = self::STRUCTURED,
+    ?array $groups = NULL,
+    mixed $payload = NULL,
+  ) {
+    parent::__construct(groups: $groups, payload: $payload);
   }
 
 }
