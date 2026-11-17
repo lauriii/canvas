@@ -433,6 +433,7 @@ phpunit (11.3 sqlite):
         DRUPAL_TEST_CONCURRENCY: '14'
   before_script:
     - !reference [ .drupal-with-dev-dependencies ]
+    - !reference [ .deno ]
     - !reference [ .canvas-ui ]
   script:
     - !reference [ .test_runner ]

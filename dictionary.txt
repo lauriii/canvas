@@ -24,8 +24,10 @@ Carden
 cardwithslot
 Cdiv
 cebe
+celld
 clickjacking
 Clurichaun
+cmdline
 cnvs
 cnvst # Used for "canvas tests"
 coalescable
@@ -56,12 +58,16 @@ drupaldev
 drupalsettings
 druplicon
 echoai
+enablements
 endapply
 entityviewdisplay
+Entwurf
 Español
 esque
 extralight
 extensionless
+feff
+fffd
 fieldtext
 frontends
 fvar
@@ -69,6 +75,7 @@ folderfy
 francais
 FrankenPHP
 Français
+Geheimer
 gerbeaud
 gesturechange
 gestureend
@@ -110,7 +117,10 @@ leftbar
 liftup
 lightningcss
 Linkit
+linksets
+lockdown
 Mautic
+maxage
 metacharacter
 metatag
 microlink
@@ -119,15 +129,19 @@ navigations
 naïvely
 nearley
 networkidle
+nimg
 nitropack
+noatime
 nodepath
 nodepaths
 nums
 Nygard
 Nygard's
+onlydir
 OPENCOLLECTIVE
 outro
 parallelizable
+paratest
 personalizable
 phenaproxima
 fontshare
@@ -135,10 +149,12 @@ myfont
 nourl
 opsz
 phpat
+pids
 placehold
 Postel
 preflight
 preflights
+quasis
 replayable
 sindresorhus
 slugified
@@ -188,6 +204,7 @@ sonner
 sparkline
 STACKLIMIT
 Starshot
+stime
 subcontent
 subresource
 subroute
@@ -199,7 +216,9 @@ SVAY
 tamperable
 targetable
 testid
+titulo
 tmgmt
+tmpfiles
 toctou
 toolset
 topbar
@@ -209,6 +228,8 @@ tsconfigs
 tseslint
 turbopack
 unbuilt
+unconfigurable
+uncurry
 unifont
 Unifont
 ultrawide
@@ -218,6 +239,8 @@ uncollapses
 unhydrated
 unlayered
 unloadable
+unmarshal
+unmarshals
 unmixable
 unmodeled
 unparseable
@@ -239,6 +262,7 @@ Unhead
 uuidv
 Validatable
 vaul
+vnode
 wdth
 webform
 WSODs

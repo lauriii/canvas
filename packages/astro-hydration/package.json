@@ -13,10 +13,11 @@
     "test": "vitest run"
   },
   "canvas": {
-    "//": "@see docs/adr/0008-astro-hydration-bundled-dependencies-as-external.md",
+    "//": "@see docs/adr/0008-astro-hydration-bundled-dependencies-as-external.md and docs/adr/0024-import-map-entries-for-canvas-own-use.md",
     "buildOnly": [
       "astro",
-      "@astrojs/preact"
+      "@astrojs/preact",
+      "devalue"
     ]
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "astro": "^7.3.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "devalue": "^6.0.3",
     "drupal-canvas": "^0.7.1",
     "drupal-jsonapi-params": "^2.3.2",
     "preact": "^10.25.4",

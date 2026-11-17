@@ -17,6 +17,9 @@
     "inlineSources": false,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "paths": {
+      "@drupal-canvas/astro-hydration/hydration-data": [
+        "./packages/astro-hydration/src/lib/hydration-data.ts"
+      ],
       "@drupal-canvas/discovery": ["./packages/discovery/src/index.ts"],
       "@drupal-canvas/vite-compat": ["./packages/vite-compat/src/index.ts"],
       "@drupal-canvas/vite-plugin": ["./packages/vite-plugin/src/index.ts"],

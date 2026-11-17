@@ -20,6 +20,7 @@ use Drupal\Tests\canvas\Kernel\PropSource\PropSourceTestBase;
 use Drupal\Tests\canvas\Kernel\ShapeMatcher\PropSourceMatcherTestBase;
 use Drupal\Tests\canvas\Kernel\Translation\ContentComponentTreeSymmetricalTranslationTestBase;
 use Drupal\Tests\canvas_personalization\Kernel\Config\SegmentValidationTest;
+use Drupal\Tests\canvas_ssr\Kernel\CanvasSsrKernelTestBase;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use SlevomatCodingStandard\Helpers\NamespaceHelper;
@@ -44,6 +45,7 @@ class KernelTestBaseSniff implements Sniff {
     ContentComponentTreeSymmetricalTranslationTestBase::class,
     TranslationPropagationTestBase::class,
     ConfigEntitySymmetricalTranslationPropagationTestBase::class,
+    CanvasSsrKernelTestBase::class,
   ];
 
   public const ALLOWED_OTHER_BASE_CLASSES = [
