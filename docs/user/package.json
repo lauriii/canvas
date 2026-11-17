@@ -2,7 +2,7 @@
   "name": "docs",
   "private": true,
   "engines": {
-    "node": ">=22.19.0 <23 || >=24.5.0"
+    "node": ">=22.23.4 <23 || >=24.5.0"
   },
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
   "dependencies": {
     "@astrojs/check": "^0.9.10",
     "@astrojs/starlight": "^0.42.4",
-    "astro": "^7.3.5",
+    "astro": "^7.4.12",
     "sharp": "^0.35.3",
     "typescript": "^5.8.3",
     "zod": "^4.6.7"

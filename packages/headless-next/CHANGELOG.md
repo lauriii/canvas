@@ -1,5 +1,29 @@
 # @drupal-canvas/headless-next
 
+## 0.9.0
+
+### Minor Changes
+
+- 0c03680: Export `TranslationsProvider` as a client component, so that server
+  components can render it above `CanvasComponentTree` with the application's
+  own dictionary. It replaces the translations Drupal returns in `page.context`
+  for the components below it.
+
+### Patch Changes
+
+- Updated dependencies [6573ef1]
+- Updated dependencies [d678d4d]
+- Updated dependencies [eb96892]
+- Updated dependencies [0c03680]
+- Updated dependencies [7b4dfd4]
+- Updated dependencies [0c03680]
+- Updated dependencies [0c03680]
+- Updated dependencies [e8b34a9]
+- Updated dependencies [0c03680]
+  - @drupal-canvas/headless@0.12.0
+  - drupal-canvas@0.8.0
+  - @drupal-canvas/headless-react@0.6.0
+
 ## 0.8.0
 
 ### Minor Changes

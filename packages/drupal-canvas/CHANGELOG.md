@@ -1,5 +1,73 @@
 # drupal-canvas
 
+## 0.8.0
+
+### Minor Changes
+
+- d678d4d: Add a `useDateFormatter()` hook to `drupal-canvas/react` for
+  displaying Canvas date props in the interface language of the site.
+
+  - It returns a function that formats an ISO date, date-time, or time string
+    with `Intl.DateTimeFormat`. The value determines the parts shown: date,
+    time, or both, in the `'short'` style by default.
+  - It reads the locale from the new `langcode` of the site context
+    (`useSiteContext()`), which every rendering integration supplies, so it
+    works in Drupal-rendered pages, Workbench, and Headless. It formats in `en`
+    when no language is supplied. The `SiteContext` type includes the new
+    optional `langcode` key, and `CanvasDataV0` includes the new `langcode` key
+    that the Drupal adapter turns into it.
+  - Dates are rendered in UTC to prevent timezone-offset shifts on the viewer's
+    device. A date-time value without a UTC offset is treated as UTC, and a
+    value with an explicit offset is converted to UTC.
+  - An optional `options` argument (`CanvasDateFormatOptions`) sets the
+    `dateStyle` and `timeStyle`. Only the parts it sets are shown, and a part
+    the value lacks is ignored.
+  - It returns an empty string for `null` or `undefined`, and the original
+    string if the value cannot be parsed. Format a date range prop by calling it
+    on its `from` and `to` values.
+
+- 0c03680: Add a `useTranslation()` hook to `drupal-canvas/react` for
+  translating interface strings in Code Components.
+
+  - Its `t()` and `formatPlural()` functions take the same arguments as
+    `Drupal.t()` and `Drupal.formatPlural()`. Without a translation, `t()`
+    returns the source string, and `formatPlural()` the singular for a count of
+    1 and the plural otherwise. A translation can have more forms:
+    `formatPlural()` picks one with the language's plural rules, and replaces
+    `@count`.
+  - Only `@` placeholders, such as `@name`, are supported. Unlike Drupal's
+    functions, which return HTML, they return text for React to render:
+    placeholder values appear exactly as given, and HTML in a string is shown as
+    text.
+  - It reads the translations from the new optional `translations` key of
+    `CanvasContext` (type `Translations`, shaped like Drupal's
+    `drupalTranslations`: `strings` and an optional `pluralFormula`), so the
+    same component works in Drupal-rendered pages, Workbench, and Headless.
+    `CanvasDataV0` includes the new `translations` key that the Drupal adapter
+    turns into it.
+  - `TranslationsProvider` replaces the translations for the components below
+    it, e.g. with an application's own dictionary, instead of merging with them;
+    `null` means none. The nearest provider takes precedence over the context's
+    translations.
+
+### Patch Changes
+
+- eb96892: Keep the JSON:API client in `jsonapi-client.js` instead of a separate
+  hashed file.
+
+  - The package entry imports `./jsonapi-client.js` directly, so bundlers that
+    map package files to import-map names, such as Canvas's astro-hydration
+    build, can map it to `@drupal-api-client/json-api-client`.
+  - Exports are unchanged.
+
+- 7b4dfd4: Fix draft reads of resource types without revisions, such as users,
+  which Drupal rejected with 501 Not Implemented.
+
+  - `getResource()` repeats the read once without the resource version when
+    Drupal answers 501 Not Implemented, and remembers the type when Drupal
+    returns the resource without a `working-copy` link.
+  - Collection reads fetch working copies only for items that link to one.
+
 ## 0.7.1
 
 ### Patch Changes

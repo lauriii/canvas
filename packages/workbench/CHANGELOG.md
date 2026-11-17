@@ -1,5 +1,31 @@
 # @drupal-canvas/workbench
 
+## 0.14.0
+
+### Minor Changes
+
+- 0c03680: Translate previews into the site's interface languages. When the
+  previewed components, or the components they import, use `useTranslation()`, a
+  language selector appears above the preview. Previews start in the language
+  that Drupal negotiates for the site data, and Workbench looks up the
+  translations of the previewed strings in Drupal, without registering them. The
+  translations follow changes to the components. `preview-build` translates the
+  previews it generates too, into the negotiated language or the one that the
+  new `--langcode` option requests.
+
+### Patch Changes
+
+- 6573ef1: Update bundled dependencies to address security advisories.
+- d678d4d: Supply the site's interface language as `langcode` in the site
+  context of Workbench previews, so that `useDateFormatter()` formats dates in
+  the site's language.
+- ce07517: Update to Vite 8 and Tailwind CSS 4.3.3.
+- Updated dependencies [d678d4d]
+- Updated dependencies [eb96892]
+- Updated dependencies [0c03680]
+- Updated dependencies [7b4dfd4]
+  - drupal-canvas@0.8.0
+
 ## 0.13.2
 
 ### Patch Changes

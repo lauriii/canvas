@@ -1,5 +1,38 @@
 # @drupal-canvas/headless
 
+## 0.12.0
+
+### Minor Changes
+
+- 0c03680: Include the strings that components translate with `t()` and
+  `formatPlural()` from `useTranslation()` in the component metadata, so that
+  Drupal synchronizes them, lists them for translation, and returns their
+  translations in `page.context.translations`.
+
+  - Strings and their contexts are found when they are written as string
+    literals, in the component's entry file and in those of the components it
+    imports, which it renders itself: with relative imports, or with the `paths`
+    and `baseUrl` of `tsconfig.json` or `jsconfig.json`.
+  - The build fails for a component with a string that Drupal cannot store, such
+    as an empty one, and reports its file, line, and column.
+
+- 0c03680: Return Code Component interface translations in
+  `page.context.translations`: the translations Drupal has for the strings that
+  the rendered Code Components pass to `t()` and `formatPlural()` of
+  `useTranslation()`. To use the application's own dictionary instead, render
+  `TranslationsProvider` above the component tree.
+
+### Patch Changes
+
+- 6573ef1: Update bundled dependencies to address security advisories.
+- e8b34a9: Fix page content marker being replaced by empty slot placeholder when
+  placed in a slot in page template editor previews.
+- Updated dependencies [d678d4d]
+- Updated dependencies [eb96892]
+- Updated dependencies [0c03680]
+- Updated dependencies [7b4dfd4]
+  - drupal-canvas@0.8.0
+
 ## 0.11.0
 
 ### Minor Changes
