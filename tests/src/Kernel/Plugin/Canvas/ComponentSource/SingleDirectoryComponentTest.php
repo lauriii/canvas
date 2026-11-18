@@ -1799,7 +1799,8 @@ HTML
       ],
       'expected_exception' => [
         'class' => RuntimeError::class,
-        'message' => 'An exception has been thrown during the rendering of a template ("[canvas_test_sdc:card-with-stream-wrapper-image/src] The "private" URI scheme is not allowed. The provided value is: "private://test/image.png".") in "canvas_test_sdc:card-with-stream-wrapper-image" at line 1.',
+        // Core can add template context before the underlying validation error.
+        'message' => '[canvas_test_sdc:card-with-stream-wrapper-image/src] The "private" URI scheme is not allowed. The provided value is: "private://test/image.png".',
       ],
       'expected_output_selector' => NULL,
     ];
