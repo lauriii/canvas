@@ -34,6 +34,7 @@ import type {
 import type {
   ContentTemplate,
   ContentTemplateListItem,
+  ExposedSlots,
 } from '../types/ContentTemplate';
 import type { Page, PageListItem } from '../types/Page';
 import type { PageVariant } from '../types/PageVariant';
@@ -692,6 +693,7 @@ export class ApiService {
     pageVariant?: string | null;
     status: boolean;
     component_tree: ConfigComponentTreePayload;
+    exposed_slots?: ExposedSlots;
   }): Promise<ContentTemplate> {
     try {
       const response = await this.client.post(
@@ -714,6 +716,7 @@ export class ApiService {
       status?: boolean;
       pageVariant?: string | null;
       component_tree?: ConfigComponentTreePayload;
+      exposed_slots?: ExposedSlots;
     },
   ): Promise<ContentTemplate> {
     try {
@@ -723,6 +726,29 @@ export class ApiService {
       );
       return response.data;
     } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Creates the `component_tree` field of an exposed slot on the template's
+   * bundle, unless it already exists.
+   */
+  async createSlotField(
+    contentTemplateId: string,
+    fieldName: string,
+    label: string,
+  ): Promise<void> {
+    try {
+      await this.client.post(
+        `/canvas/api/v0/config/content_template/${encodeURIComponent(contentTemplateId)}/slot-fields`,
+        { fieldName, label },
+      );
+    } catch (error) {
+      // 409: the field already exists on the bundle.
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        return;
+      }
       this.handleApiError(error);
     }
   }

@@ -106,7 +106,13 @@ Canvas defines a new `Canvas field type` with the following `field prop`s:
 - _slot_ — If this `component instance` is placed inside another `component instance` in the tree, the machine name of the `component slot` in which it is placed. This slot must exist in the parent `component instance`.
 - _inputs_ — see 3.2.2
 
-When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root of the `component tree`.
+When _parent_uuid_ and _slot_ are empty, the `component instance` is at the root of the `component tree`. A
+`ContentTemplate`'s _exposed slots_ are each backed by their own `component_tree` field on the template's bundle: an
+entity stores its per-entity content for a slot as an ordinary `component tree` in that field (roots have empty
+_parent_uuid_ and empty _slot_), which is merged into the template under the exposed slot's real component instance and slot at render time (see
+`\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::injectSlotContent()`). An empty slot field renders the template's default content
+for that slot. The empty slot marker (`marker.empty_slot`) as the sole root of the field is an empty override: the slot
+renders nothing (see `\Drupal\canvas\Plugin\Canvas\ComponentSource\Marker`).
 
 Additionally there are three computed `field prop`s:
 - _component_ - this is an entity reference to the `Component config entity` the `component instance` uses, meaning also the appropriate version will be loaded. Any methods on the `Component config entity` can be chained. E.g. `$item->get('component')?->getComponentSource()`.
@@ -162,7 +168,7 @@ These columns always meet the following requirements
   - the value for "component_id" being the ID of a `Component config entity` (NOT that of the underlying `component`)
   - the value for "component_version" being a version on the (versioned!) `Component config entity` (see `\Drupal\canvas\Entity\VersionedConfigEntityInterface::getVersions()`)
   - the "uuid" being a randomly generated UUID in its lowercase canonical form; it must never be `a548b48d-58a8-4077-aa04-da9405a6f418` (compared case-insensitively): that UUID is reserved to represent the root of the component tree (see `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::ROOT_UUID`)
-2. Any top-level items have NULL for both the `parent_uuid` and `slot`.
+2. Any top-level items have NULL for both the `parent_uuid` and `slot`. This includes exposed-slot content.
 3. Nested components must have a value for both the `parent_uuid` and `slot`.
     1. The `parent_uuid` must exist in a sibling field item in the `ComponentTreeItemList`.
     2. The `slot` must be present in the parent `component`'s slot definitions
@@ -171,6 +177,7 @@ These columns always meet the following requirements
     5. The chain of `parent_uuid` references must not form a cycle: no component instance can be an ancestor of itself
 4. Each `uuid` must be unique in the list of items
 5. The `delta` of each field item represents the order that components in the same level of the tree appear in.
+6. The empty slot marker (`marker.empty_slot`) may only appear as the sole root of a `component_tree` field on a content entity that is not itself a component tree (so not on a Canvas page, nor in config trees or field default values).
 
 #### 3.2.2 The column (`field prop`) storing the `component input` values
 

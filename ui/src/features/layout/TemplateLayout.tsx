@@ -34,7 +34,8 @@ const TemplateLayout = () => {
 
   const { showBoundary, resetBoundary } = useErrorBoundary();
 
-  const { layout, model, translations } = fetchedLayout || {};
+  const { layout, model, translations, exposedSlots, previewSlotOverrides } =
+    fetchedLayout || {};
 
   useEffect(() => {
     dispatch(setInitialized(false));
@@ -60,6 +61,11 @@ const TemplateLayout = () => {
           layout,
           model,
           translations: translations || {},
+          // The template editor's working set of exposed slots, as emitted by
+          // the template layout GET (a pending draft's included). Omit
+          // slotOverrides so this stays out of per-content mode.
+          exposedSlots,
+          previewSlotOverrides,
           // We don't need to update the preview here - it is done in the layout
           // api's onQueryStarted method - @see componentAndLayout.ts
           updatePreview: false,
@@ -70,6 +76,8 @@ const TemplateLayout = () => {
     layout,
     model,
     translations,
+    exposedSlots,
+    previewSlotOverrides,
     isInitialized,
     error,
     showBoundary,

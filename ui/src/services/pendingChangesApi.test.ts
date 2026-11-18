@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { makeStore } from '@/app/store';
+import { initialState as configurationInitialState } from '@/features/configuration/configurationSlice';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   applyConflictStateFromResponse,
   CONFLICT_CODE,
+  pendingChangesApi,
 } from '@/services/pendingChangesApi';
 
 import type { PendingChange } from '@/services/pendingChangesApi';
@@ -111,5 +115,72 @@ describe('applyConflictStateFromResponse', () => {
       hasConflict: false,
       conflict_id: undefined,
     });
+  });
+});
+
+describe('publishAllPendingChanges', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // Counts content template listing requests while publishing `published`.
+  const countTemplateListFetchesAfterPublishing = async (
+    published: PendingChange,
+  ) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('session/token')) {
+        return new Response('token');
+      }
+      return new Response('{}', {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const countTemplateListFetches = () =>
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input instanceof Request ? input.url : input).endsWith(
+          'canvas/api/v0/config/content_template',
+        ),
+      ).length;
+
+    // Requests need an absolute URL outside a browser.
+    const store = makeStore({
+      configuration: { ...configurationInitialState, baseUrl: 'http://test/' },
+    });
+    const subscription = store.dispatch(
+      componentAndLayoutApi.endpoints.getContentTemplates.initiate(),
+    );
+    await subscription;
+    const before = countTemplateListFetches();
+    expect(before).toBe(1);
+    await store.dispatch(
+      pendingChangesApi.endpoints.publishAllPendingChanges.initiate({
+        key: published,
+      }),
+    );
+    // Let a refetch triggered by tag invalidation start.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const after = countTemplateListFetches();
+    subscription.unsubscribe();
+    return after - before;
+  };
+
+  it('fetches the content template listing again after publishing a template', async () => {
+    // The Content panel lists entities of templates that expose slots. It
+    // reads the listing, which changes when a template is published.
+    expect(
+      await countTemplateListFetchesAfterPublishing({
+        ...pendingChange,
+        entity_type: 'content_template',
+        entity_id: 'node.article.full',
+      }),
+    ).toBe(1);
+  });
+
+  it('keeps the content template listing when publishing other entities', async () => {
+    expect(await countTemplateListFetchesAfterPublishing(pendingChange)).toBe(
+      0,
+    );
   });
 });

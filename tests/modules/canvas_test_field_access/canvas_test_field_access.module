@@ -22,6 +22,35 @@ function canvas_test_field_access_entity_field_access(string $operation, FieldDe
       reason: 'You do not have permission to edit this field.'
     )->cachePerPermissions();
   }
+  // A slot field the user may neither view nor edit.
+  if ($field_definition->getTargetEntityTypeId() === 'node'
+    && $field_definition->getName() == 'canvas_slot_restricted'
+  ) {
+    return AccessResult::forbiddenIf(
+      condition: !$account->hasPermission('edit canvas page components'),
+      reason: 'You do not have permission to access this field.'
+    )->cachePerPermissions();
+  }
+  // A slot field the user may edit but not view.
+  if ($field_definition->getTargetEntityTypeId() === 'node'
+    && $field_definition->getName() == 'canvas_slot_writeonly'
+    && $operation == 'view'
+  ) {
+    return AccessResult::forbiddenIf(
+      condition: !$account->hasPermission('edit canvas page components'),
+      reason: 'You do not have permission to view this field.'
+    )->cachePerPermissions();
+  }
+  // A slot field the user may view but not edit.
+  if ($field_definition->getTargetEntityTypeId() === 'node'
+    && $field_definition->getName() == 'canvas_slot_readonly'
+    && $operation == 'edit'
+  ) {
+    return AccessResult::forbiddenIf(
+      condition: !$account->hasPermission('edit canvas page components'),
+      reason: 'You do not have permission to edit this field.'
+    )->cachePerPermissions();
+  }
   if ($field_definition->getTargetEntityTypeId() === 'node'
     && $field_definition->getName() == 'title'
     && $operation == 'edit'
@@ -30,6 +59,14 @@ function canvas_test_field_access_entity_field_access(string $operation, FieldDe
       condition: !$account->hasPermission('edit canvas page components'),
       reason: 'You do not have permission to edit this field.'
     )->cachePerPermissions();
+  }
+
+  if ($field_definition->getTargetEntityTypeId() === 'node'
+    && $field_definition->getName() === 'canvas_slot_view_denied'
+    && $operation === 'view'
+  ) {
+    return AccessResult::forbidden('Test-only: viewing this exposed slot field is denied.')
+      ->addCacheTags(['canvas_test_field_access:view_denied']);
   }
 
   return AccessResult::neutral();

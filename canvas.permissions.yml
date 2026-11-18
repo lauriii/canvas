@@ -28,6 +28,11 @@ administer page template:
 # @see \Drupal\canvas\Entity\ContentTemplate::ADMIN_PERMISSION
 administer content templates:
   title: 'Administer content templates'
+  description: 'Create and edit content templates and their exposed slots, including creating canvas_slot_* fields with their database tables. Publishing template changes also requires the "Publish Drupal Canvas Content" permission.'
+  # Restricted like the Field UI's "administer {entity_type} fields", as
+  # exposing a slot can create a field storage.
+  # @see \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::create()
+  restrict access: true
 
 # @see \Drupal\canvas\Entity\BrandKit::ADMIN_PERMISSION
 administer brand kit:

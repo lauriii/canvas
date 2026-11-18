@@ -41,6 +41,12 @@ Each content template file contains a JSON object.
 | `bundle` | Entity bundle the template targets, such as `article`. |
 | `viewMode` | View mode the template targets, such as `full` or `teaser`. |
 | `elements` | Defines the template element tree. |
+| `exposedSlots` | Optional. Defines the [exposed slots](/guides/exposed-slots), keyed by the machine name of each slot's field. |
+
+Each `exposedSlots` entry contains `component_uuid` (the UUID or element ID of
+the component that contains the slot), `slot_name`, and `label`. The slot
+fields must exist on the bundle. `npx canvas pull` writes this key when the
+template exposes slots. `npx canvas push` converts element IDs to UUIDs.
 
 Each entry in `elements` must include a `type`. It can also include `props`
 and `slots`, which reference other element IDs from the same `elements`

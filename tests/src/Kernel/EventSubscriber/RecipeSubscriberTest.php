@@ -95,13 +95,18 @@ final class RecipeSubscriberTest extends KernelTestBase {
     $this->assertSame('/homepage', $this->config('system.site')->get('page.front'));
   }
 
-  public function testPageContentMarkerCreatedWithoutCanvasConfigImport(): void {
-    $this->assertFalse($this->container->get(StorageCacheInterface::class)->exists('canvas.component.' . Marker::PAGE_CONTENT_COMPONENT_ID));
+  public function testMarkersCreatedWithoutCanvasConfigImport(): void {
+    $config_storage = $this->container->get(StorageCacheInterface::class);
+    $this->assertFalse($config_storage->exists('canvas.component.' . Marker::PAGE_CONTENT_COMPONENT_ID));
+    $this->assertFalse($config_storage->exists('canvas.component.' . Marker::EMPTY_SLOT_COMPONENT_ID));
 
     $recipe = Recipe::createFromDirectory(self::FIXTURES_DIR . '/component_reason_sync');
     RecipeRunner::processRecipe($recipe);
 
     $this->assertInstanceOf(Component::class, Component::load(Marker::PAGE_CONTENT_COMPONENT_ID));
+    $empty_slot_marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
+    $this->assertInstanceOf(Component::class, $empty_slot_marker);
+    $this->assertFalse($empty_slot_marker->status());
   }
 
   public function testSiteTemplateMigratesPageRegions(): void {

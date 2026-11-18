@@ -386,7 +386,8 @@ canvas.api.content.list:
     _controller: 'Drupal\canvas\Controller\ApiContentControllers::list'
   requirements:
     _canvas_authentication_required: TRUE
-    _permission: 'edit canvas_page'
+    # Listed entities are filtered by entity access in the controller.
+    _canvas_ui_access: 'TRUE'
   methods: [GET]
   options:
     _format: 'json'
@@ -428,6 +429,51 @@ canvas.api.content.translation.delete:
         type: entity:canvas_page
     _format: 'json'
   methods: [DELETE]
+
+# The `component_tree` fields backing a content template's exposed slots.
+canvas.api.content_template.slot_field.create:
+  path: '/canvas/api/v0/config/content_template/{content_template}/slot-fields'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::create'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'content_template.update'
+    _canvas_ui_access: 'TRUE'
+  options:
+    parameters:
+      content_template:
+        type: entity:content_template
+  methods: [POST]
+
+canvas.api.content_template.slot_field.list:
+  path: '/canvas/api/v0/config/content_template/{content_template}/slot-fields'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::candidates'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'content_template.update'
+    _canvas_ui_access: 'TRUE'
+  options:
+    parameters:
+      content_template:
+        type: entity:content_template
+  methods: [GET]
+
+# Usage statistics for one exposed slot's backing field: how many of the
+# bundle's entities have overridden it.
+canvas.api.content_template.slot_field.usage:
+  path: '/canvas/api/v0/config/content_template/{content_template}/slot-fields/{field_name}/usage'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::usage'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'content_template.update'
+    _canvas_ui_access: 'TRUE'
+  options:
+    parameters:
+      content_template:
+        type: entity:content_template
+  methods: [GET]
 
 canvas.api.extension.list:
   path: '/canvas/api/v0/extensions'

@@ -13,12 +13,20 @@ import ComponentItem from '@/components/list/ComponentItem';
 import PatternItem from '@/components/list/PatternItem';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import {
+  findExposedSlotEntry,
+  isInheritedSlotRegion,
+} from '@/features/layout/exposedSlots';
+import {
   _addNewComponentToLayout,
   addNewPatternToLayout,
+  selectExposedSlots,
   selectLayout,
+  selectSlotDefaults,
+  selectSlotOverrides,
 } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
+import { selectSelection } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
@@ -70,6 +78,10 @@ const ListItem: React.FC<{
   const { componentId: selectedComponent } = useParams();
   const { setSelectedComponent } = useComponentSelection();
   const activePanel = useAppSelector(selectActivePanel);
+  const selection = useAppSelector(selectSelection);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const slotOverrides = useAppSelector(selectSlotOverrides);
+  const slotDefaults = useAppSelector(selectSlotDefaults);
   const headlessSettings = useCanvasHeadlessSettings();
   const canPreview =
     supportsPreview(item) ||
@@ -88,13 +100,70 @@ const ListItem: React.FC<{
   // Disable drag for broken components
   const isDraggable = () => ('broken' in item ? !item.broken : true);
 
+  // Resolves where Insert places the item: relative to the current selection,
+  // or into the content region. Returns `inherited` when the target is an
+  // inherited exposed slot, which rejects content changes until overridden,
+  // and null when there is no target.
+  const resolveInsertPath = (): number[] | 'inherited' | null => {
+    if (selectedComponent) {
+      return findNodePathByUuid(layout, selectedComponent);
+    }
+    if (selection.items.length === 1) {
+      // A non-routed selection: a slot's `${hostUuid}/${slotName}` (template
+      // editor slot node, or a per-content exposed slot).
+      const selectedId = selection.items[0];
+      const [hostUuid, slotName] = selectedId.split('/');
+      const exposedEntry = slotName
+        ? findExposedSlotEntry(exposedSlots, hostUuid, slotName)
+        : null;
+      if (
+        exposedEntry &&
+        isInheritedSlotRegion(
+          exposedEntry.fieldName,
+          exposedSlots,
+          slotOverrides,
+          slotDefaults,
+        )
+      ) {
+        return 'inherited';
+      }
+      const nodePath = findNodePathByUuid(layout, selectedId);
+      if (nodePath) {
+        // A slot node: insert into it (the +1 below lands on index 0).
+        return slotName ? [...nodePath, -1] : nodePath;
+      }
+      if (exposedEntry) {
+        // Per-content: the exposed slot presents as a top-level region keyed
+        // by its field name.
+        const regionIndex = layout.findIndex(
+          (region) => region.id === exposedEntry.fieldName,
+        );
+        return regionIndex === -1 ? null : [regionIndex, -1];
+      }
+      return null;
+    }
+    // Per-content layouts have no single content region: target the first
+    // editable (non-inherited) slot region instead. Elsewhere this is the
+    // content region at index 0.
+    const regionIndex = layout.findIndex(
+      (region) =>
+        !isInheritedSlotRegion(
+          region.id,
+          exposedSlots,
+          slotOverrides,
+          slotDefaults,
+        ),
+    );
+    if (regionIndex !== -1) {
+      return [regionIndex, 0];
+    }
+    return layout.length ? 'inherited' : null;
+  };
+
   const handleInsertClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    // Insert relative to the current selection, or into the content region.
-    const path: number[] | null = selectedComponent
-      ? findNodePathByUuid(layout, selectedComponent)
-      : [0, 0];
-    if (path) {
+    const path = resolveInsertPath();
+    if (Array.isArray(path)) {
       const newPath = [...path];
       newPath[newPath.length - 1] += 1;
 
@@ -133,16 +202,21 @@ const ListItem: React.FC<{
     }
   };
 
-  const insertMenuItem = () => (
-    // While the layout (re)loads the model has no regions to insert into; a
-    // click then would be silently dropped, so offer Insert only when ready.
-    <UnifiedMenu.Item
-      onClick={handleInsertClick}
-      disabled={layout.length === 0}
-    >
-      Insert
-    </UnifiedMenu.Item>
-  );
+  const insertMenuItem = () => {
+    // While the layout (re)loads the model has no regions to insert into, and
+    // an inherited slot rejects content until overridden. A click then would
+    // be silently dropped, so disable Insert and, for an inherited slot, say
+    // why.
+    const target = layout.length === 0 ? null : resolveInsertPath();
+    return (
+      <UnifiedMenu.Item
+        onClick={handleInsertClick}
+        disabled={!Array.isArray(target)}
+      >
+        {target === 'inherited' ? 'Insert (override the slot first)' : 'Insert'}
+      </UnifiedMenu.Item>
+    );
+  };
 
   const menuTitleItems = () => (
     <>

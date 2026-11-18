@@ -25,7 +25,6 @@
   }
 }
 
-
 .regionOverlay,
 .pageOverlay {
   position: absolute;
@@ -60,7 +59,9 @@
 
 .componentOverlay {
   position: absolute;
-  transition: backdrop-filter 0.2s ease-in-out;
+  transition:
+    opacity 0.1s ease-in-out,
+    backdrop-filter 0.2s ease-in-out;
   pointer-events: all;
   outline: 1px solid transparent;
 
@@ -98,7 +99,20 @@
     background-size: 200% 200%;
     backdrop-filter: grayscale(100%)  opacity(40%);
   }
+
+  /* Per-content editing: an inherited slot region. A dashed gray outline on
+     hover/selection (distinct from the editable purple) marks it read-only,
+     without a stacked overlay div. */
+  &.inherited {
+    cursor: not-allowed;
+
+    &.hovered,
+    &.selected {
+      outline: 1px dashed var(--gray-8);
+    }
+  }
 }
+
 @keyframes shine {
   to {
     background-position-x: -200%;
@@ -107,6 +121,10 @@
 
 .slotOverlay {
   position: absolute;
+  /* Per-content editing: an exposed slot lives inside read-only template
+     chrome, which sets cursor:not-allowed. Reset it here so the editable slot
+     (and its entity-owned contents) don't inherit the "forbidden" cursor. */
+  cursor: auto;
   outline: 1px solid transparent;
 
   &.dropTarget {
@@ -117,6 +135,102 @@
   &.hovered {
     outline: 1px solid var(--purple-9);
   }
+
+  /* Template editor: an exposed slot stays highlighted, using the same
+     outline as a hovered slot. */
+  &.exposed {
+    outline: 1px solid var(--purple-9);
+    outline-offset: -1px;
+  }
+
+  /* A selected slot (an exposed slot in the template editor, or an inherited
+     exposed slot in per-content editing) is clearly distinct from a hovered or
+     merely-exposed one: a thicker outline plus a subtle fill. Declared last so
+     it wins over .hovered / .exposed at equal specificity. */
+  &.selected {
+    outline: 2px solid var(--purple-9);
+    outline-offset: -2px;
+    background-color: var(--purple-a3);
+  }
+
+  /* Per-content editing: an inherited exposed slot reads as one selectable,
+     read-only unit. */
+  &.inherited {
+    cursor: pointer;
+  }
+}
+
+/* Per-content editing: shown over an inherited exposed slot while a component
+   is dragged. The slot has no drop zones until it is overridden. */
+.inheritedSlotDragHint {
+  position: absolute;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--gray-11);
+  outline: 1px dashed var(--gray-8);
+  outline-offset: -1px;
+  background: var(--gray-a3);
+  font-size: var(--font-size-1);
+  inset: 0;
+  gap: var(--space-1);
+  backdrop-filter: blur(2px);
+
+  > div {
+    white-space: nowrap;
+  }
+}
+
+/* Full-cover click target that overrides the slot container's
+   pointer-events:none, so the whole slot area is clickable:
+   - per-content editing: selects an inherited exposed slot as a single unit;
+   - template editor: selects a slot and opens its context menu on right-click
+     (drop zones and child overlays paint on top). */
+.inheritedSlotTrigger,
+.slotContextTrigger {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  border: none;
+  background: transparent;
+  inset: 0;
+}
+
+/* Template editor: the exposed-slot marker chip / expose affordance. */
+.slotExposeChip {
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* Template editor: the chip sits inside the slot's top-left corner when it
+would be outside the parent, or cover a name tag. @see SlotOverlay */
+.slotExposeChipInside {
+  top: 0;
+}
+
+.slotExposeChipButton {
+  /* The global `button { all: unset; }` resets this. */
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* Template editor: the "Overridden" label inside an exposed slot's chip. It
+   has its own line height, so it is centered in the chip instead of sitting
+   on the chip's text baseline. */
+.slotOverriddenLabel {
+  display: flex;
+  align-items: center;
+  height: 14px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background-color: rgb(255, 255, 255, 0.25);
+  font-size: 11px;
+  line-height: 1;
 }
 
 /* .emptySlotDropZone { */
@@ -156,7 +270,6 @@
 .emptySlotContainer {
   color: var(--purple-9);
   border: 1px solid var(--purple-9);
-
 }
 
 .emptyRegionContainer {
@@ -194,6 +307,13 @@
   &.isOver {
     color: #fff;
     background: var(--green-8);
+  }
+
+  /* Template editor: the preview entity fills this slot with its own content.
+     Keep the drop target, but do not frost that content. */
+  &.filledByPreview:not(.isOver) {
+    background: none;
+    backdrop-filter: none;
   }
 }
 
@@ -401,6 +521,8 @@
 }
 
 .regionItem {
+  position: absolute;
   width: 100%;
   height: 100%;
+  inset: 0;
 }

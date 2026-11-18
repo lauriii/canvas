@@ -28,6 +28,11 @@ export const queryErrorSlice = createSlice({
         state.latestError = action.payload;
       },
     ),
+    // Cleared when the user leaves the editor, so an old 403 or 409 does not
+    // block the next entity.
+    clearLatestError: create.reducer((state) => {
+      state.latestError = undefined;
+    }),
     setMaintenanceMessage: create.reducer(
       (state, action: PayloadAction<string>) => {
         state.maintenanceMessage = action.payload;
@@ -43,7 +48,7 @@ export const queryErrorSlice = createSlice({
     },
   },
 });
-export const { setLatestError, setMaintenanceMessage } =
+export const { setLatestError, clearLatestError, setMaintenanceMessage } =
   queryErrorSlice.actions;
 export const { selectLatestError, selectMaintenanceMessage } =
   queryErrorSlice.selectors;

@@ -46,6 +46,9 @@ const SidebarNode = React.forwardRef<
   {
     title: string;
     variant: SideBarNodeVariant;
+    // Overrides the variant's default icon (e.g. an exposed slot uses the
+    // exposed-slot icon in place of the generic slot icon).
+    icon?: React.ReactNode;
     leadingContent?: React.ReactNode;
     trailingContent?: React.ReactNode;
     hovered?: boolean;
@@ -69,6 +72,7 @@ const SidebarNode = React.forwardRef<
     {
       title,
       variant = 'component',
+      icon,
       leadingContent,
       trailingContent,
       hovered = false,
@@ -105,7 +109,7 @@ const SidebarNode = React.forwardRef<
         <Flex pl="2" align="center" flexShrink="0" className={styles.icon}>
           {broken
             ? VARIANTS['broken']?.icon
-            : VARIANTS[variant]?.icon || <Component1Icon />}
+            : (icon ?? VARIANTS[variant]?.icon ?? <Component1Icon />)}
         </Flex>
         <Flex px="2" align="center" flexGrow="1" overflow="hidden">
           <Text size="1" truncate className={styles.title}>

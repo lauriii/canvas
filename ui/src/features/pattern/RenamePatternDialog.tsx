@@ -9,13 +9,11 @@ import {
 } from '@/features/ui/dialogSlice';
 import { useUpdatePatternMutation } from '@/services/patterns';
 
-import type { Pattern } from '@/types/Pattern';
-
 const RenamePatternDialog = () => {
   const dispatch = useAppDispatch();
   const { renamePatternConfirm } = useAppSelector(selectDialogOpen);
   const { open, data } = renamePatternConfirm;
-  const { name, id } = data as Pattern;
+  const { name, id } = data;
   const [patternName, setPatternName] = useState('');
   const [updatePattern, { isLoading, isSuccess, isError, error, reset }] =
     useUpdatePatternMutation();

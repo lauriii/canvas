@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\canvas\Storage;
 
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 
@@ -17,9 +19,17 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
  */
 final class ComponentTreeLoader {
 
+  /**
+   * Per-request memo of exposed-slot bundles, keyed by entity type.
+   *
+   * @var array<string, string[]>
+   */
+  private array $exposedSlotBundles = [];
+
   public function __construct(
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -40,6 +50,54 @@ final class ComponentTreeLoader {
     $item = $entity->get($field_name);
     \assert($item instanceof ComponentTreeItemList);
     return $item;
+  }
+
+  /**
+   * Loads every component tree stored on an entity.
+   *
+   * Unlike ::load(), this supports templated entities, which have one
+   * `component_tree` field per exposed slot.
+   *
+   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity.
+   *
+   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList[]
+   *   The entity's component tree lists (empty if it has none).
+   */
+  public function loadAll(ComponentTreeEntityInterface|FieldableEntityInterface $entity): array {
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      return [$entity->getComponentTree()];
+    }
+    $map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
+    $lists = [];
+    foreach ($map[$entity->getEntityTypeId()] ?? [] as $field_name => $info) {
+      if (\in_array($entity->bundle(), $info['bundles'], TRUE) && $entity->hasField($field_name)) {
+        $item = $entity->get($field_name);
+        \assert($item instanceof ComponentTreeItemList);
+        $lists[] = $item;
+      }
+    }
+    return $lists;
+  }
+
+  /**
+   * Finds the component tree list on an entity that holds a component instance.
+   *
+   * @param \Drupal\canvas\Entity\ComponentTreeEntityInterface|\Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity.
+   * @param string $componentInstanceUuid
+   *   The component instance UUID to locate.
+   *
+   * @return \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList|null
+   *   The list containing the instance, or NULL if none does.
+   */
+  public function findItemListContaining(ComponentTreeEntityInterface|FieldableEntityInterface $entity, string $componentInstanceUuid): ?ComponentTreeItemList {
+    foreach ($this->loadAll($entity) as $list) {
+      if ($list->getComponentTreeItemByUuid($componentInstanceUuid) !== NULL) {
+        return $list;
+      }
+    }
+    return NULL;
   }
 
   /**
@@ -70,6 +128,68 @@ final class ComponentTreeLoader {
       }
     }
     throw new \LogicException("This entity does not have a Canvas field!");
+  }
+
+  /**
+   * Whether the bundle has an enabled template with exposed slots.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity whose bundle to check.
+   *
+   * @return bool
+   *   TRUE if at least one enabled content template for the entity's type and
+   *   bundle exposes at least one slot.
+   */
+  public function hasContentTemplateWithExposedSlots(FieldableEntityInterface $entity): bool {
+    return \in_array(
+      $entity->bundle(),
+      $this->getBundlesWithExposedSlots($entity->getEntityTypeId()),
+      TRUE,
+    );
+  }
+
+  /**
+   * Forgets the memoized exposed-slot bundles.
+   *
+   * Called when a content template is saved or deleted.
+   *
+   * @see \Drupal\canvas\Hook\ContentTemplateHooks::resetExposedSlotBundles()
+   */
+  public function resetExposedSlotBundles(): void {
+    $this->exposedSlotBundles = [];
+  }
+
+  /**
+   * Lists the bundles of an entity type with exposed slots.
+   *
+   * Only enabled `full` templates count: per-content editing uses the `full`
+   * template.
+   *
+   * @param string $entity_type_id
+   *   The content entity type ID.
+   *
+   * @return string[]
+   *   The bundle IDs (values, deduplicated) with exposed slots. Empty if the
+   *   entity type has no such bundle.
+   */
+  public function getBundlesWithExposedSlots(string $entity_type_id): array {
+    if (\array_key_exists($entity_type_id, $this->exposedSlotBundles)) {
+      return $this->exposedSlotBundles[$entity_type_id];
+    }
+    $storage = $this->entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
+    $enabled_templates = $storage->loadByProperties([
+      'content_entity_type_id' => $entity_type_id,
+      'content_entity_type_view_mode' => 'full',
+      'status' => TRUE,
+    ]);
+    $bundles = [];
+    foreach ($enabled_templates as $template) {
+      \assert($template instanceof ContentTemplate);
+      if (!empty($template->getExposedSlots())) {
+        $bundles[$template->getTargetBundle()] = $template->getTargetBundle();
+      }
+    }
+    return $this->exposedSlotBundles[$entity_type_id] = \array_values($bundles);
   }
 
 }

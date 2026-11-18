@@ -191,6 +191,22 @@ export const pendingChangesApi = createApi({
               { type: 'CodeComponents', id: 'LIST' },
             ]),
           );
+          // The content template listing holds the published template
+          // configuration, such as `exposed_slots`, which the Content panel
+          // lists entities by. Exposing or removing slots also decides whether
+          // the preview entities offer "Edit in Canvas".
+          if (
+            Object.values(body).some(
+              (change) => change.entity_type === 'content_template',
+            )
+          ) {
+            dispatch(
+              componentAndLayoutApi.util.invalidateTags([
+                { type: 'ContentTemplates', id: 'LIST' },
+                'PreviewContentEntities',
+              ]),
+            );
+          }
           dispatch(setPreviousPendingChanges());
           dispatch(setErrors());
         } catch (error: any) {

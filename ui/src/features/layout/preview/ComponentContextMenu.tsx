@@ -4,15 +4,14 @@ import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
-import {
-  deleteNode,
-  duplicateNode,
-  shiftNode,
-} from '@/features/layout/layoutModelSlice';
+import { duplicateNode, shiftNode } from '@/features/layout/layoutModelSlice';
 import { componentSubtreeMatchesType } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
+import { SlotMenuItems } from '@/features/layout/preview/SlotContextMenu';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import {
+  EditorFrameContext,
+  selectEditorFrameContext,
   selectEditorViewPortScale,
   selectSelectedComponentUuid,
   unsetHoveredComponent,
@@ -21,13 +20,33 @@ import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import useProtectedDeleteNode from '@/hooks/useProtectedDeleteNode';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type { ReactNode } from 'react';
 import type { UnifiedMenuType } from '@/components/UnifiedMenu';
-import type { ComponentNode } from '@/features/layout/layoutModelSlice';
+import type {
+  ComponentNode,
+  SlotNode,
+} from '@/features/layout/layoutModelSlice';
+
+// Template editor: a submenu with a slot's actions.
+const SlotSubmenu: React.FC<{ slot: SlotNode; component: ComponentNode }> = ({
+  slot,
+  component,
+}) => {
+  const slotTitle = useGetComponentName(slot, component);
+  return (
+    <UnifiedMenu.Sub>
+      <UnifiedMenu.SubTrigger>{slotTitle}</UnifiedMenu.SubTrigger>
+      <UnifiedMenu.SubContent>
+        <SlotMenuItems slot={slot} parentComponent={component} />
+      </UnifiedMenu.SubContent>
+    </UnifiedMenu.Sub>
+  );
+};
 
 interface ComponentContextMenuProps {
   children: ReactNode;
@@ -46,10 +65,13 @@ export const ComponentContextMenuContent: React.FC<
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent, unsetSelectedComponent } =
     useComponentSelection();
+  const protectedDeleteNode = useProtectedDeleteNode();
   const componentUuid = component.uuid;
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
   const { navigateToCodeEditor } = useEditorNavigation();
+  const isTemplateContext =
+    useAppSelector(selectEditorFrameContext) === EditorFrameContext.TEMPLATE;
 
   // Check if this is a code component
   const [componentType] = (component.type || '').split('@');
@@ -76,12 +98,16 @@ export const ComponentContextMenuContent: React.FC<
     (ev: React.MouseEvent<HTMLElement>) => {
       ev.stopPropagation();
       if (componentUuid) {
-        dispatch(deleteNode(componentUuid));
-        unsetSelectedComponent();
+        // Shared delete protection: the exposed-slot confirmation dialog owns
+        // the deletion (and exposed slot cleanup) when this component hosts one.
+        const deferredToDialog = protectedDeleteNode(componentUuid);
+        if (!deferredToDialog) {
+          unsetSelectedComponent();
+        }
       }
       dispatch(unsetHoveredComponent());
     },
-    [componentUuid, dispatch, unsetSelectedComponent],
+    [componentUuid, dispatch, unsetSelectedComponent, protectedDeleteNode],
   );
 
   const handleDuplicateClick = useCallback(
@@ -219,6 +245,17 @@ export const ComponentContextMenuContent: React.FC<
         </PermissionCheck>
       )}
       <UnifiedMenu.Separator />
+
+      {/* Template editor: each slot's actions. */}
+      {isTemplateContext && component.slots.length > 0 && (
+        <>
+          <UnifiedMenu.Label>Slots</UnifiedMenu.Label>
+          {component.slots.map((slot) => (
+            <SlotSubmenu key={slot.id} slot={slot} component={component} />
+          ))}
+          <UnifiedMenu.Separator />
+        </>
+      )}
 
       <UnifiedMenu.Sub>
         <UnifiedMenu.SubTrigger>Move</UnifiedMenu.SubTrigger>

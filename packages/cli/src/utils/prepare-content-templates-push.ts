@@ -2,7 +2,10 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
-import { authoredElementMapToComponentTree } from './authored-elements';
+import {
+  authoredElementMapToComponentTree,
+  buildElementKeyToUuidMap,
+} from './authored-elements';
 import { stripNullableKeysForConfigComponentTree } from './component-tree-payload';
 import { contentTemplateResultName } from './content-template-result-name';
 import { serializeElementMapForServer } from './prop-transforms';
@@ -20,13 +23,26 @@ import type {
   CanvasComponentTree,
 } from 'drupal-canvas/json-render-utils';
 import type { ApiService } from '../services/api';
-import type { ContentTemplateListItem } from '../types/ContentTemplate';
+import type {
+  ContentTemplateListItem,
+  ExposedSlot,
+  ExposedSlots,
+} from '../types/ContentTemplate';
 import type { Result } from '../types/Result';
+
+/**
+ * The machine-name prefix of slot fields the slot-field endpoint can create.
+ *
+ * @see \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::FIELD_NAME_PREFIX
+ */
+const SLOT_FIELD_PREFIX = 'canvas_slot_';
 
 export interface ContentTemplatePushResult {
   label: string;
   id: string;
   operation: 'Created' | 'Updated';
+  // Exposed slots on the target that the push detached, by field name.
+  detachedSlots?: string[];
 }
 
 export interface ContentTemplatePushOperationResult {
@@ -44,6 +60,7 @@ export interface PreparedContentTemplate {
   viewMode: string;
   pageVariant: string | null;
   components: CanvasComponentTree;
+  exposedSlots?: ExposedSlots;
   filePath: string;
 }
 
@@ -80,6 +97,21 @@ function findLegacyStatePointers(elements: AuthoredSpecElementMap): string[] {
 }
 
 /**
+ * Asserts that an authored exposed slot has all its keys as non-empty strings.
+ */
+function assertExposedSlot(
+  alias: string,
+  slot: unknown,
+): asserts slot is ExposedSlot {
+  for (const key of ['component_uuid', 'slot_name', 'label'] as const) {
+    const value = isRecord(slot) ? slot[key] : undefined;
+    if (typeof value !== 'string' || value === '') {
+      throw new Error(`Exposed slot "${alias}" is missing a valid "${key}".`);
+    }
+  }
+}
+
+/**
  * Reads discovered content templates, validates them, and converts the
  * authored element map into the server's component_tree wire format.
  */
@@ -103,6 +135,7 @@ export async function prepareContentTemplates(
       viewMode: string;
       pageVariant?: unknown;
       elements: AuthoredSpecElementMap;
+      exposedSlots?: ExposedSlots;
     };
 
     if (!spec.entityType || !spec.bundle || !spec.viewMode) {
@@ -128,10 +161,31 @@ export async function prepareContentTemplates(
       componentMetadata,
       remoteBrandKitColors,
     );
+    // Authored element keys may be names instead of UUIDs. Share one
+    // key-to-UUID map, so exposed slots point at the same UUIDs as the tree.
+    const keyToUuid = buildElementKeyToUuidMap(Object.keys(serializedElements));
     const tree = authoredElementMapToComponentTree(
       serializedElements,
       componentVersions,
+      keyToUuid,
     );
+    // Validate exposed slots here, so errors name the slot.
+    const treeUuids = new Set(tree.map((component) => component.uuid));
+    const exposedSlots = spec.exposedSlots
+      ? Object.fromEntries(
+          Object.entries(spec.exposedSlots).map(([alias, slot]) => {
+            assertExposedSlot(alias, slot);
+            const componentUuid =
+              keyToUuid.get(slot.component_uuid) ?? slot.component_uuid;
+            if (!treeUuids.has(componentUuid)) {
+              throw new Error(
+                `Exposed slot "${alias}" references unknown element "${slot.component_uuid}".`,
+              );
+            }
+            return [alias, { ...slot, component_uuid: componentUuid }];
+          }),
+        )
+      : undefined;
 
     return {
       id: deriveId(spec),
@@ -146,6 +200,7 @@ export async function prepareContentTemplates(
           : null,
       viewMode: spec.viewMode,
       components: tree,
+      exposedSlots,
       filePath: localTemplate.path,
     };
   });
@@ -169,7 +224,7 @@ export async function pushContentTemplates(
   remoteById: Map<string, ContentTemplateListItem>,
   apiService: Pick<
     ApiService,
-    'createContentTemplate' | 'updateContentTemplate'
+    'createContentTemplate' | 'updateContentTemplate' | 'createSlotField'
   >,
   includePageVariant: boolean = true,
 ): Promise<ContentTemplatePushOperationResult[]> {
@@ -180,17 +235,41 @@ export async function pushContentTemplates(
     const component_tree = stripNullableKeysForConfigComponentTree(
       template.components,
     );
+    // Exposed slots only validate once their fields exist, and creating a
+    // field requires the template. So a new template is pushed without slots
+    // first, then its fields are created, then the slots are added.
+    const provisionSlotFields = async () => {
+      for (const [fieldName, slot] of Object.entries(
+        template.exposedSlots ?? {},
+      )) {
+        // Only prefixed fields can be created. A reused field with another
+        // name must already exist on the target site.
+        if (!fieldName.startsWith(SLOT_FIELD_PREFIX)) {
+          continue;
+        }
+        await apiService.createSlotField(template.id, fieldName, slot.label);
+      }
+    };
 
     if (remote) {
+      await provisionSlotFields();
+      // Always send exposed_slots: a template without slots in the authored
+      // file detaches the slots on the target. Their fields and content stay.
+      const exposedSlots = template.exposedSlots ?? {};
       await apiService.updateContentTemplate(template.id, {
         status: true,
         ...(includePageVariant ? { pageVariant: template.pageVariant } : {}),
         component_tree,
+        exposed_slots: exposedSlots,
       });
+      const detachedSlots = Object.keys(remote.exposed_slots ?? {}).filter(
+        (fieldName) => !(fieldName in exposedSlots),
+      );
       return {
         label: template.label,
         id: template.id,
         operation: 'Updated' as const,
+        ...(detachedSlots.length > 0 ? { detachedSlots } : {}),
       };
     }
 
@@ -202,6 +281,13 @@ export async function pushContentTemplates(
       status: true,
       component_tree,
     });
+    if (template.exposedSlots) {
+      await provisionSlotFields();
+      await apiService.updateContentTemplate(template.id, {
+        status: true,
+        exposed_slots: template.exposedSlots,
+      });
+    }
     return {
       label: template.label,
       id: template.id,
@@ -240,6 +326,15 @@ export function collectContentTemplateResults(
                 ? chalk.cyan(result.result.operation)
                 : result.result.operation,
           },
+          ...(result.result.detachedSlots
+            ? [
+                {
+                  content: chalk.yellow(
+                    `Detached exposed slots: ${result.result.detachedSlots.join(', ')}. Their fields and content are kept.`,
+                  ),
+                },
+              ]
+            : []),
         ],
       });
     } else {

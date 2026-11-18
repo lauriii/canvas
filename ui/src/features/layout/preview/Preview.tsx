@@ -5,7 +5,9 @@ import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectAutoSavesHash } from '@/components/review/PublishReview.slice';
+import { exposedSlotsToServer } from '@/features/layout/exposedSlots';
 import {
+  selectExposedSlots,
   selectIsInitialized,
   selectLayout,
   selectModel,
@@ -47,6 +49,7 @@ const Preview: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
+  const exposedSlots = useAppSelector(selectExposedSlots);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const backgroundUpdate = useAppSelector(selectPreviewBackgroundUpdate);
   const entity_form_fields = useAppSelector(selectPageData);
@@ -127,6 +130,8 @@ const Preview: React.FC = () => {
             layout,
             model,
             entity_form_fields,
+            // Persist the exposed-slot working set alongside the layout.
+            exposed_slots: exposedSlotsToServer(exposedSlots),
           }).unwrap();
         } else if (context === 'pattern') {
           await postPatternPreview({
@@ -143,6 +148,7 @@ const Preview: React.FC = () => {
       layout,
       model,
       entity_form_fields,
+      exposedSlots,
       entityId,
       entityType,
       postPreview,
@@ -183,7 +189,10 @@ const Preview: React.FC = () => {
   );
 
   // Effect: Trigger POSTing of layout, model and entity_form_fields when they change
-  // to generate a new preview and create a new autoSave.
+  // to generate a new preview and create a new autoSave. exposedSlots is a
+  // dependency too: exposing, relabeling or detaching a slot changes neither
+  // layout nor model, and updatePreview may already be true from an earlier
+  // edit, so without it that change would never be saved.
   useEffect(() => {
     if (updatePreview || needsPreviewAfterUndoRedo) {
       // If we're triggering because of undo/redo flag, clear it immediately
@@ -203,6 +212,7 @@ const Preview: React.FC = () => {
     layout,
     model,
     entity_form_fields,
+    exposedSlots,
     updatePreview,
     needsPreviewAfterUndoRedo,
     editorFrameContext,

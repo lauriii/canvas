@@ -30,6 +30,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
@@ -188,6 +189,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
+        'marker.empty_slot',
         'marker.page_content',
         'sdc.canvas_broken_sdcs.invalid-filter',
         'sdc.canvas_broken_sdcs.malformed-image',
@@ -2731,10 +2733,12 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $expected_empty_list_normalization = [
       'media' => [
         'label' => 'Media types',
+        'entityTypeLabel' => 'Media entities',
         'bundles' => [],
       ],
       'node' => [
         'label' => 'Content types',
+        'entityTypeLabel' => 'Content',
         'bundles' => [
           'article' => [
             'label' => 'Articles',
@@ -2758,6 +2762,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
       'user' => [
         'label' => 'Users',
+        'entityTypeLabel' => 'Users',
         'bundles' => [
           'user' => [
             'label' => NULL,
@@ -2810,6 +2815,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'suggestedPreviewEntityId' => NULL,
       'pageVariant' => NULL,
       'component_tree' => [],
+      'exposed_slots' => [],
     ];
 
     // The list response MUST contain unpublished ContentTemplates.
@@ -2890,6 +2896,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'suggestedPreviewEntityId' => NULL,
       'pageVariant' => NULL,
       'component_tree' => [],
+      'exposed_slots' => [],
     ];
     $this->assertSame($expected_full_llama_normalization, $body);
     // The same normalization should be present when GETting the `Location`.
@@ -2990,7 +2997,34 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     self::assertTrue($body['status']);
     self::assertSame([], $body['component_tree']);
 
+    // Create a slot field for the llama template: 201.
+    $slot_field_url = Url::fromUri('base:/canvas/api/v0/config/content_template/node.llama.full/slot-fields');
+    $request_options[RequestOptions::JSON] = [
+      'fieldName' => 'canvas_slot_sidebar',
+      'label' => 'Sidebar',
+    ];
+    $body = $this->assertExpectedResponse('POST', $slot_field_url, $request_options, 201, NULL, NULL, NULL, NULL);
+    self::assertSame(['fieldName' => 'canvas_slot_sidebar', 'label' => 'Sidebar'], $body);
+
+    // Without the X-CSRF-Token request header: 403.
+    $request_options[RequestOptions::JSON]['fieldName'] = 'canvas_slot_other';
+    $response = $this->makeApiRequest('POST', $slot_field_url, $request_options);
+    self::assertSame(403, $response->getStatusCode());
+    self::assertSame(['errors' => ['X-CSRF-Token request header is missing']], \json_decode((string) $response->getBody(), TRUE));
+
+    // Without the `administer content templates` permission: 403.
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $request_options[RequestOptions::HEADERS]['X-CSRF-Token'] = $this->drupalGet('session/token');
+    self::assertSame(403, $this->makeApiRequest('POST', $slot_field_url, $request_options)->getStatusCode());
+
+    // Anonymous: 401.
+    $this->drupalLogout();
+    unset($request_options[RequestOptions::HEADERS]['X-CSRF-Token']);
+    self::assertSame(401, $this->makeApiRequest('POST', $slot_field_url, $request_options)->getStatusCode());
+    self::assertNull(FieldStorageConfig::loadByName('node', 'canvas_slot_other'));
+
     // Clean up the templates we just created/mutated.
+    $this->drupalLogin($this->httpApiUser);
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/node.cat.full'), [], 204, NULL, NULL, NULL, NULL);
 
     // The suggested preview entity is determined for the current user, not for

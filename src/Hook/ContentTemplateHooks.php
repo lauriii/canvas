@@ -8,21 +8,30 @@ use Drupal\block_content\Plugin\Block\BlockContentBlock;
 use Drupal\canvas\Block\ContentTemplateAwareBlockContentBlock;
 use Drupal\canvas\Block\ContentTemplateAwareInlineBlock;
 use Drupal\canvas\ContentTemplateRepository;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Validation\Constraint\ExposedSlotContentIsMergeableConstraint;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Entity\ContentEntityFormInterface;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\Order;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\layout_builder\Plugin\Block\InlineBlock;
 
@@ -36,6 +45,7 @@ final class ContentTemplateHooks {
     private readonly RouteMatchInterface $routeMatch,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly ComponentTreeLoader $componentTreeLoader,
   ) {
   }
 
@@ -70,6 +80,92 @@ final class ContentTemplateHooks {
   }
 
   /**
+   * Implements hook_form_alter().
+   *
+   * For templated entities, reduces the entity form that Canvas serves to the
+   * label and the sidebar elements (URL alias, menu, authoring, promotion,
+   * comment settings). Content fields are edited in Drupal's own edit form.
+   */
+  #[Hook('form_alter')]
+  public function formAlter(array &$form, FormStateInterface $form_state): void {
+    if (!\str_starts_with((string) $this->routeMatch->getRouteName(), 'canvas.api.')) {
+      return;
+    }
+    $form_object = $form_state->getFormObject();
+    if (!$form_object instanceof ContentEntityFormInterface) {
+      return;
+    }
+    $entity = $form_object->getEntity();
+    if ($entity instanceof ComponentTreeEntityInterface
+      || !$entity instanceof FieldableEntityInterface
+      || !$this->componentTreeLoader->hasContentTemplateWithExposedSlots($entity)) {
+      return;
+    }
+    $label_key = $entity->getEntityType()->getKey('label');
+    foreach (\array_keys($form_object->getFormDisplay($form_state)->getComponents()) as $name) {
+      if ($name === $label_key || !isset($form[$name]) || !\is_array($form[$name])) {
+        continue;
+      }
+      if (!self::isPageDataElement($form[$name], $form)) {
+        $form[$name]['#access'] = FALSE;
+      }
+    }
+    // The editor has its own publish state UI. unset(), not `#access`: the
+    // grouped element would still render under `advanced`.
+    // @see \Drupal\node\Form\NodeForm::form()
+    unset($form['meta']);
+    // Show the URL alias below the title as a plain field, as on the
+    // canvas_page form: strip the details wrapper PathWidget adds.
+    // @see \Drupal\path\Plugin\Field\FieldWidget\PathWidget::formElement()
+    if (isset($form['path']) && \is_array($form['path'])) {
+      if (\is_array($form['path']['widget'] ?? NULL)) {
+        foreach (Element::children($form['path']['widget']) as $delta) {
+          $path_element = &$form['path']['widget'][$delta];
+          if (\is_array($path_element) && ($path_element['#type'] ?? NULL) === 'details') {
+            unset($path_element['#type'], $path_element['#title'], $path_element['#open'], $path_element['#group'], $path_element['#attributes'], $path_element['#attached'], $path_element['#weight']);
+          }
+          unset($path_element);
+        }
+      }
+      $label_weight = $form[$label_key]['#weight'] ?? NULL;
+      $form['path']['#weight'] = (\is_numeric($label_weight) ? $label_weight : 0) + 1;
+    }
+  }
+
+  /**
+   * Whether a widget element belongs in the form's sidebar.
+   *
+   * TRUE when the element or a descendant is in the `advanced` (sidebar) or
+   * `footer` group, directly or through nested groups. For example `uid` is
+   * in `author`, which is in `advanced`.
+   *
+   * @param array<string, mixed> $element
+   *   The widget element to check.
+   * @param array<string, mixed> $complete_form
+   *   The complete form, used to resolve chains of group containers.
+   *
+   * @return bool
+   *   TRUE if the element belongs in the sidebar.
+   */
+  private static function isPageDataElement(array $element, array $complete_form): bool {
+    $group = $element['#group'] ?? NULL;
+    $visited = [];
+    while (\is_string($group) && !isset($visited[$group])) {
+      if ($group === 'advanced' || $group === 'footer') {
+        return TRUE;
+      }
+      $visited[$group] = TRUE;
+      $group = $complete_form[$group]['#group'] ?? NULL;
+    }
+    foreach (Element::children($element) as $key) {
+      if (\is_array($element[$key]) && self::isPageDataElement($element[$key], $complete_form)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
    * Implements hook_entity_type_alter.
    *
    * Runs last, so that it sees the `field_ui_base_route` that other modules'
@@ -89,6 +185,7 @@ final class ContentTemplateHooks {
         // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::createInstance()
         $entity_type->setHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY, $entity_type->getViewBuilderClass())
           ->setViewBuilderClass(ContentTemplateAwareViewBuilder::class);
+        $entity_type->addConstraint(ExposedSlotContentIsMergeableConstraint::PLUGIN_ID);
       }
     }
   }
@@ -112,6 +209,47 @@ final class ContentTemplateHooks {
         default => $definition['class'],
       };
     }
+  }
+
+  /**
+   * Implements hook_ENTITY_TYPE_insert(), _update() and _delete().
+   *
+   * Content templates decide which bundles have exposed slots; the loader
+   * memoizes that per request.
+   */
+  #[Hook('content_template_insert')]
+  #[Hook('content_template_update')]
+  #[Hook('content_template_delete')]
+  public function resetExposedSlotBundles(): void {
+    $this->componentTreeLoader->resetExposedSlotBundles();
+  }
+
+  /**
+   * Implements hook_entity_operation().
+   *
+   * Offers the "Edit in Canvas" local task in entity listings.
+   *
+   * @see \Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask
+   */
+  #[Hook('entity_operation')]
+  public static function entityOperation(EntityInterface $entity): array {
+    if (!$entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeEntityInterface || $entity->isNew()) {
+      return [];
+    }
+    $url = Url::fromRoute('canvas.boot.entity', [
+      'entity_type' => $entity->getEntityTypeId(),
+      'entity' => $entity->id(),
+    ]);
+    if (!$url->access()) {
+      return [];
+    }
+    return [
+      'canvas_layout' => [
+        'title' => new TranslatableMarkup('Edit in Canvas'),
+        'url' => $url,
+        'weight' => 15,
+      ],
+    ];
   }
 
   /**

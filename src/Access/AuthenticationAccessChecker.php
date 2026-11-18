@@ -11,9 +11,11 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Http\Exception\CacheableUnauthorizedHttpException;
 use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+use Symfony\Component\Routing\Route;
 
 class AuthenticationAccessChecker implements AccessInterface {
 
@@ -22,7 +24,7 @@ class AuthenticationAccessChecker implements AccessInterface {
     private RequestStack $requestStack,
   ) {}
 
-  public function access(AccountInterface $account): AccessResultInterface {
+  public function access(AccountInterface $account, ?Route $route = NULL): AccessResultInterface {
     if ($account->isAnonymous()) {
       $site_config = $this->configFactory->get('system.site');
       $site_name = $site_config->get('name');
@@ -33,6 +35,12 @@ class AuthenticationAccessChecker implements AccessInterface {
       $cacheability = CacheableMetadata::createFromObject($site_config)
         ->addCacheTags(['config:user.role.anonymous'])
         ->addCacheContexts(['user.roles:anonymous']);
+      // Only ask for credentials when the checked route is the requested one.
+      // When another page checks access to a link, such as a local task, deny
+      // instead, or the login challenge would replace that page.
+      if ($route !== NULL && $request?->attributes->get(RouteObjectInterface::ROUTE_OBJECT) !== $route) {
+        return AccessResult::forbidden('You must be logged in to access this resource.')->addCacheableDependency($cacheability);
+      }
       if ($request?->isMethodCacheable()) {
         throw new CacheableUnauthorizedHttpException($cacheability, (string) $challenge, 'You must be logged in to access this resource.');
       }

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Translation;
 
-// cspell:ignore Cliquez
+// cspell:ignore Cliquez Existant
 
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\content_translation\BundleTranslationSettingsInterface;
@@ -420,6 +421,209 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
     self::assertSame('_self', $old_fr_list->getComponentTreeItemByUuid($cta_uuid)?->getInputs()['target'],
       'Old revision FR target must remain unchanged.',
     );
+  }
+
+  /**
+   * Tests prepending an instance to each of multiple component tree fields.
+   *
+   * Exposed slots give one entity multiple component tree fields. A prepended
+   * instance must get the default translation's inputs in every field, like
+   * step 8 of ::test() asserts for a single field.
+   */
+  public function testPrependInMultipleFields(): void {
+    $uuids = [
+      'field_canvas_test' => [
+        'existing' => 'c3d4e5f6-a7b8-9012-cdef-012345678901',
+        'prepended' => 'c3d4e5f6-a7b8-9012-cdef-012345678902',
+      ],
+      'field_canvas_second' => [
+        'existing' => 'c3d4e5f6-a7b8-9012-cdef-012345678903',
+        'prepended' => 'c3d4e5f6-a7b8-9012-cdef-012345678904',
+      ],
+    ];
+    foreach (\array_keys($uuids) as $field_name) {
+      $this->setUpSymmetricalContentTranslation('node', 'article', $field_name);
+    }
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    $cta = static fn (string $uuid, string $text): array => [
+      'uuid' => $uuid,
+      'component_id' => 'sdc.canvas_test_sdc.my-cta',
+      'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+      'inputs' => [
+        'text' => $text,
+        'href' => 'https://drupal.org',
+        'target' => '_self',
+      ],
+    ];
+
+    $entity = $this->createEntityWithDefaultTranslation('node', 'article', 'field_canvas_test', $entity_storage, [
+      $cta($uuids['field_canvas_test']['existing'], 'Existing'),
+    ]);
+    $entity->set('field_canvas_second', self::populateActiveComponentVersionPlaceholders([
+      $cta($uuids['field_canvas_second']['existing'], 'Existing'),
+    ]));
+    $entity->save();
+    $translation = $entity->addTranslation('fr');
+    $this->container->get(BundleTranslationSettingsInterface::class)
+      ->getTranslationMetadata($translation)
+      ->setSource('en');
+    $translation->set('title', 'French title');
+    foreach ($uuids as $field_name => ['existing' => $existing]) {
+      $translation->set($field_name, self::populateActiveComponentVersionPlaceholders([
+        $cta($existing, 'Existant'),
+      ]));
+    }
+    $translation->save();
+
+    // Core's synchronizer gives each prepended instance the French inputs of
+    // the instance that previously lived at delta 0.
+    foreach ($uuids as $field_name => ['existing' => $existing, 'prepended' => $prepended]) {
+      $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([
+        $cta($prepended, 'Prepended'),
+        $cta($existing, 'Existing'),
+      ]));
+    }
+    $entity->save();
+
+    self::assertNotNull($entity->id());
+    $stored = $entity_storage->loadUnchanged($entity->id());
+    \assert($stored instanceof ContentEntityInterface);
+    foreach ($uuids as $field_name => ['existing' => $existing, 'prepended' => $prepended]) {
+      $fr_list = $stored->getTranslation('fr')->get($field_name);
+      \assert($fr_list instanceof ComponentTreeItemList);
+      self::assertSameInputs($cta($prepended, 'Prepended')['inputs'], $fr_list->getComponentTreeItemByUuid($prepended)?->getInputs());
+      self::assertSameInputs($cta($existing, 'Existant')['inputs'], $fr_list->getComponentTreeItemByUuid($existing)?->getInputs());
+      self::assertResolvedAndStoredInputsAreIdentical($fr_list);
+    }
+  }
+
+  /**
+   * Tests emptying the tree in any translation empties it in all of them.
+   *
+   * An empty tree is a valid state: a page without components, or an exposed
+   * slot field that inherits the template's default content. Core's
+   * synchronizer skips empty fields.
+   */
+  #[TestWith(['node', 'article', 'field_canvas_test', 'en'], 'bundle field (FieldConfig), emptied in default translation')]
+  #[TestWith(['node', 'article', 'field_canvas_test', 'fr'], 'bundle field (FieldConfig), emptied in non-default translation')]
+  #[TestWith([Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components', 'en'], 'base field (BaseFieldOverride), emptied in default translation')]
+  #[TestWith([Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components', 'fr'], 'base field (BaseFieldOverride), emptied in non-default translation')]
+  public function testEmptyTree(string $entity_type_id, string $bundle, string $field_name, string $emptied_langcode): void {
+    $this->setUpSymmetricalContentTranslation($entity_type_id, $bundle, $field_name);
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id);
+    $entity = $this->createEntityWithDefaultTranslation($entity_type_id, $bundle, $field_name, $entity_storage);
+    $entity->save();
+    $translation = $entity->addTranslation('fr');
+    $this->container->get(BundleTranslationSettingsInterface::class)
+      ->getTranslationMetadata($translation)
+      ->setSource($entity->language()->getId());
+    $translation->set('title', 'French title')->set($field_name, self::populateActiveComponentVersionPlaceholders([
+      [
+        'uuid' => self::CTA_UUID,
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+        'inputs' => [
+          'text' => 'Cliquez ici',
+          'href' => 'https://drupal.fr',
+          'target' => '_self',
+        ],
+      ],
+    ]));
+    $translation->save();
+
+    $emptied = $entity->getTranslation($emptied_langcode);
+    $emptied->set($field_name, []);
+    self::assertEntityIsValid($emptied);
+    $emptied->save();
+
+    self::assertNotNull($entity->id());
+    $stored = $entity_storage->loadUnchanged($entity->id());
+    self::assertInstanceOf(ContentEntityInterface::class, $stored);
+    foreach (['in-memory' => $entity, 'stored' => $stored] as $representation => $either) {
+      foreach (['en', 'fr'] as $langcode) {
+        self::assertCount(0, $either->getTranslation($langcode)->get($field_name), "$representation, $langcode");
+      }
+    }
+  }
+
+  /**
+   * Tests the empty slot marker replacing content, and content replacing it.
+   *
+   * The marker is an empty override of an exposed slot. Replacing the default
+   * translation's content with it, and later replacing it with new content,
+   * must reach all translations.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::EMPTY_SLOT_COMPONENT_ID
+   */
+  public function testEmptySlotMarker(): void {
+    $field_name = 'field_canvas_test';
+    $this->setUpSymmetricalContentTranslation('node', 'article', $field_name);
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    $marker_uuid = 'd4e5f6a7-b8c9-4123-8ef0-123456789012';
+    $new_uuid = 'd4e5f6a7-b8c9-4123-8ef0-123456789013';
+    $cta = static fn (string $uuid, string $text, string $href): array => [
+      'uuid' => $uuid,
+      'component_id' => 'sdc.canvas_test_sdc.my-cta',
+      'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+      'inputs' => [
+        'text' => $text,
+        'href' => $href,
+        'target' => '_self',
+      ],
+    ];
+
+    $entity = $this->createEntityWithDefaultTranslation('node', 'article', $field_name, $entity_storage);
+    $entity->save();
+    $translation = $entity->addTranslation('fr');
+    $this->container->get(BundleTranslationSettingsInterface::class)
+      ->getTranslationMetadata($translation)
+      ->setSource('en');
+    $translation->set('title', 'French title')->set($field_name, self::populateActiveComponentVersionPlaceholders([
+      $cta(self::CTA_UUID, 'Cliquez ici', 'https://drupal.fr'),
+    ]));
+    $translation->save();
+    self::assertNotNull($entity->id());
+
+    $assert_tree = function (array $expected) use ($entity, $entity_storage, $field_name): void {
+      $stored = $entity_storage->loadUnchanged($entity->id());
+      self::assertInstanceOf(ContentEntityInterface::class, $stored);
+      foreach (['in-memory' => $entity, 'stored' => $stored] as $representation => $either) {
+        foreach (['en', 'fr'] as $langcode) {
+          $translated = $either->getTranslation($langcode);
+          self::assertEntityIsValid($translated);
+          $list = $translated->get($field_name);
+          \assert($list instanceof ComponentTreeItemList);
+          self::assertSame(\array_keys($expected), \array_map(
+            static fn (ComponentTreeItem $item): string => $item->getUuid(),
+            \iterator_to_array($list->componentTreeItemsIterator()),
+          ), "$representation, $langcode");
+          foreach ($expected as $uuid => $inputs) {
+            self::assertSameInputs($inputs, $list->getComponentTreeItemByUuid($uuid)?->getInputs());
+          }
+          self::assertResolvedAndStoredInputsAreIdentical($list);
+        }
+      }
+    };
+
+    // Content → marker: every translation gets only the marker.
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([
+      [
+        'uuid' => $marker_uuid,
+        'component_id' => Marker::EMPTY_SLOT_COMPONENT_ID,
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+        'inputs' => [],
+      ],
+    ]));
+    self::assertEntityIsValid($entity);
+    $entity->save();
+    $assert_tree([$marker_uuid => []]);
+
+    // Marker → new content: every translation gets the default's inputs.
+    $new = $cta($new_uuid, 'New', 'https://example.com');
+    $entity->set($field_name, self::populateActiveComponentVersionPlaceholders([$new]));
+    self::assertEntityIsValid($entity);
+    $entity->save();
+    $assert_tree([$new_uuid => $new['inputs']]);
   }
 
   private static function assertResolvedAndStoredInputsAreIdentical(ComponentTreeItemList $tree): void {

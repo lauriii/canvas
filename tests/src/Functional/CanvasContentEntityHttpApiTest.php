@@ -1210,13 +1210,27 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
       'POST' => "The 'create canvas_page' permission is required.",
       'DELETE' => "The 'delete canvas_page' permission is required.",
       'PATCH' => "The 'edit canvas_page' permission is required.",
-      // GET method
-      default => "The 'edit canvas_page' permission is required.",
+      // GET method: the content list requires Canvas UI access.
+      // @see \Drupal\canvas\Access\CanvasUiAccessCheck
+      default => 'Requires >=1 content entity type with a Canvas field that can be created or edited.',
     };
     $this->assertSame(
       ['errors' => [$error]],
       json_decode((string) $response->getBody(), TRUE)
     );
+
+    // Canvas UI access is not enough to list Canvas pages.
+    if ($method === 'GET') {
+      $user = $this->createUser(['administer content templates']);
+      \assert($user instanceof UserInterface);
+      $this->drupalLogin($user);
+      $response = $this->makeApiRequest($method, $url, $request_options);
+      $this->assertSame(403, $response->getStatusCode());
+      $this->assertSame(
+        ['errors' => ["The 'edit canvas_page' permission is required."]],
+        json_decode((string) $response->getBody(), TRUE)
+      );
+    }
   }
 
 }

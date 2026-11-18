@@ -27,6 +27,7 @@ use Drupal\search_api\Item\Item;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
@@ -41,6 +42,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 final class ComponentTreeInputsTest extends CanvasKernelTestBase {
 
+  use CanvasFieldCreationTrait;
   use ContentTranslationTestTrait;
   use ContentTypeCreationTrait;
   use DataProviderWithComponentTreeTrait;
@@ -670,6 +672,97 @@ final class ComponentTreeInputsTest extends CanvasKernelTestBase {
     $override = BaseFieldOverride::loadByName(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components');
     self::assertNotNull($override);
     self::assertEntityIsValid($override);
+  }
+
+  public function testExposedSlotOverridesAreIndexed(): void {
+    $uuid_generator = \Drupal::service(UuidInterface::class);
+    $host_uuid = $uuid_generator->generate();
+    $default_uuid = $uuid_generator->generate();
+
+    // The exposed slot's backing component_tree field on the bundle.
+    $this->createComponentTreeField('node', 'article', 'canvas_slot_main');
+
+    ContentTemplate::create([
+      'id' => 'node.article.full',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => self::populateActiveComponentVersionPlaceholders([
+        [
+          'uuid' => $host_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+          'inputs' => [
+            'heading' => 'Template chrome heading',
+          ],
+        ],
+        [
+          'uuid' => $default_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+          'parent_uuid' => $host_uuid,
+          'slot' => 'the_body',
+          'inputs' => [
+            'heading' => 'Template default slot heading',
+          ],
+        ],
+      ]),
+      'exposed_slots' => [
+        'canvas_slot_main' => [
+          'component_uuid' => $host_uuid,
+          'slot_name' => 'the_body',
+          'label' => 'Main content',
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Node with overridden slot',
+      'canvas_slot_main' => self::populateActiveComponentVersionPlaceholders([
+        [
+          'uuid' => $uuid_generator->generate(),
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+          'inputs' => [
+            'heading' => 'Per-entity override heading',
+          ],
+        ],
+      ]),
+    ]);
+    self::assertEntityIsValid($node);
+    $node->save();
+
+    $index = Index::create([
+      'id' => 'node_template_index',
+      'name' => 'Node template index',
+      'tracker_settings' => [
+        'default' => [],
+      ],
+      'datasource_settings' => [
+        'entity:node' => [],
+      ],
+      'options' => ['index_directly' => TRUE],
+    ]);
+    $index->save();
+    $this->attachFieldToIndex($index);
+
+    $index_item = new Item($index, "entity:node/{$node->id()}");
+    $index_item->setOriginalObject(EntityAdapter::createFromEntity($node));
+    $index_item->setField(self::INDEX_FIELD_ID, $index->getField(self::INDEX_FIELD_ID));
+
+    $processor = $this->container
+      ->get('search_api.plugin_helper')
+      ->createProcessorPlugin($index, 'canvas_component_tree_inputs');
+    $processor->addFieldValues($index_item);
+
+    $field = $index_item->getField(self::INDEX_FIELD_ID);
+    $indexed_values = self::normalizeFieldValuesToStrings($field?->getValues() ?? []);
+    // What is indexed matches what renders: the template chrome plus the
+    // entity's own slot content, not the template default it replaces.
+    self::assertContains('Template chrome heading', $indexed_values, 'Indexed values: ' . var_export($indexed_values, TRUE));
+    self::assertContains('Per-entity override heading', $indexed_values);
+    self::assertNotContains('Template default slot heading', $indexed_values);
   }
 
   private function attachFieldToIndex(IndexInterface $index): void {

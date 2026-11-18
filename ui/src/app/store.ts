@@ -13,6 +13,7 @@ import {
   layoutModelReducer,
   setInitialized,
   setInitialLayoutModel,
+  setPreviewSlotOverrides,
   setTranslations,
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
@@ -52,6 +53,7 @@ import { patternApi } from '@/services/patterns';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { personalizationApi } from '@/services/personalization';
 import { previewApi } from '@/services/preview';
+import { slotFieldsApi } from '@/services/slotFields';
 import { rtkQueryErrorHandler } from '@/utils/rtkQuery-error';
 
 import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
@@ -123,9 +125,16 @@ const rootReducer = combineSlices(
             Object.keys(present.model).length > 0 &&
             action.type !== setInitialLayoutModel.type &&
             action.type !== setTranslations.type &&
+            action.type !== setPreviewSlotOverrides.type &&
             action.type !== setUpdatePreview.type
           );
         },
+        // A filtered action still changes the present state. Without syncing,
+        // the next action of any slice is stored as a duplicate history entry
+        // that the undo/redo stack in the ui slice does not track, so undo
+        // appears to do nothing. For example: setPreviewSlotOverrides after
+        // every template preview update.
+        syncFilter: true,
       }),
       'layoutModel',
       // We want any redo/undo actions to trigger a preview update from the
@@ -175,6 +184,7 @@ const rootReducer = combineSlices(
   publishReviewSlice,
   contentApi,
   contentEntityReferenceApi,
+  slotFieldsApi,
   codeEditorSlice,
   previewSlice,
   queryErrorSlice,
@@ -213,6 +223,7 @@ const undoRedoActionIdMiddleware: Middleware<{}, RootState> =
       type === setUpdatePreview.type ||
       type === setInitialLayoutModel.type ||
       type === setTranslations.type ||
+      type === setPreviewSlotOverrides.type ||
       type === setInitialPageData.type ||
       type === resetPageData.type ||
       type === setInitialized.type
@@ -269,6 +280,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         pendingChangesApi.middleware,
         contentApi.middleware,
         contentEntityReferenceApi.middleware,
+        slotFieldsApi.middleware,
         rtkQueryErrorHandler, // Add the error handling middleware
       );
     },

@@ -1,0 +1,91 @@
+---
+title: Exposed slots
+---
+
+A content template renders every article with the same components. An exposed
+slot is a slot in the content template where each article can have its own
+components. Components placed in the slot in the content template are the
+default content, shown until an article overrides it.
+
+Each exposed slot stores its content in a field on the content type. New fields
+use the `canvas_slot_` machine name prefix.
+
+Exposed slots are supported in the **Full content** content template of node
+types.
+
+## Permissions
+
+| Task | Permissions |
+| --- | --- |
+| Edit exposed slots in a content template | **Administer content templates** |
+| Publish a content template | **Administer content templates** and **Publish Drupal Canvas Content** |
+| Edit the exposed slots of an article | Update access to the article, for example **Article: Edit any content** |
+| Publish the exposed slots of an article | Update access to the article and **Publish Drupal Canvas Content** |
+| Delete a slot field | **Content: Administer fields** |
+
+Users without **Publish Drupal Canvas Content** can make changes, but cannot
+publish them.
+
+Enabling editing on a slot can add a field to the content type. Users with
+**Administer content templates** can do this without Field UI permissions, so
+only give it to trusted users.
+
+## Exposing a slot
+
+1. Navigate to **Templates** in the Canvas editor.
+2. Under **Content types**, open the **Full content template** for articles.
+3. Select the slot. In the preview, point at the component around the slot,
+   then click the slot's label. You can also select it in the layers. The
+   component's right-click menu also lists its slots.
+4. Click **Enable editing**.
+5. Select **Add new slot…**, then enter a label and a machine name. The machine
+   name cannot be changed later. To reuse an existing slot field instead,
+   select it. Articles that already have content in that field show it again.
+6. Optionally, add default content to the slot.
+7. Publish the changes to the content template.
+
+A slot inside or around another exposed slot cannot be exposed. To rename an
+exposed slot, click **Edit label** in the slot menu.
+
+## Editing an article's exposed slots
+
+1. Open an article and click **Edit in Canvas**, or select it in the
+   **Content** panel.
+2. Select an exposed slot. Only exposed slots can be edited. The rest of the
+   content template is shown as a preview.
+3. If the slot shows default content, click **Override** to copy it into the
+   article.
+4. Add, edit, or remove components in the slot.
+5. Publish the changes.
+
+To show the default content again, click **Revert to default** in the slot
+menu. An override without components shows nothing.
+
+## Finding content with exposed slots
+
+The **Content** panel in the side menu of the Canvas editor lists the content
+of every content type that has exposed slots, grouped by content type.
+
+- Type in the search field to filter the list by title.
+- Click an item to edit its exposed slots.
+- Click **New** to create content. The form opens in a new tab.
+
+## Checking how many articles override a slot
+
+Open the content template and select the exposed slot. The **Usage** section in
+the sidebar shows how many articles override the slot. Articles that show the
+default content are not counted.
+
+## Removing an exposed slot
+
+1. Open the content template and select the exposed slot. Check **Usage** to
+   see how many articles are affected.
+2. Click **Disable editing**.
+3. Publish the changes to the content template.
+
+Articles keep their content in the slot field. The content is shown again when
+the field is exposed again. Deleting a component that contains exposed slots
+also disables editing on those slots.
+
+To delete the content, delete the slot field at
+`/admin/structure/types/manage/article/fields`.

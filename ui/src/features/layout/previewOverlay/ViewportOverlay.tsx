@@ -3,7 +3,11 @@ import clsx from 'clsx';
 import ReactDOM from 'react-dom';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectContentRegion } from '@/features/layout/layoutModelSlice';
+import {
+  selectContentRegion,
+  selectIsPerContentMode,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   selectDragging,
@@ -33,6 +37,8 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const positionDivRef = useRef<HTMLDivElement | null>(null);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const contentRegion = useAppSelector(selectContentRegion);
+  const layout = useAppSelector(selectLayout);
+  const perContentMode = useAppSelector(selectIsPerContentMode);
   const [rect, setRect] = useState<Rect | null>(null);
   const { treeDragging } = useAppSelector(selectDragging);
   const isZooming = useAppSelector(selectZooming);
@@ -107,7 +113,16 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         height: `${rect.height}px`,
       }}
     >
-      <RegionOverlay region={contentRegion} />
+      {/* Per-content editing: every exposed-slot region renders, even when
+          empty (it is a drop target, or an inherited unit anchored over the
+          default). */}
+      {perContentMode ? (
+        layout.map((region) => (
+          <RegionOverlay key={region.id} region={region} />
+        ))
+      ) : (
+        <RegionOverlay region={contentRegion} />
+      )}
     </div>,
     portalRoot,
   );

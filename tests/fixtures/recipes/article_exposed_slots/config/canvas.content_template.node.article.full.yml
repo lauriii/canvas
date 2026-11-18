@@ -1,0 +1,40 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - canvas.component.sdc.canvas_test_sdc.heading
+    - canvas.component.sdc.canvas_test_sdc.props-slots
+    - core.entity_view_mode.node.full
+    - field.field.node.article.canvas_slot_footer
+    - field.field.node.article.canvas_slot_main
+    - node.type.article
+id: node.article.full
+content_entity_type_id: node
+content_entity_type_bundle: article
+content_entity_type_view_mode: full
+component_tree:
+  -
+    uuid: 7e1c52e6-c53e-45a4-a03d-de4e5f48d64c
+    component_id: sdc.canvas_test_sdc.props-slots
+    component_version: 0e79e884426a53ae
+    inputs:
+      heading: 'Templated article'
+  -
+    uuid: 0d4c6b1e-5f3a-4b2c-9e8d-1a2b3c4d5e6f
+    component_id: sdc.canvas_test_sdc.heading
+    component_version: 8c01a2bdb897a810
+    parent_uuid: 7e1c52e6-c53e-45a4-a03d-de4e5f48d64c
+    slot: the_body
+    inputs:
+      text: 'Template default heading'
+      style: primary
+      element: h2
+exposed_slots:
+  canvas_slot_main:
+    component_uuid: 7e1c52e6-c53e-45a4-a03d-de4e5f48d64c
+    slot_name: the_body
+    label: 'Main content'
+  canvas_slot_footer:
+    component_uuid: 7e1c52e6-c53e-45a4-a03d-de4e5f48d64c
+    slot_name: the_footer
+    label: 'Footer content'

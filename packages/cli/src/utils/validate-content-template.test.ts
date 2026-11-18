@@ -228,6 +228,45 @@ describe('validateContentTemplates', () => {
     );
   });
 
+  it.each([
+    ['a slot field', 'canvas_slot_main', true],
+    ['a reused field', 'field_existing_area', true],
+    ['uppercase', 'canvas_slot_Main', false],
+    ['a trailing underscore on a slot field', 'canvas_slot_main_', false],
+    ['more than 32 characters', `canvas_slot_${'a'.repeat(21)}`, false],
+    ['a hyphen', 'field-area', false],
+  ])(
+    'validates the exposed slot key of %s',
+    async (_case, fieldName, valid) => {
+      await withTempTemplate(
+        {
+          label: 'Article',
+          entityType: 'node',
+          bundle: 'article',
+          viewMode: 'full',
+          elements: { hero: { type: 'js.hero' } },
+          exposedSlots: {
+            [fieldName]: {
+              component_uuid: 'hero',
+              slot_name: 'content',
+              label: 'Main',
+            },
+          },
+        },
+        [heroMetadata],
+        async (discovery) => {
+          const { results } = await validateContentTemplates(discovery);
+          expect(results[0].success).toBe(valid);
+          expect(
+            results[0].details?.some((d) =>
+              `${d.heading} ${d.content}`.includes('exposedSlots'),
+            ) ?? false,
+          ).toBe(!valid);
+        },
+      );
+    },
+  );
+
   it('rejects a template with a malformed sourceType prop', async () => {
     await withTempTemplate(
       {

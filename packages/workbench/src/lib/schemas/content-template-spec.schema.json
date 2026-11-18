@@ -47,6 +47,24 @@
       "additionalProperties": {
         "$ref": "#/definitions/element"
       }
+    },
+    "exposedSlots": {
+      "type": "object",
+      "description": "Exposed slot definitions, keyed by the machine name of the slot's `component_tree` field. The inner keys mirror the server `exposed_slots` payload.",
+      "propertyNames": {
+        "description": "A field machine name. A `canvas_slot_` field can be created on push, so it must be a valid new slot field name.",
+        "maxLength": 32,
+        "pattern": "^[a-z0-9_]+$",
+        "if": {
+          "pattern": "^canvas_slot_"
+        },
+        "then": {
+          "pattern": "^[a-z][a-z0-9_]*[a-z0-9]$"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/exposedSlot"
+      }
     }
   },
   "additionalProperties": false,
@@ -57,6 +75,29 @@
     "required": ["root"]
   },
   "definitions": {
+    "exposedSlot": {
+      "type": "object",
+      "description": "A single exposed slot definition.",
+      "required": ["component_uuid", "slot_name", "label"],
+      "properties": {
+        "component_uuid": {
+          "type": "string",
+          "minLength": 1,
+          "description": "UUID or element key of the template component that contains the exposed slot."
+        },
+        "slot_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Machine name of the component slot being exposed."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable label for the exposed slot."
+        }
+      },
+      "additionalProperties": false
+    },
     "element": {
       "type": "object",
       "required": ["type"],

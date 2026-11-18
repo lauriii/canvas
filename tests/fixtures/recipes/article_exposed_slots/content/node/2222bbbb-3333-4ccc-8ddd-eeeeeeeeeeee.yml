@@ -1,0 +1,46 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 2222bbbb-3333-4ccc-8ddd-eeeeeeeeeeee
+  bundle: article
+  default_langcode: en
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: 'Templated beta'
+  created:
+    -
+      value: 1752624000
+  promote:
+    -
+      value: true
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      alias: /templated-beta
+      langcode: en
+  canvas_slot_main:
+    -
+      parent_uuid: null
+      slot: null
+      uuid: 6b0e2f4a-8c1d-4e3f-9a5b-7c6d5e4f3a2b
+      component_id: sdc.canvas_test_sdc.heading
+      component_version: 8c01a2bdb897a810
+      inputs:
+        text: 'Beta slot heading'
+        style: primary
+        element: h2

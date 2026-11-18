@@ -9,12 +9,14 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Entity\EntityListBuilderInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\Group;
@@ -382,6 +384,40 @@ class ComponentTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('disable', $operations);
     self::assertArrayHasKey('enable', $operations);
     self::assertArrayNotHasKey('delete', $operations);
+  }
+
+  /**
+   * Tests the empty slot marker Component can never be enabled.
+   *
+   * @see \Drupal\canvas\Entity\Component::preSave()
+   */
+  public function testEmptySlotMarkerCannotBeEnabled(): void {
+    $marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
+    \assert($marker instanceof ComponentInterface);
+    self::assertFalse($marker->status());
+
+    // A recipe config action that enables all components must not enable the
+    // marker.
+    $marker->enable()->save();
+    self::assertFalse($marker->status());
+
+    $reloaded = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
+    \assert($reloaded instanceof ComponentInterface);
+    self::assertFalse($reloaded->status());
+
+    // The admin UI does not offer to enable it, and the route denies access.
+    $admin = $this->createMock(AccountInterface::class);
+    $admin->method('hasPermission')->willReturn(TRUE);
+    self::assertFalse($reloaded->access('enable', $admin));
+    $list_builder = $this->container->get(EntityTypeManagerInterface::class)->getListBuilder(Component::ENTITY_TYPE_ID);
+    \assert($list_builder instanceof EntityListBuilderInterface);
+    self::assertArrayNotHasKey('enable', $list_builder->getOperations($reloaded));
+    // Other disabled components can still be enabled.
+    $other = Component::load('sdc.canvas_test_sdc.image');
+    \assert($other instanceof ComponentInterface);
+    $other->disable()->save();
+    self::assertTrue($other->access('enable', $admin));
+    self::assertArrayHasKey('enable', $list_builder->getOperations($other));
   }
 
 }

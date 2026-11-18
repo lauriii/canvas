@@ -88,32 +88,10 @@ class ClientDataToEntityConverter {
       throw new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($e->getConstraintViolationList())));
     }
 
-    // Converge stale sibling translations' non-translatable component inputs
-    // before either validation below runs, mirroring what content_translation's
-    // presave hook does on save. Otherwise
-    // ComponentTreeSymmetricalTranslationConstraint records a violation —
-    // persisted via AutoSaveManager::saveEntityFormViolations() and re-attached
-    // at publish — for a transient state the save path converges anyway.
-    // @see \Drupal\canvas\Controller\ApiAutoSaveController::getConflictAwareContentEntityViolations()
-    // @see \Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait
-    self::synchronizeTranslations($this->translationSynchronizer, $entity);
-
     // The current user may not have access any other fields on the entity or
-    // this function may have been called to only update the layout.
-    $form_validation = new EntityConstraintViolationList($entity);
-    if (\count($entity_form_fields) > 0) {
-      try {
-        $this->setEntityFields($entity, $entity_form_fields);
-        $this->autoSaveManager->saveEntityFormViolations($entity);
-      }
-      catch (ConstraintViolationException $e) {
-        if (!$validate) {
-          // @todo Remove this in https://drupal.org/i/3505018
-          $this->autoSaveManager->saveEntityFormViolations($entity, $e->getConstraintViolationList());
-        }
-        $form_validation->addAll($e->getConstraintViolationList());
-      }
-    }
+    // this function may have been called to only update the layout. This also
+    // converges the translations before either validation below runs.
+    $form_validation = $this->applyEntityFormFields($entity, $entity_form_fields, $validate);
 
     // Validate the updated entity:
     // - at minimum the component tree field has been updated based on `layout`
@@ -134,6 +112,53 @@ class ClientDataToEntityConverter {
         "$field_name.0.inputs" => 'model',
       ]);
     }
+  }
+
+  /**
+   * Converges translations, then applies submitted entity form fields.
+   *
+   * Unlike ::convert(), this does not touch a Canvas field, so it also works
+   * for templated entities, whose slot fields the caller writes. Call it after
+   * writing the component tree(s): it first converges them across the
+   * translations, as ::convert() does. As with ::convert(), the entity must
+   * then only be auto-saved, NOT saved via ::save().
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity to update.
+   * @param array<string, mixed> $entity_form_fields
+   *   The submitted entity form field values.
+   * @param bool $validate
+   *   Whether validation errors should surface (vs. be recorded on auto-save).
+   *
+   * @return \Drupal\canvas\Entity\EntityConstraintViolationList
+   *   The form-field constraint violations, if any.
+   */
+  public function applyEntityFormFields(FieldableEntityInterface $entity, array $entity_form_fields, bool $validate = TRUE): EntityConstraintViolationList {
+    // Converge stale sibling translations' non-translatable component inputs
+    // before any validation runs, mirroring what content_translation's presave
+    // hook does on save. Otherwise
+    // ComponentTreeSymmetricalTranslationConstraint records a violation —
+    // persisted via AutoSaveManager::saveEntityFormViolations() and re-attached
+    // at publish — for a transient state the save path converges anyway.
+    // @see \Drupal\canvas\Controller\ApiAutoSaveController::getConflictAwareContentEntityViolations()
+    // @see \Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait
+    self::synchronizeTranslations($this->translationSynchronizer, $entity);
+
+    $form_validation = new EntityConstraintViolationList($entity);
+    if (\count($entity_form_fields) > 0) {
+      try {
+        $this->setEntityFields($entity, $entity_form_fields);
+        $this->autoSaveManager->saveEntityFormViolations($entity);
+      }
+      catch (ConstraintViolationException $e) {
+        if (!$validate) {
+          // @todo Remove this in https://drupal.org/i/3505018
+          $this->autoSaveManager->saveEntityFormViolations($entity, $e->getConstraintViolationList());
+        }
+        $form_validation->addAll($e->getConstraintViolationList());
+      }
+    }
+    return $form_validation;
   }
 
   /**

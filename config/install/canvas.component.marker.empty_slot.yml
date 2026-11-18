@@ -1,0 +1,22 @@
+# The empty slot marker: when it is the only item in an exposed slot's field, the slot renders
+# nothing. An empty field renders the template default instead.
+# `status: false` keeps it out of the component library; `Component::preSave()` enforces that.
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+# @see \Drupal\canvas\Entity\Component::preSave()
+langcode: en
+status: false
+dependencies:
+  enforced:
+    module:
+      - canvas
+active_version: 3b12c0b99a6caecc
+versioned_properties:
+  active:
+    settings: {  }
+    fallback_metadata:
+      slot_definitions: {  }
+label: 'Empty slot'
+id: marker.empty_slot
+provider: canvas
+source: marker
+source_local_id: empty_slot

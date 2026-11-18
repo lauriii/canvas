@@ -27,6 +27,10 @@ vi.mock('@assets/icons/extension-sm.svg?react', () => ({
   default: () => <svg />,
 }));
 
+vi.mock('@assets/icons/cms.svg?react', () => ({
+  default: () => <svg />,
+}));
+
 vi.mock('@assets/icons/template.svg?react', () => ({
   default: () => <svg />,
 }));
@@ -60,6 +64,12 @@ describe('SideMenu', () => {
 
   afterEach(() => {
     delete getCanvasSettings().headless;
+  });
+
+  it('shows the Content option', () => {
+    renderSideMenu();
+
+    expect(screen.getByRole('button', { name: 'Content' })).toBeInTheDocument();
   });
 
   it('shows the Code option without a configured headless frontend', () => {

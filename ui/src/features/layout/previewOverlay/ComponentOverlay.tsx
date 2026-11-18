@@ -3,6 +3,11 @@ import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { exposedSlotGeometryId } from '@/features/layout/exposedSlots';
+import {
+  selectExposedSlots,
+  selectIsPerContentMode,
+} from '@/features/layout/layoutModelSlice';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import { ComponentNameTag } from '@/features/layout/preview/NameTag';
 import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
@@ -52,11 +57,21 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const componentsMap = usePreviewDom()?.componentsMap;
   const { geometryMap } = usePreviewGeometry();
   const componentGeometry = geometryMap.component[component.uuid];
-  const parentGeometry = parentRegion?.id
-    ? geometryMap.region[parentRegion.id]
-    : parentSlot?.id
-      ? geometryMap.slot[parentSlot.id]
+  // Per-content editing: an exposed slot region's geometry is keyed like a
+  // slot, so its components resolve their offsets against that.
+  const perContentMode = useAppSelector(selectIsPerContentMode);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const parentExposedSlot =
+    perContentMode && parentRegion?.id
+      ? exposedSlots?.[parentRegion.id]
       : undefined;
+  const parentGeometry = parentExposedSlot
+    ? geometryMap.slot[exposedSlotGeometryId(parentExposedSlot)]
+    : parentRegion?.id
+      ? geometryMap.region[parentRegion.id]
+      : parentSlot?.id
+        ? geometryMap.slot[parentSlot.id]
+        : undefined;
   const offsetLeft =
     componentGeometry && parentGeometry
       ? componentGeometry.rect.left - parentGeometry.rect.left
@@ -201,6 +216,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         <SlotOverlay
           key={slot.name}
           parentComponent={component}
+          parentDragListeners={listeners}
           slot={slot}
           disableDrop={disableDrop || isComponentDragged}
         />
