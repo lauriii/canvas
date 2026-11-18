@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/json-render-angular",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Angular renderer for Drupal Canvas json-render documents.",
   "license": "MIT",
   "type": "module",
@@ -37,7 +37,7 @@
     "@angular/platform-browser": "^21.0.0 || ^22.0.0"
   },
   "dependencies": {
-    "@drupal-canvas/json-render": "^0.1.0",
+    "@drupal-canvas/json-render": "^0.2.0",
     "tslib": "^2.8.1"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/json-render-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -35,7 +35,7 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/json-render": "^0.1.0"
+    "@drupal-canvas/json-render": "^0.2.0"
   },
   "peerDependencies": {
     "react": ">=18.0.0"

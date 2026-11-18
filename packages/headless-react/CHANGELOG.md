@@ -1,5 +1,25 @@
 # @drupal-canvas/headless-react
 
+## 0.7.0
+
+### Minor Changes
+
+- c4e025b: Add support for json-render format in the Headless SDK.
+
+  When upgrading, pass the `isPreview` value returned by `fetchPage()` or
+  `fetchEntity()` to `CanvasComponentTree`'s `preview` prop. Preview mode is no
+  longer inferred from the content tree. Use `preview={page.isPreview}` in React
+  and Astro, `:preview="page.isPreview"` in Nuxt, or
+  `[preview]="page.isPreview"` in Angular.
+
+### Patch Changes
+
+- Updated dependencies [c4e025b]
+- Updated dependencies [c4e025b]
+- Updated dependencies [c4e025b]
+  - @drupal-canvas/json-render-react@0.2.0
+  - @drupal-canvas/headless@0.13.0
+
 ## 0.6.0
 
 ### Minor Changes

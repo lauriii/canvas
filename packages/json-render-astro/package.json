@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/json-render-astro",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -36,7 +36,7 @@
     "type-check": "astro check --tsconfig ./tsconfig.json && tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/json-render": "^0.1.0"
+    "@drupal-canvas/json-render": "^0.2.0"
   },
   "peerDependencies": {
     "astro": ">=5.17.0"
