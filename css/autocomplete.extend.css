@@ -8,7 +8,7 @@ ul.ui-autocomplete {
   display: flex;
   flex-direction: column;
   padding: 0;
-  border: 1px solid #E0E1E6;
+  border: 1px solid #e0e1e6;
   border-radius: 4px;
 }
 
@@ -24,7 +24,7 @@ ul.ui-autocomplete .ui-menu-item + .ui-menu-item a:not(:hover, :focus, :focus-vi
   width: calc(100% - 16px);
   height: 1px;
   content: "";
-  border-top: 1px solid #E0E1E6;
+  border-top: 1px solid #e0e1e6;
 }
 
 ul.ui-autocomplete .ui-menu-item + .ui-menu-item a:hover::before,
@@ -48,13 +48,10 @@ ul.ui-autocomplete .ui-menu-item a:hover,
 ul.ui-autocomplete .ui-menu-item a:focus,
 ul.ui-autocomplete .ui-menu-item a:focus-visible,
 ul.ui-autocomplete .ui-menu-item a.ui-state-active {
-  color: #FFF;
+  color: #fff;
   outline: none;
   background-color: #0190ff;
 }
-
-
-
 
 ul.ui-autocomplete .ui-menu-item:first-child a {
   border-radius: 4px 4px 0 0;
@@ -62,4 +59,73 @@ ul.ui-autocomplete .ui-menu-item:first-child a {
 
 ul.ui-autocomplete .ui-menu-item:last-child a {
   border-radius: 0 0 4px 4px;
+}
+
+/* Link prop suggestions: label and type pill. The path replaces the pill on
+   hover and keyboard highlight.
+   @see \Drupal\canvas\Controller\ApiLinkAutocompleteController */
+ul.ui-autocomplete .canvas-link-suggestion {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+ul.ui-autocomplete .canvas-link-suggestion__label {
+  overflow: hidden;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The type pill looks like a Radix Themes `<Badge color="gray" variant="soft"
+   radius="small">`, as used for the page type in ReviewChangesView.tsx. It
+   cannot be one: jQuery UI renders the suggestions outside of React. */
+ul.ui-autocomplete .canvas-link-suggestion__type {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin-inline-start: auto;
+  padding: 2px 6px;
+  white-space: nowrap;
+  letter-spacing: 0.0025em;
+  color: #0000009b;
+  border-radius: 2.25px;
+  background-color: #0000000f;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI (Custom)",
+    Roboto,
+    "Helvetica Neue",
+    "Open Sans (Custom)",
+    system-ui,
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+ul.ui-autocomplete .canvas-link-suggestion__path {
+  display: none;
+  overflow: hidden;
+  flex: 0 1 auto;
+  max-width: 50%;
+  margin-inline-start: auto;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+ul.ui-autocomplete .ui-menu-item a:is(:hover, :focus, .ui-state-active) .canvas-link-suggestion__type {
+  display: none;
+}
+
+ul.ui-autocomplete .ui-menu-item a:is(:hover, :focus, .ui-state-active) .canvas-link-suggestion__path {
+  display: block;
 }

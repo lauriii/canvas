@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Controller\ApiLinkAutocompleteController;
 use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
+use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\OrderAfter;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\Routing\CurrentRouteMatch;
 use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -36,6 +41,9 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     private readonly LibraryDiscoveryInterface $libraryDiscovery,
     private readonly RequestStack $requestStack,
     private readonly ThemeManagerInterface $themeManager,
+    private readonly ElementInfoManagerInterface $elementInfo,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityRepositoryInterface $entityRepository,
   ) {
   }
 
@@ -162,6 +170,37 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     // @see ui/src/components/form/components/TextFieldAutocomplete.tsx
     $form['uri']['#attributes']['data-canvas-resolve-entity-uri'] = 'true';
 
+    // Link props match more entity types than core's node-only LinkWidget.
+    // Other link fields keep core's autocomplete.
+    if ($form_state->get('is_canvas_static_prop_source') === \TRUE && ($form['uri']['#type'] ?? NULL) === 'entity_autocomplete') {
+      // Swap the route after ::processEntityAutocomplete() sets it, and before
+      // ::processAutocomplete() turns it into a path.
+      // @see \Drupal\canvas\Controller\ApiLinkAutocompleteController
+      $process = $this->elementInfo->getInfoProperty('entity_autocomplete', '#process', []);
+      $position = \array_search([EntityAutocomplete::class, 'processEntityAutocomplete'], $process, TRUE);
+      \assert(\is_int($position));
+      \array_splice($process, $position + 1, 0, [[static::class, 'processLinkAutocompleteRoute']]);
+      $form['uri']['#process'] = $process;
+
+      // Display stored `entity:` URIs in the format of the suggestions. Core
+      // only does this for nodes, as `Label (id)`.
+      // @see \Drupal\link\Plugin\Field\FieldWidget\LinkWidget::getUriAsDisplayableString()
+      // @see \Drupal\Core\Entity\Element\EntityAutocomplete::getEntityLabels()
+      $uri = $context['items'][$context['delta']]->uri ?? NULL;
+      if (\is_string($uri) && \preg_match('#^entity:([a-z0-9_]+)/(.+)$#', $uri, $matches)) {
+        [, $entity_type_id, $entity_id] = $matches;
+        $entity = $this->entityTypeManager->hasDefinition($entity_type_id)
+          ? $this->entityTypeManager->getStorage($entity_type_id)->load($entity_id)
+          : NULL;
+        if ($entity !== NULL) {
+          // Use the same translation as the suggestions.
+          $entity = $this->entityRepository->getTranslationFromContext($entity);
+          $label = $entity->access('view label') ? $entity->label() : $this->t('- Restricted access -');
+          $form['uri']['#default_value'] = ApiLinkAutocompleteController::encodeValue((string) $label, $entity_type_id, $entity_id);
+        }
+      }
+    }
+
     if ($this->themeManager->getActiveTheme()->getName() === 'canvas_stark') {
       // We want the link widget to have less information, so we need to revert
       // the description mangling happening at
@@ -173,6 +212,17 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
         unset($form['uri']['#description']);
       }
     }
+  }
+
+  /**
+   * Process callback: autocompletes a link prop with Canvas's route.
+   *
+   * @see ::fieldWidgetSingleElementLinkDefaultWidgetFormAlter()
+   */
+  public static function processLinkAutocompleteRoute(array &$element): array {
+    $element['#autocomplete_route_name'] = 'canvas.api.ui.link_autocomplete';
+    $element['#autocomplete_route_parameters'] = [];
+    return $element;
   }
 
   #[Hook('field_widget_single_element_path_form_alter')]

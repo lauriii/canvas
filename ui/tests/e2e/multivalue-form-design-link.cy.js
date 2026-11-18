@@ -271,7 +271,7 @@ describe('Multivalue Form Design – Link Field', () => {
     verifyUrlRowText(
       '@relative-field',
       0,
-      'Canvas With a block in the layout (3)',
+      'Canvas With a block in the layout (node/3)',
     );
     // The list item text should be unchanged (error should not propagate).
     cy.get('@relative-field').find('tbody tr').should('have.length', 1);

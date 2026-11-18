@@ -17,9 +17,11 @@ export interface TransformConfig {
 }
 
 // Mirror Drupal core's parsing of entity autocomplete values like
-// "Label (123)" so the client-side transform extracts the trailing ID.
+// "Label (123)" so the client-side transform extracts the trailing ID. Labels
+// with a comma or quote are wrapped in quotes: `"Hello, world (123)"`.
 // @see \Drupal\Core\Entity\Element\EntityAutocomplete::extractEntityIdFromAutocompleteInput
-export const ENTITY_AUTOCOMPLETE_MATCH = /.+\s\(([^)]+)\)\s*$/;
+// @see \Drupal\Component\Utility\Tags::encode()
+export const ENTITY_AUTOCOMPLETE_MATCH = /.+\s\(([^)]+)\)"?\s*$/;
 
 const parseSingleEntityAutocompleteSelection = (
   value: string,
@@ -175,11 +177,14 @@ export interface LinkPropShape extends StaticPropSource {
 
 export const resolveEntityUri = (uri: string): string => {
   const id = parseSingleEntityAutocompleteSelection(uri);
-  // LinkWidget with autocomplete support only supports matching on node
-  // entities.
-  // @todo Add support for other entity types once core does -
-  // https://www.drupal.org/i/2423093
-  return id !== null ? `entity:node/${id}` : uri;
+  if (id === null) {
+    return uri;
+  }
+  // Link props encode entities as `Label (entity_type_id/entity_id)`. Core's
+  // `Label (id)` format, for nodes only, can still be typed in.
+  // @see \Drupal\canvas\Controller\ApiLinkAutocompleteController
+  // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetSingleElementLinkDefaultWidgetFormAlter()
+  return /^[a-z0-9_]+\/.+$/.test(id) ? `entity:${id}` : `entity:node/${id}`;
 };
 
 const hasStringUri = (

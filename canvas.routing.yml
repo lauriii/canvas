@@ -898,6 +898,17 @@ canvas.api.ui.content_template.view_modes.list:
   options:
     _format: 'json'
 
+canvas.api.ui.link_autocomplete:
+  path: '/canvas/api/v0/ui/link-autocomplete'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiLinkAutocompleteController'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [GET]
+  options:
+    _format: 'json'
+
 canvas.api.ui.preview_assets:
   path: '/canvas/api/v0/ui/preview-assets'
   defaults:

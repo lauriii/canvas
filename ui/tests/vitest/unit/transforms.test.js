@@ -50,6 +50,31 @@ describe('Transforms - link', () => {
     ).toEqual('entity:node/3');
   });
 
+  it('Should match a non-node entity type on autocomplete', () => {
+    fieldData.sourceTypeSettings.instance.title = 0;
+    expect(
+      transforms.link(
+        [{ uri: 'A Canvas page (canvas_page/3)' }],
+        {},
+        fieldData,
+      ),
+    ).toEqual('entity:canvas_page/3');
+  });
+
+  it('Should match a quoted label with a comma on autocomplete', () => {
+    fieldData.sourceTypeSettings.instance.title = 0;
+    expect(
+      transforms.link(
+        [{ uri: '"Hello, world (canvas_page/3)"' }],
+        {},
+        fieldData,
+      ),
+    ).toEqual('entity:canvas_page/3');
+    expect(
+      transforms.link([{ uri: '"Hello, world (3)"' }], {}, fieldData),
+    ).toEqual('entity:node/3');
+  });
+
   it('Should match on autocomplete, with title', () => {
     fieldData.sourceTypeSettings.instance.title = 2;
     expect(

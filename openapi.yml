@@ -4130,6 +4130,38 @@ paths:
                         full:
                           label: Full content
                           hasTemplate: false
+  /canvas/api/v0/ui/link-autocomplete:
+    get:
+      summary: Autocompletes link props against content entities of multiple entity types.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: The typed string.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching entities, in the format of core's entity autocomplete, with the entity type encoded in each value.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - value
+                    - label
+                  additionalProperties: false
+                  properties:
+                    value:
+                      type: string
+                      description: The entity label followed by `(entity_type_id/entity_id)`.
+                      examples:
+                        - About our team (canvas_page/1)
+                    label:
+                      type: string
+                      description: HTML markup with the entity label, path and type.
   /canvas/api/v0/ui/preview-assets:
     get:
       summary: Gets the global assets to load in component preview iframes, rendered with the front-end theme.
