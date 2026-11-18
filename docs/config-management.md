@@ -278,8 +278,11 @@ When rendering content entities, a content template will be used to render the e
 2. The content entity type is eligible for content templates, which means all of these are true:
    1. It opted into Field UI (`field_ui_base_route`): it has view modes for templates to target, and site builders can add the Canvas field that exposed slots may need (see https://www.drupal.org/i/3526189).
    2. It is stored: its entity storage is not `ContentEntityNullStorage` (for example, a contact form message is not stored).
-   3. It has a page of its own: its `canonical` link template is not its `edit-form` link template (for example, a content block has no page of its own; media has one only if the "Standalone media URL" setting is enabled). Special case: `Comment` is excluded, because its `canonical` URL redirects to the commented entity.
-   4. It does not implement `ComponentTreeEntityInterface` (for example, Canvas' own `Page`).
+   3. It does not implement `ComponentTreeEntityInterface` (for example, Canvas' own `Page`).
+
+   Special case: `Comment` is excluded, because a comment is rendered in a thread, whose threading and indentation a content template would lose.
+
+When a content template renders an entity, the component instances in the template decide how it looks. So what the entity type's own view builder adds for presentation is intentionally not applied. For example, the behavior plugins of [Paragraphs](https://www.drupal.org/project/paragraphs) let an editor set things like a background color or a layout per paragraph. They have no effect on a paragraph that a content template renders, and they are not needed there: express that presentation with the template's component instances instead.
 
 Which content entity types can be _edited_ in Canvas is a separate question, tracked in https://www.drupal.org/i/3498525.
 

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\block_content\Plugin\Block\BlockContentBlock;
+use Drupal\canvas\Block\ContentTemplateAwareBlockContentBlock;
+use Drupal\canvas\Block\ContentTemplateAwareInlineBlock;
 use Drupal\canvas\ContentTemplateRepository;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
@@ -21,6 +24,7 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Drupal\layout_builder\Plugin\Block\InlineBlock;
 
 /**
  * @see \Drupal\canvas\Entity\ContentTemplate
@@ -68,13 +72,10 @@ final class ContentTemplateHooks {
   /**
    * Implements hook_entity_type_alter.
    *
-   * Runs last, so that it sees the `field_ui_base_route` and link templates
-   * that other modules' implementations may set, like the rest of Canvas does.
-   * For example, Media's implementation sets the `canonical` link template
-   * that makes `media` eligible.
+   * Runs last, so that it sees the `field_ui_base_route` that other modules'
+   * implementations may set, like the rest of Canvas does.
    *
    * @see \Drupal\canvas\ContentTemplateRepository::isSupportedEntityType()
-   * @see \Drupal\media\Hook\MediaHooks::entityTypeAlter()
    */
   #[Hook('entity_type_alter', order: Order::Last)]
   public static function entityTypeAlter(array $definitions): void {
@@ -89,6 +90,27 @@ final class ContentTemplateHooks {
         $entity_type->setHandlerClass(ContentTemplateAwareViewBuilder::DECORATED_HANDLER_KEY, $entity_type->getViewBuilderClass())
           ->setViewBuilderClass(ContentTemplateAwareViewBuilder::class);
       }
+    }
+  }
+
+  /**
+   * Implements hook_block_alter().
+   *
+   * Replaces the class of the block plugins that show a content block, so
+   * they build it immediately when a content template renders it.
+   *
+   * @see \Drupal\canvas\Block\BuildsContentBlockImmediatelyTrait
+   *
+   * @todo Remove when core builds content blocks in its block plugins: https://www.drupal.org/project/drupal/issues/3638853
+   */
+  #[Hook('block_alter')]
+  public static function blockAlter(array &$definitions): void {
+    foreach ($definitions as &$definition) {
+      $definition['class'] = match ($definition['class']) {
+        BlockContentBlock::class => ContentTemplateAwareBlockContentBlock::class,
+        InlineBlock::class => ContentTemplateAwareInlineBlock::class,
+        default => $definition['class'],
+      };
     }
   }
 
