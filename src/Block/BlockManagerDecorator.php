@@ -32,26 +32,35 @@ use Drupal\Core\Block\BlockManagerInterface;
 final class BlockManagerDecorator implements BlockManagerInterface, FallbackPluginManagerInterface, CachedDiscoveryInterface {
 
   /**
-   * TRUE while a module is being installed.
+   * TRUE while a module is being installed or uninstalled.
    *
    * While a module installs, core clears the plugin caches before it creates
-   * the module's database tables. Generating block components at that moment
-   * reads tables that don't exist yet, and the install crashes halfway. So
-   * clearCachedDefinitions() skips generation until the install is done.
+   * the module's database tables. While a module uninstalls, core drops the
+   * module's database tables, and other modules (for example Layout Builder)
+   * then trigger a block plugin cache clear. Generating block components at
+   * either moment reads tables that don't exist, and the install or uninstall
+   * crashes halfway. So clearCachedDefinitions() skips generation until the
+   * install or uninstall is done.
    *
    * This lives on the service, so a container rebuild resets it. That is
    * fine: core rebuilds the container before invoking
    * hook_module_preinstall(), and any later rebuild happens after the tables
-   * exist.
+   * exist. On uninstall, core rebuilds the container after the module's
+   * tables are gone, and the cache clear that follows regenerates components
+   * without the uninstalled module.
    *
    * @var bool
    *
    * @see \Drupal\Core\Extension\ModuleInstaller::doInstall()
+   * @see \Drupal\Core\Extension\ModuleInstaller::uninstall()
    * @see \Drupal\canvas\Hook\ComponentSourceHooks::modulePreinstall()
    * @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
+   * @see \Drupal\canvas\Hook\ComponentSourceHooks::modulePreuninstall()
+   * @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesUninstalled()
    * @see https://www.drupal.org/project/canvas/issues/3582851
+   * @see https://www.drupal.org/project/canvas/issues/3592377
    */
-  public bool $moduleInstallInProgress = FALSE;
+  public bool $moduleInstallOrUninstallInProgress = FALSE;
 
   /**
    * The decorated block plugin manager is responsible for caching, not this!
@@ -70,10 +79,11 @@ final class BlockManagerDecorator implements BlockManagerInterface, FallbackPlug
     $this->decorated->clearCachedDefinitions();
 
     // During a module install, Canvas generates all components once the
-    // install is done.
-    // @see ::$moduleInstallInProgress
+    // install is done. During a module uninstall, core's own cache clear after
+    // the container rebuild regenerates them.
+    // @see ::$moduleInstallOrUninstallInProgress
     // @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
-    if ($this->moduleInstallInProgress) {
+    if ($this->moduleInstallOrUninstallInProgress) {
       return;
     }
     $this->componentSourceManager->generateComponents(BlockComponent::SOURCE_PLUGIN_ID);
