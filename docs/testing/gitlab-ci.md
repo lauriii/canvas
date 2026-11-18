@@ -20,6 +20,15 @@ gitlab-ci-local \
 Untracked and ignored files will not be synced inside isolated jobs, only tracked
 files are synced, so remember to `git add` first.
 
+## PHP assertions in the test web server
+
+Drupal core 11.4.12 and later disable PHP assertions in the scaffolded
+`.htaccess`. The CI web server setup removes that directive from the generated
+test installation so the testing image's assertion settings remain effective.
+Canvas's development-only OpenAPI request and response validation requires
+assertions to be enabled in web requests, not just in the CLI running PHPUnit.
+This adjustment only affects the CI test installation, not production sites.
+
 ## Cypress E2E parallelization
 
 The `cypress E2E` job runs the specs in `ui/tests/e2e/` across several parallel

@@ -51,6 +51,8 @@
   - '[ -e .cache ] || ln -s $CI_PROJECT_DIR/.cache .cache'
 
 .drupal-webserver: &drupal-webserver # Setup webserver root
+  # Core 11.4.12+ disables assertions in .htaccess; Canvas's test API validation needs them enabled.
+  - sed -i "/php_value zend.assertions/d" $CI_PROJECT_DIR/_drupal/web/.htaccess
   - rm -rf /var/www/html
   - ln -s $CI_PROJECT_DIR/_drupal/web /var/www/html
   - chown -R www-data:www-data /var/www/html
