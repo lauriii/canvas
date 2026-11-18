@@ -74,6 +74,7 @@
   },
   "dependencies": {
     "@drupal-canvas/headless": "^0.12.0",
+    "@drupal-canvas/json-render-astro": "^0.1.0",
     "drupal-canvas": "^0.8.0"
   },
   "peerDependencies": {

@@ -30,7 +30,7 @@ server, plus two framework hooks:
 
 ### Component rendering
 
-`<CanvasComponentTree>` renders the structured content returned by
+`<CanvasComponentTree>` renders the json-render content returned by
 `fetchPage()`. Registry keys are `component.yml` machine names:
 
 ```tsx
@@ -40,6 +40,8 @@ import HelloCard from './components/canvas/hello-card';
 
 <CanvasComponentTree
   tree={page.content}
+  preview={page.isPreview}
+  context={page.context}
   components={{ 'hello-card': HelloCard }}
 />;
 ```

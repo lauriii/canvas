@@ -1,0 +1,56 @@
+---
+import CanvasElement from './CanvasElement.astro';
+import {
+  CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
+  formatCanvasCommentMarker,
+  prepareCanvasJsonRender,
+} from '@drupal-canvas/json-render/renderer';
+import '@drupal-canvas/json-render/preview.css';
+
+import type { CanvasComponentTree } from '@drupal-canvas/json-render';
+import type { CanvasComponentRegistry } from './types';
+
+interface Props {
+  tree: CanvasComponentTree | null;
+  components: CanvasComponentRegistry;
+  /** Whether Canvas editor boundaries and empty drop areas should render. */
+  preview?: boolean;
+}
+
+const { tree, components, preview = false } = Astro.props;
+const prepared = prepareCanvasJsonRender(tree, { preview });
+---
+
+{
+  prepared.needsOuterRegion && (
+    <Fragment
+      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'start', id: 'content' })} -->`}
+    />
+  )
+}
+{
+  prepared.emptyRegion && (
+    <div
+      aria-hidden="true"
+      class={CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS}
+    />
+  )
+}
+{
+  prepared.spec?.root && (
+    <CanvasElement
+      tree={prepared.spec}
+      elementKey={prepared.spec.root}
+      components={components}
+      path={`elements.${prepared.spec.root}`}
+      editor={prepared.preview}
+    />
+  )
+}
+{
+  prepared.needsOuterRegion && (
+    <Fragment
+      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'end', id: 'content' })} -->`}
+    />
+  )
+}

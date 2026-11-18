@@ -38,7 +38,7 @@ if (!page || isPageRedirect(page)) {
   </head>
   <body>
     <main data-canvas-component-preview-document>
-      <CanvasComponentTree tree={page.content} />
+      <CanvasComponentTree tree={page.content} preview={page.isPreview} />
       <DraftSession />
     </main>
   </body>

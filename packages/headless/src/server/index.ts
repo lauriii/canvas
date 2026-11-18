@@ -48,6 +48,7 @@ export { fetchPage } from './content-api';
 export {
   isPageRedirect,
   serializeJsonForHtml,
+  type CanvasComponentTree,
   type CanvasComponentTreeElement,
   type CanvasContext,
   type CanvasComponentTreeSlot,

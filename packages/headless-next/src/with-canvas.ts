@@ -109,6 +109,16 @@ export function withCanvas(
       }
     }
 
+    const transpilePackages = [
+      ...new Set([
+        ...(config.transpilePackages ?? []),
+        '@drupal-canvas/headless',
+        '@drupal-canvas/headless-react',
+        '@drupal-canvas/json-render',
+        '@drupal-canvas/json-render-react',
+      ]),
+    ];
+
     const userHeaders = config.headers;
     const headers: NonNullable<NextConfig['headers']> = async () => {
       const userRules = userHeaders ? await userHeaders() : [];
@@ -147,6 +157,7 @@ export function withCanvas(
 
     return {
       ...config,
+      transpilePackages,
       turbopack: {
         ...config.turbopack,
         resolveAlias: {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_headless\StackMiddleware;
 
+use Drupal\canvas\CanvasClientCapabilities;
 use Drupal\canvas_headless\CanvasContentProblemResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -77,6 +78,7 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
         'The requestUri query parameter must be a site-relative URI without a fragment.',
       );
       $response->getCacheableMetadata()->setCacheMaxAge(0);
+      $response->setVary(CanvasClientCapabilities::CAPABILITIES_HEADER, FALSE);
       return $response;
     }
     $query_string = (string) (parse_url($request_uri, PHP_URL_QUERY) ?? '');
@@ -113,7 +115,7 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
       ],
     );
     // Dynamic Page Cache varies by request format, keeping this response
-    // separate from `html` and `custom_elements` responses for the target.
+    // separate from other representations of the target.
     $target_request->setRequestFormat(self::REQUEST_FORMAT);
     $target_request->headers->add(
       $request->headers->all() + $target_request->headers->all(),

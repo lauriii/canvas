@@ -13,7 +13,6 @@ use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -51,7 +50,7 @@ final class CanvasContentEntityRenderer {
     ?string $preview_language = NULL,
     bool $is_entity_preview = FALSE,
   ): array {
-    [$build, $template, $view_builder, $cacheability] = $this->buildEntityContent(
+    [$build, $template, $cacheability] = $this->buildEntityContent(
       $entity,
       $view_mode,
       $is_preview,
@@ -60,7 +59,7 @@ final class CanvasContentEntityRenderer {
 
     // Page variants provide the chrome for a canonical page. Other view modes
     // render only their content template, matching the coupled preview.
-    if ($view_mode !== 'full') {
+    if ($build === NULL || $view_mode !== 'full') {
       return [
         'build' => $build,
         'cacheability' => $cacheability,
@@ -91,15 +90,6 @@ final class CanvasContentEntityRenderer {
       ];
     }
 
-    // A page variant owns the complete response even when the route's main
-    // content is rendered by Drupal rather than by a Canvas content template.
-    if ($build === NULL) {
-      if ($view_builder === NULL) {
-        return self::unsupported($cacheability);
-      }
-      $build = $view_builder->build($view_builder->view($entity, $view_mode));
-    }
-
     if ($is_entity_preview) {
       // Like core's NodePreviewController, disable caching on the entity build
       // before page wrapping. The outer page's max-age does not prevent nested
@@ -112,7 +102,7 @@ final class CanvasContentEntityRenderer {
     // boundary around the complete tree, including page chrome.
     $main_content = $is_preview
       ? [
-        JsComponentCanvasRenderConverter::PREVIEW_CONTENT_REGION => TRUE,
+        CanvasContentSerializer::PREVIEW_CONTENT_REGION_RENDER_PROPERTY => TRUE,
         'content' => $build,
       ]
       : $build;
@@ -143,7 +133,7 @@ final class CanvasContentEntityRenderer {
     string $view_mode,
     bool $is_preview,
   ): array {
-    [$build, , , $cacheability] = $this->buildEntityContent(
+    [$build, , $cacheability] = $this->buildEntityContent(
       $entity,
       $view_mode,
       $is_preview,
@@ -158,9 +148,9 @@ final class CanvasContentEntityRenderer {
   /**
    * Builds the entity-scoped Canvas renderable before page-level chrome.
    *
-   * @return array{?array, ?ContentTemplate, ?ContentTemplateAwareViewBuilder, \Drupal\Core\Cache\CacheableMetadata}
-   *   The entity render array, resolved content template, matching view
-   *   builder, and the dependencies that determined that result.
+   * @return array{?array, ?ContentTemplate, \Drupal\Core\Cache\CacheableMetadata}
+   *   The entity render array, resolved content template, and the dependencies
+   *   that determined that result.
    */
   private function buildEntityContent(
     ContentEntityInterface $entity,
@@ -171,8 +161,8 @@ final class CanvasContentEntityRenderer {
     $template = NULL;
     $view_builder = NULL;
     $cacheability = (new CacheableMetadata())
-      // A previously unmanaged route can become managed when a headless-
-      // compatible site default is selected, so invalidate negative results.
+      // A Canvas-owned content build can gain or lose page chrome when the
+      // headless-compatible site default changes.
       ->addCacheableDependency($this->configFactory->get('canvas.settings'));
     if ($is_preview) {
       $cacheability->addCacheTags([AutoSaveManager::CACHE_TAG]);
@@ -234,7 +224,7 @@ final class CanvasContentEntityRenderer {
       }
     }
 
-    return [$build, $template, $view_builder, $cacheability];
+    return [$build, $template, $cacheability];
   }
 
   /**

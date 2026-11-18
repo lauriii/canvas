@@ -67,7 +67,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    * that serialize component trees can use this metadata to preserve its
    * structure.
    *
-   * @see \Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter
+   * @see \Drupal\canvas_headless\CanvasContentSerializer
    */
   public const EXTERNAL_RENDER_METADATA = '#canvas_external_component';
 

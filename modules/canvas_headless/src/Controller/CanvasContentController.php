@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Drupal\canvas_headless\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasClientCapabilities;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext;
 use Drupal\canvas_headless\CanvasContentContextBuilder;
 use Drupal\canvas_headless\CanvasContentEntityRenderer;
 use Drupal\canvas_headless\CanvasContentHeadBuilder;
+use Drupal\canvas_headless\CanvasContentSerializer;
 use Drupal\canvas_headless\CanvasContentTranslationLinks;
 use Drupal\canvas_headless\PreviewTokenInspector;
-use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\canvas_headless\Routing\CanvasContentRoute;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -25,9 +27,7 @@ use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
-use Drupal\custom_elements\CustomElementNormalizer;
 use Drupal\simple_oauth\Authentication\TokenAuthUserInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -44,10 +44,7 @@ final class CanvasContentController {
     private readonly CanvasContentHeadBuilder $headBuilder,
     private readonly CanvasContentContextBuilder $contextBuilder,
     private readonly CanvasContentTranslationLinks $translationLinks,
-    #[Autowire(service: 'custom_elements.canvas_render_converter')]
-    private readonly JsComponentCanvasRenderConverter $canvasRenderConverter,
-    #[Autowire(service: 'custom_elements.normalizer')]
-    private readonly CustomElementNormalizer $customElementNormalizer,
+    private readonly CanvasContentSerializer $contentSerializer,
     private readonly AccountProxyInterface $currentUser,
     private readonly AccountSwitcherInterface $accountSwitcher,
   ) {}
@@ -149,31 +146,21 @@ final class CanvasContentController {
     $managed_by_canvas = $build !== NULL;
     $translations = [];
     if ($build !== NULL) {
-      [$custom_element, $translations] = $this->canvasRenderConverter->convertRenderArrayWithTranslations($build);
-      $cacheability->addCacheableDependency($custom_element);
-      $content = $this->customElementNormalizer->normalize(
-        $custom_element,
-        context: [
-          'explicit' => TRUE,
-          'cache_metadata' => $cacheability,
-        ],
+      // @todo Remove legacy Custom Elements JSON support and return json-render by default in Canvas 2.0.0.
+      $format = CanvasClientCapabilities::has($request, 'json-render')
+        ? CanvasContentSerializer::FORMAT_JSON_RENDER
+        : CanvasContentSerializer::FORMAT_LEGACY;
+      [$content, $translations] = $this->contentSerializer->serialize(
+        $build,
+        $format,
+        $is_preview,
+        $cacheability,
       );
     }
 
-    // @todo Remove additional Custom Elements JSON normalization when json-render support is added.
-    if (\is_array($content) && $content === ['element' => 'drupal-markup']) {
-      $content = NULL;
-    }
-    elseif (\is_array($content) && array_is_list($content)) {
-      $content = match (\count($content)) {
-        0 => NULL,
-        1 => $content[0],
-        default => [
-          'element' => 'renderless-container',
-          'slots' => ['default' => $content],
-        ],
-      };
-    }
+    $cacheability->addCacheContexts([
+      HeadlessContentFormatCacheContext::CACHE_CONTEXT_ID,
+    ]);
 
     // The page and site context React Code Components read through the
     // `drupal-canvas` context hooks, generated for the routed request.

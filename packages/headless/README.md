@@ -53,9 +53,9 @@ exchange, PKCE, editor identity pinning and postMessage checks are unchanged.
 
 ## Rendered pages
 
-`fetchPage()` asks Drupal to resolve a site-relative path. Drupal returns route
-context and document-head data, plus a Canvas component tree when Canvas renders
-the route:
+`fetchPage()` asks Drupal to resolve a site-relative path. When Canvas renders
+the route, the response contains a json-render document alongside route context
+and document-head data:
 
 ```ts
 import { isPageRedirect } from '@drupal-canvas/headless';
@@ -66,15 +66,21 @@ if (result && isPageRedirect(result)) {
 } else {
   result?.head.title;
   result?.content;
+  result?.isPreview;
   result?.route.managedByCanvas;
   result?.route.entity;
 }
 ```
 
-Pass `page.content` directly to the framework's `CanvasComponentTree` renderer.
-It contains one structured root, or `null` when Canvas does not return managed
-content. Multiple rendered roots are nested under a transparent structural root.
-Pass `page.head` to the framework bridge documented by the adapter.
+Pass `page.content` and `page.isPreview` to the framework's
+`CanvasComponentTree` renderer. Content contains a json-render `root` and flat
+`elements` map, or `null` when Canvas does not return managed content. Preview
+state remains separate from that document. Multiple rendered roots are children
+of a transparent structural root. Pass `page.head` to the framework bridge
+documented by the adapter. Draft responses represent declared empty slots with
+structural `canvas-slot-placeholder` elements referenced through the normal
+`children` or `slots` fields. Published responses do not include these
+placeholders.
 
 `page.context` carries the page and site context React Code Components read
 through the `usePageContext()` and `useSiteContext()` hooks of the
@@ -126,11 +132,13 @@ for a language-switcher example.
 
 Use `fetchEntity({ type, id, viewMode })` when the current request should render
 one specific content entity in a specific content-template view mode, such as
-`server.fetchEntity({ type: 'node', id: '1', viewMode: 'teaser' })`.
+`server.fetchEntity({ type: 'node', id: '1', viewMode: 'teaser' })`. Its
+`content` uses the same json-render document format as `fetchPage()`. Pass
+`result.isPreview` to the renderer's `preview` prop.
 
 Routes that Canvas does not render still return their document-head and route
 data with `content` set to `null` and `route.managedByCanvas` set to `false`. An
-empty managed tree also has `content` set to `null`, but keeps
+empty managed tree has `content.root` set to an empty string and keeps
 `route.managedByCanvas` set to `true`. Route-not-found and access-denied
 responses make `fetchPage()` return `null`.
 

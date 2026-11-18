@@ -49,11 +49,11 @@ of the marked children:
 </DraftSession>
 ```
 
-**3. Component tree** — pass the structured content returned by `fetchPage()` to
-the globally registered `<CanvasComponentTree>`:
+**3. Component tree** — pass the json-render content returned by `fetchPage()`
+to the globally registered `<CanvasComponentTree>`:
 
 ```vue
-<CanvasComponentTree :tree="page.content" />
+<CanvasComponentTree :tree="page.content" :preview="page.isPreview" />
 ```
 
 The module supplies a registry of every discovered component implementation, and
@@ -101,7 +101,8 @@ shared `drupal-canvas` client (`createJsonApiClient()`), which deserializes
 responses with `DefaultSerializer`.
 
 `fetchEntity(event, { type, id, viewMode })` renders one content entity without
-page-level route or head data. Use it for embedded renders such as teaser cards.
+page-level route or head data. Use it for embedded renders such as teaser cards,
+passing `result.content` and `result.isPreview` to `<CanvasComponentTree>`.
 
 `page.context` carries the page and site context (title, breadcrumbs, primary
 entity, branding) Drupal generated for the routed page. To fetch JSON:API

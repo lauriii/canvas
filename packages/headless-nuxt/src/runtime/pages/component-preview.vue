@@ -34,7 +34,10 @@ if (!page.value) {
 
 <template>
   <main data-canvas-component-preview-document>
-    <CanvasComponentTree :tree="page?.content ?? null" />
+    <CanvasComponentTree
+      :tree="page?.content ?? null"
+      :preview="page?.isPreview ?? false"
+    />
   </main>
 </template>
 

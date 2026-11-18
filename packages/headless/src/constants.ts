@@ -89,3 +89,9 @@ export const HEADLESS_HEIGHT_PROBE_READY_MESSAGE =
 /** Host → app: the base height of the selected preview viewport. */
 export const HEADLESS_VIEWPORT_HEIGHT_MESSAGE =
   'canvas-headless:viewport-height';
+
+/** Protocol capabilities supported by the SDK. */
+export const CANVAS_HEADLESS_CAPABILITIES = ['json-render'] as const;
+
+/** Request header advertising supported content API capabilities. */
+export const CANVAS_CLIENT_CAPABILITIES_HEADER = 'Canvas-Client-Capabilities';

@@ -19,6 +19,8 @@
 export {
   CANVAS_COMPONENT_PREVIEW_QUERY,
   CANVAS_COMPONENT_PREVIEW_PATH,
+  CANVAS_HEADLESS_CAPABILITIES,
+  CANVAS_CLIENT_CAPABILITIES_HEADER,
   CANVAS_HEADLESS_CLIENT_ID,
   DRAFT_DATA_COOKIE_NAME,
   HEADLESS_ASSERTION_MESSAGE,
@@ -61,6 +63,7 @@ export { getSessionToken, type AccessToken } from './token';
 export {
   isPageRedirect,
   serializeJsonForHtml,
+  type CanvasComponentTree,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
   type CanvasContext,
@@ -77,19 +80,21 @@ export {
   type PageResult,
 } from './page';
 export { type EntityResult } from './entity';
+export { convertLegacyCustomElementsFormat } from './legacy-custom-elements';
 export {
-  CANVAS_COMPONENT_UUID_PROP,
+  CANVAS_MARKER_ELEMENT,
   CANVAS_PREVIEW_CONTENT_REGION_ELEMENT,
   componentElementFromName,
   componentNameFromElement,
   findCanvasComponent,
   getCanvasComponentRenderData,
+  getCanvasComponentTreeElementChildren,
   hasCanvasPreviewContentRegion,
-  isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
   normalizeCanvasComponentTreeSlot,
   reportMissingCanvasComponent,
   reportMissingCanvasComponentUuid,
+  reportMissingCanvasMarkerComponentUuid,
   type CanvasComponentRenderData,
 } from './render';

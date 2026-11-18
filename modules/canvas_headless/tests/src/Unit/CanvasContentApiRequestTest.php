@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Unit;
 
+use Drupal\canvas\CanvasClientCapabilities;
+use Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext;
+use Drupal\canvas_headless\CanvasHeadlessServiceProvider;
 use Drupal\canvas_headless\EventSubscriber\DetachedPreviewRouteSubscriber;
 use Drupal\canvas_headless\EventSubscriber\PreviewLanguageSubscriber;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
+use Drupal\canvas_headless\PageCache\DisallowCanvasContentApiRequests;
 use Drupal\canvas_headless\Routing\DetachedPreviewRouteProcessor;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\PageCache\RequestPolicyInterface;
+use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
 use Drupal\Core\Routing\CacheableRouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Drupal\simple_oauth\Authentication\TokenAuthUserInterface;
 use Drupal\simple_oauth\Entity\Oauth2TokenInterface;
 use Drupal\simple_oauth\Oauth2ScopeInterface;
@@ -22,7 +31,10 @@ use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -32,6 +44,10 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
  * Tests content API request rewriting and detached preview routing.
  */
 #[CoversClass(CanvasContentApiRequest::class)]
+#[CoversClass(CanvasClientCapabilities::class)]
+#[CoversClass(HeadlessContentFormatCacheContext::class)]
+#[CoversClass(DisallowCanvasContentApiRequests::class)]
+#[CoversClass(CanvasHeadlessServiceProvider::class)]
 #[CoversClass(DetachedPreviewRouteProcessor::class)]
 #[CoversClass(DetachedPreviewRouteSubscriber::class)]
 #[CoversClass(PreviewLanguageSubscriber::class)]
@@ -87,7 +103,13 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
             $request->attributes->get(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY),
           );
           self::assertSame('Bearer preview-token', $request->headers->get('Authorization'));
-          return new Response();
+          self::assertSame(
+            'json-render',
+            $request->headers->get(CanvasClientCapabilities::CAPABILITIES_HEADER),
+          );
+          $response = new Response();
+          $response->setVary(['Origin', CanvasClientCapabilities::CAPABILITIES_HEADER]);
+          return $response;
         },
       );
     $middleware = new CanvasContentApiRequest($kernel);
@@ -100,8 +122,174 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
       ]),
     );
     $request->headers->set('Authorization', 'Bearer preview-token');
+    $request->headers->set(CanvasClientCapabilities::CAPABILITIES_HEADER, 'json-render');
 
-    $middleware->handle($request);
+    $response = $middleware->handle($request);
+    self::assertSame(
+      ['Origin', CanvasClientCapabilities::CAPABILITIES_HEADER],
+      $response->getVary(),
+    );
+  }
+
+  /**
+   * Tests that Internal Page Cache skips the public content API endpoint.
+   */
+  public function testInternalPageCachePolicy(): void {
+    $policy = new DisallowCanvasContentApiRequests();
+
+    self::assertSame(
+      RequestPolicyInterface::DENY,
+      $policy->check(Request::create(CanvasContentApiRequest::API_PATH)),
+    );
+    self::assertSame(
+      RequestPolicyInterface::DENY,
+      $policy->check(Request::create('/canvas/content-api/entity')),
+    );
+    self::assertNull($policy->check(Request::create('/ordinary')));
+    // Without the language module's path processor, prefixes stay untouched.
+    self::assertNull($policy->check(Request::create('/francais/canvas/content-api/entity')));
+
+    $language_manager = $this->createMock(ConfigurableLanguageManagerInterface::class);
+    $language_manager->method('getLanguages')->willReturn([
+      'en' => new Language(['id' => 'en']),
+      'fr' => new Language(['id' => 'fr']),
+    ]);
+    $language_processor = new LanguageNegotiationUrl();
+    $language_processor->setLanguageManager($language_manager);
+    $language_processor->setConfig($this->getConfigFactoryStub([
+      'language.negotiation' => [
+        'url' => [
+          'source' => LanguageNegotiationUrl::CONFIG_PATH_PREFIX,
+          'prefixes' => ['en' => '', 'fr' => 'francais'],
+        ],
+      ],
+    ]));
+    $policy = new DisallowCanvasContentApiRequests($language_processor);
+    foreach ([
+      '/canvas/content-api',
+      '/canvas/content-api/entity',
+      '/francais/canvas/content-api',
+      '/francais/canvas/content-api/entity',
+      // cspell:ignore ncais Dapi
+      '/fr%61ncais/canvas/content-api/entity',
+      '/canvas/content%2Dapi/entity',
+    ] as $path) {
+      self::assertSame(RequestPolicyInterface::DENY, $policy->check(Request::create($path)), $path);
+    }
+    foreach ([
+      '/ordinary',
+      '/francais/ordinary',
+      '/fr/canvas/content-api/entity',
+      '/francais/canvas/content-api/entity/extra',
+    ] as $path) {
+      self::assertNull($policy->check(Request::create($path)), $path);
+    }
+
+    $request = Request::create('/francais/canvas/content-api/entity');
+    $processor = $this->createMock(InboundPathProcessorInterface::class);
+    $processor->expects($this->once())->method('processInbound')->willReturnCallback(
+      static function (string $path, Request $processed_request) use ($request): string {
+        self::assertNotSame($request, $processed_request);
+        $processed_request->attributes->set('_language_processed', TRUE);
+        return '/canvas/content-api/entity';
+      },
+    );
+    self::assertSame(RequestPolicyInterface::DENY, (new DisallowCanvasContentApiRequests($processor))->check($request));
+    self::assertFalse($request->attributes->has('_language_processed'));
+
+    $container = new ContainerBuilder();
+    $provider = new CanvasHeadlessServiceProvider();
+    $provider->alter($container);
+    self::assertFalse($container->hasDefinition('http_middleware.page_cache'));
+    $shared_policy = $this->createMock(RequestPolicyInterface::class);
+    $shared_policy->method('check')->willReturnCallback(
+      static fn (Request $request): string => $request->isMethodCacheable() ? RequestPolicyInterface::ALLOW : RequestPolicyInterface::DENY,
+    );
+    $container->set('test.shared_policy', $shared_policy);
+    $container->set(DisallowCanvasContentApiRequests::class, new DisallowCanvasContentApiRequests());
+    $container->register('http_middleware.page_cache')
+      ->setArguments([NULL, new Reference('test.shared_policy')]);
+    $provider->alter($container);
+    $scoped_policy = $container->getDefinition('http_middleware.page_cache')->getArgument(1);
+    self::assertInstanceOf(Definition::class, $scoped_policy);
+    $container->setDefinition('test.scoped_policy', $scoped_policy);
+    $scoped_policy = $container->get('test.scoped_policy');
+    self::assertInstanceOf(RequestPolicyInterface::class, $scoped_policy);
+    foreach ([CanvasContentApiRequest::API_PATH, '/canvas/content-api/entity'] as $path) {
+      $request = Request::create($path);
+      self::assertSame(RequestPolicyInterface::ALLOW, $shared_policy->check($request));
+      self::assertSame(RequestPolicyInterface::DENY, $scoped_policy->check($request));
+    }
+    self::assertSame(RequestPolicyInterface::ALLOW, $scoped_policy->check(Request::create('/ordinary')));
+    self::assertSame(RequestPolicyInterface::DENY, $scoped_policy->check(Request::create('/ordinary', 'POST')));
+  }
+
+  /**
+   * Tests capability tokens and their normalized content format cache variation.
+   */
+  #[DataProvider('jsonRenderSupportProvider')]
+  public function testSupportsJsonRender(string|array|null $capabilities, bool $expected): void {
+    $request = Request::create(CanvasContentApiRequest::API_PATH);
+    if ($capabilities !== NULL) {
+      $request->headers->set(CanvasClientCapabilities::CAPABILITIES_HEADER, $capabilities);
+    }
+
+    self::assertSame(
+      $expected,
+      CanvasClientCapabilities::has($request, 'json-render'),
+    );
+    $request_stack = new RequestStack();
+    $request_stack->push($request);
+    $cache_context = new HeadlessContentFormatCacheContext($request_stack);
+    self::assertSame($expected ? 'json-render' : 'legacy', $cache_context->getContext());
+  }
+
+  /**
+   * Provides capability headers and their json-render support.
+   *
+   * @return array<string, array{string|list<string|null>|null, bool}>
+   */
+  public static function jsonRenderSupportProvider(): array {
+    return [
+      'missing header' => [NULL, FALSE],
+      'empty header' => ['', FALSE],
+      'valueless header' => [[NULL], FALSE],
+      'unknown capability' => ['future-feature', FALSE],
+      'json-render' => ['json-render', TRUE],
+      'multiple capabilities' => ['future-feature, json-render, another-feature', TRUE],
+      'whitespace' => [" future-feature , \tjson-render\t ", TRUE],
+      'duplicate capability' => ['json-render, json-render', TRUE],
+      'empty members' => [', json-render, ,', TRUE],
+      'repeated header' => [['future-feature', 'json-render'], TRUE],
+      'capability in first header' => [['json-render', 'future-feature'], TRUE],
+      'uppercase token' => ['JSON-RENDER', TRUE],
+      'mixed-case token' => ['Json-Render', TRUE],
+      'mixed-case repeated header' => [['future-feature', ' Json-Render '], TRUE],
+      'token prefix' => ['json-render-extra', FALSE],
+      'token suffix' => ['other-json-render', FALSE],
+      'quoted token' => ['"json-render"', FALSE],
+      'parameters are not tokens' => ['json-render;version=1', FALSE],
+      'trailing newline' => ["json-render\n", FALSE],
+    ];
+  }
+
+  /**
+   * Tests capability lookup independently of headless response formats.
+   */
+  public function testOtherClientCapabilities(): void {
+    $request = Request::create('/canvas/api/v0/artifacts/upload');
+    $request->headers->set(strtolower(CanvasClientCapabilities::CAPABILITIES_HEADER), [
+      ' content-hashed-artifacts, future-feature ',
+      'another-feature',
+    ]);
+
+    self::assertTrue(CanvasClientCapabilities::has($request, 'content-hashed-artifacts'));
+    self::assertTrue(CanvasClientCapabilities::has($request, 'future-feature'));
+    self::assertTrue(CanvasClientCapabilities::has($request, 'another-feature'));
+    self::assertFalse(CanvasClientCapabilities::has($request, 'json-render'));
+    self::assertTrue(CanvasClientCapabilities::has($request, 'Future-Feature'));
+    self::assertFalse(CanvasClientCapabilities::has($request, 'future'));
+    self::assertFalse(CanvasClientCapabilities::has($request, ''));
   }
 
   /**
@@ -303,6 +491,7 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
     $response = $middleware->handle($request);
 
     self::assertSame(400, $response->getStatusCode());
+    self::assertSame([CanvasClientCapabilities::CAPABILITIES_HEADER], $response->getVary());
     self::assertSame(
       'application/problem+json',
       $response->headers->get('Content-Type'),

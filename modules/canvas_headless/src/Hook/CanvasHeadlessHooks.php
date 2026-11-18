@@ -78,7 +78,7 @@ class CanvasHeadlessHooks {
    * Implements hook_canvas_headless_safe_permissions().
    *
    * The module's own baseline: viewing content, which covers published
-   * Canvas pages and the Custom Elements API rendering. Declarations for
+   * Canvas pages and Canvas content API rendering. Declarations for
    * optional modules are harmless — the granularity plugin drops undefined
    * permissions. Two of them come from content_moderation ('view any
    * unpublished content', 'view latest version'), so on sites without that

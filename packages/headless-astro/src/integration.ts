@@ -183,6 +183,8 @@ export function canvas(
               noExternal: [
                 '@drupal-canvas/headless',
                 '@drupal-canvas/headless-astro',
+                '@drupal-canvas/json-render',
+                '@drupal-canvas/json-render-astro',
               ],
             },
           },

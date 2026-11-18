@@ -142,13 +142,17 @@ import { CanvasRuntime } from '@drupal-canvas/headless-next/CanvasRuntime';
 renders `<DraftSession>` from `@drupal-canvas/headless-next/client` with a
 render prop that owns the banner markup.
 
-**6. Component tree** — pass the structured content returned by `fetchPage()` to
-`<CanvasComponentTree>`:
+**6. Component tree** — pass the json-render content returned by `fetchPage()`
+to `<CanvasComponentTree>`:
 
 ```tsx
 import { CanvasComponentTree } from '@drupal-canvas/headless-next/CanvasComponentTree';
 
-<CanvasComponentTree tree={page.content} context={page.context} />;
+<CanvasComponentTree
+  tree={page.content}
+  preview={page.isPreview}
+  context={page.context}
+/>;
 ```
 
 `withCanvas()` generates a registry of every discovered component
@@ -213,7 +217,8 @@ are created from; `CanvasRuntime` passes it down automatically, and
 mount.
 
 `fetchEntity({ type, id, viewMode })` renders one content entity without
-page-level route or head data. Use it for embedded renders such as teaser cards.
+page-level route or head data. Use it for embedded renders such as teaser cards,
+passing `result.content` and `result.isPreview` to `<CanvasComponentTree>`.
 
 `toNextMetadata()` maps the Canvas head entries that Next.js Metadata can
 represent. It omits entries that Next.js Metadata cannot represent. Render

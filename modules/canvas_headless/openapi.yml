@@ -55,6 +55,13 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: Canvas-Client-Capabilities
+          in: header
+          required: false
+          description: Comma-separated, case-insensitive capability tokens supported by the client.
+          schema:
+            type: string
+            example: json-render, example-capability
       responses:
         '200':
           description: Content result or redirect result.
@@ -69,9 +76,13 @@ paths:
                   summary: French request rendering English because the French translation is unavailable.
                   value:
                     content:
-                      element: js-example-card
-                      props:
-                        heading: Example heading
+                      root: 8c6ec83b-e2c5-4289-8eb2-ac3165f20a3a
+                      elements:
+                        8c6ec83b-e2c5-4289-8eb2-ac3165f20a3a:
+                          type: js.example_card
+                          props:
+                            heading: Example heading
+                          children: []
                     head:
                       title: Example page
                     route:
@@ -220,6 +231,13 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: Canvas-Client-Capabilities
+          in: header
+          required: false
+          description: Comma-separated, case-insensitive capability tokens supported by the client.
+          schema:
+            type: string
+            example: json-render, example-capability
       responses:
         '200':
           description: Entity render result.
@@ -231,9 +249,13 @@ paths:
                 entity:
                   value:
                     content:
-                      element: js-example-card
-                      props:
-                        heading: Example heading
+                      root: 8c6ec83b-e2c5-4289-8eb2-ac3165f20a3a
+                      elements:
+                        8c6ec83b-e2c5-4289-8eb2-ac3165f20a3a:
+                          type: js.example_card
+                          props:
+                            heading: Example heading
+                          children: []
                     managedByCanvas: true
                     entity:
                       entityType: node
@@ -534,8 +556,8 @@ components:
       properties:
         content:
           oneOf:
-            - type: object
-              additionalProperties: true
+            - $ref: '#/components/schemas/CanvasJsonRenderDocument'
+            - $ref: '#/components/schemas/LegacyCanvasContent'
             - type: 'null'
         head:
           $ref: '#/components/schemas/UnheadDocument'
@@ -543,6 +565,48 @@ components:
           $ref: '#/components/schemas/CanvasRouteContext'
         context:
           $ref: '#/components/schemas/CanvasContext'
+
+    CanvasJsonRenderDocument:
+      type: object
+      description: Preview responses represent empty declared component slots with canvas-slot-placeholder elements and Canvas marker components with canvas-marker elements.
+      additionalProperties: false
+      required: [root, elements]
+      properties:
+        root:
+          type: string
+        elements:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CanvasJsonRenderElement'
+
+    CanvasJsonRenderElement:
+      type: object
+      additionalProperties: false
+      required: [type, props, children]
+      properties:
+        type:
+          type: string
+        props:
+          type: object
+          additionalProperties: true
+        children:
+          type: array
+          items:
+            type: string
+        slots:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    LegacyCanvasContent:
+      type: object
+      required: [element]
+      properties:
+        element:
+          type: string
+      additionalProperties: true
 
     CanvasContext:
       description: >-
@@ -720,8 +784,8 @@ components:
       properties:
         content:
           oneOf:
-            - type: object
-              additionalProperties: true
+            - $ref: '#/components/schemas/CanvasJsonRenderDocument'
+            - $ref: '#/components/schemas/LegacyCanvasContent'
             - type: 'null'
         managedByCanvas:
           type: boolean

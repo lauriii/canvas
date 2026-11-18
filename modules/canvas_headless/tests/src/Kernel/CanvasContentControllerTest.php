@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 // cspell:ignore unroutable francaise Btag Anglais fichier fichiers rendu Salut brouillon externe
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasClientCapabilities;
 use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -15,7 +16,9 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext;
 use Drupal\canvas_headless\CanvasContentContextBuilder;
+use Drupal\canvas_headless\CanvasContentSerializer;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\PreviewLanguageRedirectResponse;
@@ -25,7 +28,6 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
-use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
@@ -46,8 +48,6 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Drupal\field\Entity\FieldConfig;
-use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
@@ -101,6 +101,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     'language',
     'field',
     'node',
+    'page_cache',
     'serialization',
     'consumers',
     'simple_oauth',
@@ -310,6 +311,188 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests capability negotiation and cache variation for json-render output.
+   */
+  public function testCanvasContentJsonRenderResponse(): void {
+    $page = $this->createPage();
+    $page->setComponentTree([
+      ...$page->getComponentTree()->getValue(),
+      [
+        'uuid' => $this->container->get('uuid')->generate(),
+        'component_id' => self::COMPONENT_ID,
+        'inputs' => ['heading' => 'Second component heading'],
+      ],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+    $this->setCurrentAccount($this->editor);
+
+    $legacy_response = $this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: '',
+    );
+    self::assertSame(
+      'UNCACHEABLE (request policy)',
+      $legacy_response->headers->get('X-Drupal-Cache'),
+    );
+    self::assertContains(
+      CanvasClientCapabilities::CAPABILITIES_HEADER,
+      $legacy_response->getVary(),
+    );
+    self::assertSame(
+      'renderless-container',
+      self::responseData($legacy_response)['content']['element'],
+    );
+
+    $response = $this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: 'future-feature, json-render',
+    );
+    $data = self::responseData($response);
+    self::assertSame(
+      'UNCACHEABLE (request policy)',
+      $response->headers->get('X-Drupal-Cache'),
+    );
+    self::assertContains(
+      CanvasClientCapabilities::CAPABILITIES_HEADER,
+      $response->getVary(),
+    );
+    self::assertSame('el-0', $data['content']['root']);
+    self::assertSame(
+      'renderless-container',
+      $data['content']['elements']['el-0']['type'],
+    );
+    self::assertCount(2, $data['content']['elements']['el-0']['children']);
+    self::assertSame(
+      \array_column($page->getComponentTree()->getValue(), 'uuid'),
+      $data['content']['elements']['el-0']['children'],
+    );
+    foreach ($data['content']['elements']['el-0']['children'] as $component_uuid) {
+      self::assertArrayNotHasKey('canvasUuid', $data['content']['elements'][$component_uuid]['props']);
+    }
+    self::assertCount(
+      2,
+      array_filter(
+        $data['content']['elements'],
+        static fn (array $element): bool => $element['type'] === self::COMPONENT_ID,
+      ),
+    );
+    self::assertContains(
+      HeadlessContentFormatCacheContext::CACHE_CONTEXT_ID,
+      $response->getCacheableMetadata()->getCacheContexts(),
+    );
+
+    $second_legacy_response = $this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: '',
+    );
+    self::assertSame(
+      'renderless-container',
+      self::responseData($second_legacy_response)['content']['element'],
+    );
+
+    $page->setComponentTree([])->save();
+    $empty_data = self::responseData($this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: 'json-render',
+    ));
+    self::assertSame('', $empty_data['content']['root']);
+    self::assertSame([], $empty_data['content']['elements']);
+    self::assertTrue($empty_data['route']['managedByCanvas']);
+  }
+
+  /**
+   * Tests published empty slots and draft slot placeholders in json-render.
+   */
+  public function testCanvasContentJsonRenderEmptySlots(): void {
+    $component = JavaScriptComponent::create([
+      'machineName' => 'canvas_headless_slots_test',
+      'name' => 'Canvas Headless slots test',
+      'status' => TRUE,
+      'type' => 'external',
+      'props' => [],
+      'required' => [],
+      'slots' => [
+        'default' => ['title' => 'Default'],
+        'footer_slot' => ['title' => 'Footer'],
+      ],
+      'dataDependencies' => [],
+    ]);
+    self::assertEntityIsValid($component);
+    $component->save();
+
+    $page = Page::create([
+      'title' => 'Empty slots',
+      'owner' => $this->editor->id(),
+      'status' => TRUE,
+      'components' => [[
+        'uuid' => '8c6ec83b-e2c5-4289-8eb2-ac3165f20a3a',
+        'component_id' => 'js.canvas_headless_slots_test',
+        'inputs' => [],
+      ],
+      ],
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+    $this->setCurrentAccount($this->editor);
+
+    $json_response = $this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: 'json-render',
+    );
+    $elements = self::responseData($json_response)['content']['elements'];
+    $components = \array_values(\array_filter(
+      $elements,
+      static fn (array $element): bool => $element['type'] === 'js.canvas_headless_slots_test',
+    ));
+    self::assertCount(1, $components);
+    self::assertArrayNotHasKey('canvasSlots', $components[0]);
+    self::assertSame([], $components[0]['children']);
+    self::assertArrayNotHasKey('slots', $components[0]);
+    self::assertNotContains(
+      'canvas-slot-placeholder',
+      \array_column($elements, 'type'),
+    );
+
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $preview_response = $this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: 'json-render',
+    );
+    $preview_elements = self::responseData($preview_response)['content']['elements'];
+    $preview_components = \array_values(\array_filter(
+      $preview_elements,
+      static fn (array $element): bool => $element['type'] === 'js.canvas_headless_slots_test',
+    ));
+    self::assertCount(1, $preview_components);
+    self::assertArrayNotHasKey('canvasSlots', $preview_components[0]);
+    $default_placeholder_id = $preview_components[0]['children'][0];
+    $footer_placeholder_id = $preview_components[0]['slots']['footer_slot'][0];
+    self::assertSame([
+      'type' => 'canvas-slot-placeholder',
+      'props' => [],
+      'children' => [],
+    ], $preview_elements[$default_placeholder_id]);
+    self::assertSame([
+      'type' => 'canvas-slot-placeholder',
+      'props' => [],
+      'children' => [],
+    ], $preview_elements[$footer_placeholder_id]);
+
+    $legacy_response = $this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: '',
+    );
+    self::assertStringNotContainsString(
+      'canvas-slot-placeholder',
+      \json_encode(
+        self::responseData($legacy_response)['content'],
+        JSON_THROW_ON_ERROR,
+      ),
+    );
+  }
+
+  /**
    * Tests default-theme assets and cache invalidation independently of the active theme.
    */
   public function testDefaultThemeAssets(): void {
@@ -462,6 +645,21 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       $response->getCacheableMetadata()->getCacheTags(),
     );
 
+    $json_response = $this->renderContentPath(
+      '/page/' . $page->id(),
+      capabilities: 'json-render',
+    );
+    $json_data = self::responseData($json_response);
+    self::assertTrue($json_data['route']['managedByCanvas']);
+    $components = \array_filter(
+      $json_data['content']['elements'],
+      static fn (array $element): bool => $element['type'] === self::COMPONENT_ID,
+    );
+    self::assertSame(
+      ['Before page content', 'Stored component heading', 'After page content'],
+      \array_values(\array_map(static fn (array $element): string => $element['props']['heading'], $components)),
+    );
+
     // The editor preview composes both a pending page variant selection and
     // that newly selected variant's own auto-saved component tree.
     $selected = $this->createPageVariant(
@@ -518,6 +716,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $variant_preview = $this->renderContentPath(
       '/page/' . $page->id(),
       [CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => $selected_id],
+      capabilities: 'json-render',
     );
     $variant_preview_data = self::responseData($variant_preview);
     $variant_preview_content = \json_encode(
@@ -526,9 +725,34 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     );
     self::assertTrue($variant_preview_data['route']['managedByCanvas']);
     self::assertStringContainsString('Draft page chrome', $variant_preview_content);
+    self::assertStringContainsString('canvas-marker', $variant_preview_content);
     self::assertStringContainsString('canvas--page-content-marker-placeholder', $variant_preview_content);
     self::assertStringNotContainsString('Stored component heading', $variant_preview_content);
     self::assertStringNotContainsString('Published selected chrome', $variant_preview_content);
+    $marker_elements = \array_filter(
+      $variant_preview_data['content']['elements'],
+      static fn (array $element): bool => $element['type'] === CanvasContentSerializer::MARKER_ELEMENT,
+    );
+    self::assertCount(1, $marker_elements);
+    $marker_uuid = \array_key_first($marker_elements);
+    self::assertIsString($marker_uuid);
+    self::assertSame(['markerId' => Marker::PAGE_CONTENT_LOCAL_ID], $marker_elements[$marker_uuid]['props']);
+    self::assertSame(2, \substr_count($variant_preview_content, $marker_uuid));
+
+    $legacy_variant_preview = $this->renderContentPath(
+      '/page/' . $page->id(),
+      [CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => $selected_id],
+      capabilities: '',
+    );
+    $legacy_variant_preview_content = \json_encode(
+      self::responseData($legacy_variant_preview)['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringNotContainsString('canvas-marker', $legacy_variant_preview_content);
+    self::assertStringContainsString('canvas--page-content-marker-placeholder', $legacy_variant_preview_content);
+    self::assertSame(1, \substr_count($legacy_variant_preview_content, 'canvas-start-'));
+    self::assertStringNotContainsString('drupal-library-', $legacy_variant_preview_content);
+    self::assertSame(1, \substr_count($legacy_variant_preview_content, 'canvas-end-'));
 
     // An explicit variant can render its saved tree without draft components
     // or the editor-only marker placeholder.
@@ -619,10 +843,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
     $response = $this->renderContentPath('/node/' . $node->id());
     $data = self::responseData($response);
-    $content = \json_encode($data['content'], JSON_THROW_ON_ERROR);
-    self::assertTrue($data['route']['managedByCanvas']);
-    self::assertStringContainsString('Before page content', $content);
-    self::assertStringContainsString('"element":"drupal-markup"', $content);
+    self::assertFalse($data['route']['managedByCanvas']);
+    self::assertNull($data['content']);
 
     $template_variant = $this->createPageVariant(
       'content_template',
@@ -764,8 +986,12 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $data = self::responseData($response);
     self::assertNull($data['content']);
     self::assertFalse($data['route']['managedByCanvas']);
-    self::assertContains(
+    self::assertNotContains(
       'config:canvas.page_variant.theme_stark',
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+    self::assertContains(
+      'config:canvas.settings',
       $response->getCacheableMetadata()->getCacheTags(),
     );
 
@@ -893,6 +1119,11 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         ],
         [
           'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => 'sdc.canvas_test_sdc.crash',
+          'inputs' => ['crash' => TRUE],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
           'component_id' => 'block.system_branding_block',
           'inputs' => [
             'use_site_logo' => FALSE,
@@ -921,7 +1152,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertStringContainsString('Canvas Headless block test', $content);
     self::assertStringContainsString('Rendered by a block component', $content);
     self::assertStringContainsString('Rendered by a local JavaScript component', $content);
-    self::assertSame(2, \substr_count($content, '"element":"drupal-markup"'));
+    self::assertStringContainsString('Oops, something went wrong!', $content);
+    self::assertSame(3, \substr_count($content, '"element":"drupal-markup"'));
     self::assertSame(1, \substr_count($content, '"element":"js-canvas-headless-local-test"'));
 
     // Exclusion also reaches local JavaScript components nested in an explicit
@@ -972,7 +1204,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Tests the translations of the rendered code components' strings.
    */
-  public function testCodeComponentTranslations(): void {
+  #[DataProvider('providerContentFormats')]
+  public function testCodeComponentTranslations(?string $capabilities): void {
     ConfigurableLanguage::createFromLangcode('fr')->save();
     $this->config('language.negotiation')
       ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
@@ -1037,7 +1270,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $this->setCurrentAccount($this->editor);
 
     // Only the rendered components and the components they import.
-    $response = $this->renderContentPath('/fr/page/' . $page->id());
+    $response = $this->renderContentPath('/fr/page/' . $page->id(), capabilities: $capabilities);
     self::assertEquals([
       'strings' => [
         '' => [
@@ -1060,7 +1293,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     foreach (['false', 'true'] as $exclude_auto_save) {
       $strings = self::responseData($this->renderContentPath('/fr/page/' . $page->id(), [
         CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save,
-      ]))['context']['translations']['strings'][''];
+      ], $capabilities))['context']['translations']['strings'][''];
       self::assertSame($exclude_auto_save === 'false', isset($strings['Draft greeting']));
       self::assertSame($exclude_auto_save === 'true', isset($strings['Hello @name']));
       self::assertSame('Lire la suite', $strings['Read more']);
@@ -1068,7 +1301,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $this->setCurrentAccount($this->editor);
 
     // No translations: no key, as for Drupal-rendered pages.
-    self::assertArrayNotHasKey('translations', self::responseData($this->renderContentPath('/page/' . $page->id()))['context']);
+    self::assertArrayNotHasKey('translations', self::responseData($this->renderContentPath('/page/' . $page->id(), capabilities: $capabilities))['context']);
     $page->set('components', [
       [
         'uuid' => $this->container->get('uuid')->generate(),
@@ -1077,7 +1310,17 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       ],
     ])->save();
     $external->set('translatableStrings', NULL)->save();
-    self::assertArrayNotHasKey('translations', self::responseData($this->renderContentPath('/fr/page/' . $page->id()))['context']);
+    self::assertArrayNotHasKey('translations', self::responseData($this->renderContentPath('/fr/page/' . $page->id(), capabilities: $capabilities))['context']);
+  }
+
+  /**
+   * Provides legacy and json-render content response formats.
+   */
+  public static function providerContentFormats(): array {
+    return [
+      'legacy' => [NULL],
+      'json-render' => ['json-render'],
+    ];
   }
 
   /**
@@ -1476,44 +1719,18 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
     }
 
-    // A page variant can wrap Drupal-rendered content without a Canvas content
-    // template. Its nested entity must not reuse a previous form preview.
+    // A page variant alone does not make Drupal-rendered entity content
+    // available through the Canvas content API.
     $template = ContentTemplate::load('node.article.full');
     self::assertInstanceOf(ContentTemplate::class, $template);
     $template->delete();
-    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
-    $this->config('system.theme')->set('default', 'stark')->save();
     $this->createPageVariant('headless', 'Before page content', 'After page content');
     $this->config('canvas.settings')->set('default_page_variant', 'headless')->save();
-    FieldStorageConfig::create([
-      'entity_type' => 'node',
-      'field_name' => 'field_preview',
-      'type' => 'string',
-    ])->save();
-    FieldConfig::create([
-      'entity_type' => 'node',
-      'bundle' => 'article',
-      'field_name' => 'field_preview',
-    ])->save();
-    EntityViewDisplay::create([
-      'targetEntityType' => 'node',
-      'bundle' => 'article',
-      'mode' => 'default',
-      'status' => TRUE,
-    ])->setComponent('field_preview', ['type' => 'string', 'label' => 'hidden'])->save();
-    $node->in_preview = TRUE;
-    foreach (['First unsaved field value', 'Second unsaved field value'] as $field_value) {
-      $this->setCurrentAccount($editor);
-      $node->set('field_preview', $field_value);
-      $form = $this->container->get(EntityTypeManagerInterface::class)->getFormObject('node', 'default')->setEntity($node);
-      $this->container->get(PrivateTempStoreFactory::class)->get('node_preview')->set((string) $node->uuid(), (new FormState())->setFormObject($form));
-      $this->setCurrentAccount($account);
-      $response = $this->renderContentPath('/node/preview/' . $node->uuid() . '/full');
-      $content = \json_encode(self::responseData($response)['content'], JSON_THROW_ON_ERROR);
-      self::assertStringContainsString('Before page content', $content);
-      self::assertStringContainsString($field_value, $content);
-      self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
-    }
+    $response = $this->renderContentPath('/node/preview/' . $node->uuid() . '/full');
+    $data = self::responseData($response);
+    self::assertNull($data['content']);
+    self::assertFalse($data['route']['managedByCanvas']);
+    self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
 
     // Owning a private preview does not grant create/update access.
     /** @var \Drupal\user\UserInterface $reader */
@@ -2508,20 +2725,35 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
    *
    * @param array{viewMode?: string, componentId?: string, pageVariant?: string, excludeAutoSave?: string} $preview_context
    *   Optional editor preview context.
+   * @param string|null $capabilities
+   *   Optional comma-separated client capability tokens.
    */
-  private function renderContentPath(string $request_uri, array $preview_context = []): CacheableJsonResponse {
+  private function renderContentPath(string $request_uri, array $preview_context = [], ?string $capabilities = NULL): CacheableJsonResponse {
     $request = Request::create(
       '/canvas/content-api?' . http_build_query([
         'requestUri' => $request_uri,
         ...$preview_context,
       ]),
     );
+    if ($capabilities !== NULL) {
+      $request->headers->set(
+        CanvasClientCapabilities::CAPABILITIES_HEADER,
+        $capabilities,
+      );
+    }
     $response = $this->request($request);
     if ($response instanceof PreviewLanguageRedirectResponse) {
       self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
       self::assertTrue($response->headers->hasCacheControlDirective('no-store'));
       self::assertStringStartsWith('/canvas/content-api?', $response->getTargetUrl());
-      $response = $this->request(Request::create($response->getTargetUrl()));
+      $redirect_request = Request::create($response->getTargetUrl());
+      if ($capabilities !== NULL) {
+        $redirect_request->headers->set(
+          CanvasClientCapabilities::CAPABILITIES_HEADER,
+          $capabilities,
+        );
+      }
+      $response = $this->request($redirect_request);
     }
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     return $response;

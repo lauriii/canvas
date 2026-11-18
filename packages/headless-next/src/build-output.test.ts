@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -11,10 +11,13 @@ import { beforeAll, describe, expect, it } from 'vitest';
 const packageRoot = path.resolve(fileURLToPath(import.meta.url), '../..');
 
 beforeAll(() => {
-  execFileSync('npx', ['tsdown'], {
-    cwd: packageRoot,
-    env: { ...process.env, NODE_ENV: 'production' },
-  });
+  // Reuse CI's build output instead of deleting files used by parallel tests.
+  if (!existsSync(path.join(packageRoot, 'dist/canvas-component-tree.js'))) {
+    execFileSync('npx', ['tsdown'], {
+      cwd: packageRoot,
+      env: { ...process.env, NODE_ENV: 'production' },
+    });
+  }
 }, 30_000);
 
 describe('built output', () => {

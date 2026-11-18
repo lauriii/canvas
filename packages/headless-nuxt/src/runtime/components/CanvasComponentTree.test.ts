@@ -1,222 +1,78 @@
-// @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createApp, defineComponent, h, nextTick, ref } from 'vue';
+import { describe, expect, it, vi } from 'vitest';
+import { createSSRApp, defineComponent, h } from 'vue';
+import { renderToString } from 'vue/server-renderer';
 
 import CanvasComponentTree from './CanvasComponentTree';
 
-import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+import type { CanvasComponentTree as CanvasComponentTreeSpec } from '@drupal-canvas/headless/server';
 
-vi.mock('virtual:@drupal-canvas/headless/components', () => ({ default: {} }));
+vi.mock('virtual:@drupal-canvas/headless/components', async () => {
+  const { defineComponent, h } = await import('vue');
+  return {
+    default: {
+      card: defineComponent({
+        props: { title: { type: String, required: true } },
+        setup: (props) => () => h('article', props.title),
+      }),
+    },
+  };
+});
 
-const components = {
-  'hello-card': defineComponent({
-    setup:
-      (_props, { slots }) =>
-      () =>
-        h('article', slots.content?.()),
-  }),
-  'action-link': defineComponent({
-    setup: () => () => h('a', { href: '/' }, 'Action'),
-  }),
-  'site-header': defineComponent({
-    setup: () => () => h('header', 'Header'),
-  }),
-  article: defineComponent({
-    setup: () => () => h('main', 'Content'),
-  }),
-  'site-footer': defineComponent({
-    setup: () => () => h('footer', 'Footer'),
-  }),
+const tree: CanvasComponentTreeSpec = {
+  root: 'card-one',
+  elements: {
+    'card-one': {
+      type: 'js.card',
+      props: { title: 'Hello' },
+      children: [],
+    },
+  },
 };
 
-function component(
-  element: string,
-  uuid: string,
-  slots?: CanvasComponentTreeElement['slots'],
-): CanvasComponentTreeElement {
-  return {
-    element,
-    props: { canvasUuid: uuid },
-    ...(slots ? { slots } : {}),
+describe('CanvasComponentTree adapter', () => {
+  const legacyTree: CanvasComponentTreeSpec = {
+    element: 'js-card',
+    props: { title: 'Hello', canvasUuid: 'card-one' },
   };
-}
 
-function tree(
-  children: CanvasComponentTreeElement[],
-): CanvasComponentTreeElement {
-  return {
-    element: 'drupal-markup',
-    canvasDraftMode: true,
-    slots: { content: children },
-  };
-}
+  it.each([
+    ['json-render', false, tree],
+    ['json-render', true, tree],
+    ['Custom Elements', false, legacyTree],
+    ['Custom Elements', true, legacyTree],
+  ] as const)(
+    'renders %s with the generated registry and preview=%s',
+    async (_format, preview, content) => {
+      const app = createSSRApp({
+        setup: () => () =>
+          h(CanvasComponentTree, {
+            tree: content,
+            ...(preview ? { preview } : {}),
+          }),
+      });
+      const html = await renderToString(app);
 
-function commentMarkers(root: Node): string[] {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
-  const comments: string[] = [];
-  let node = walker.nextNode();
-  while (node) {
-    const value = node.nodeValue?.trim();
-    if (value?.startsWith('canvas-')) {
-      comments.push(value);
-    }
-    node = walker.nextNode();
-  }
-  return comments;
-}
+      expect(html).toContain('<article>Hello</article>');
+      expect(html.includes('canvas-start-card-one')).toBe(preview);
+      expect(html.includes('canvas-region-start-content')).toBe(preview);
+    },
+  );
 
-describe('CanvasComponentTree', () => {
-  afterEach(() => {
-    document.body.replaceChildren();
-  });
-
-  it('renders empty published content', () => {
-    const container = document.createElement('div');
-    document.body.append(container);
-    const app = createApp({
+  it('forwards an explicit registry instead of the generated registry', async () => {
+    const OverrideCard = defineComponent({
+      props: { title: { type: String, required: true } },
+      setup: (props) => () => h('aside', props.title),
+    });
+    const app = createSSRApp({
       setup: () => () =>
         h(CanvasComponentTree, {
-          tree: null,
-          components: {},
+          tree,
+          components: { card: OverrideCard },
         }),
     });
-    app.mount(container);
+    const html = await renderToString(app);
 
-    expect(container.textContent).toBe('');
-    expect(commentMarkers(container)).toEqual([]);
-
-    app.unmount();
-  });
-
-  it('renders the standard empty-region placeholder for an empty draft tree', () => {
-    const container = document.createElement('div');
-    document.body.append(container);
-    const app = createApp({
-      setup: () => () =>
-        h(CanvasComponentTree, {
-          tree: { element: 'renderless-container', canvasDraftMode: true },
-          components: {},
-        }),
-    });
-    app.mount(container);
-
-    const placeholder = container.querySelector<HTMLElement>(
-      '.canvas--region-empty-placeholder',
-    );
-    expect(placeholder?.getAttribute('style')).toBeNull();
-    expect(commentMarkers(container)).toEqual([
-      'canvas-region-start-content',
-      'canvas-region-end-content',
-    ]);
-
-    app.unmount();
-  });
-
-  it('renders an empty page content region between page variant chrome', () => {
-    const container = document.createElement('div');
-    document.body.append(container);
-    const app = createApp({
-      setup: () => () =>
-        h(CanvasComponentTree, {
-          tree: {
-            element: 'renderless-container',
-            canvasDraftMode: true,
-            slots: {
-              default: [
-                component('js-site-header', 'header-one'),
-                { element: 'canvas-preview-content-region' },
-                component('js-site-footer', 'footer-one'),
-              ],
-            },
-          },
-          components,
-        }),
-    });
-    app.mount(container);
-
-    const html = container.innerHTML;
-    const regionStart = html.indexOf('canvas-region-start-content');
-    const placeholder = html.indexOf('canvas--region-empty-placeholder');
-    const regionEnd = html.indexOf('canvas-region-end-content');
-    expect(html.indexOf('</header>')).toBeLessThan(regionStart);
-    expect(regionStart).toBeLessThan(placeholder);
-    expect(placeholder).toBeLessThan(regionEnd);
-    expect(regionEnd).toBeLessThan(html.indexOf('<footer>'));
-    expect(commentMarkers(container)).toEqual([
-      'canvas-start-header-one',
-      'canvas-end-header-one',
-      'canvas-region-start-content',
-      'canvas-region-end-content',
-      'canvas-start-footer-one',
-      'canvas-end-footer-one',
-    ]);
-
-    app.unmount();
-  });
-
-  it('renders children of a synthetic multi-root wrapper in order', () => {
-    const container = document.createElement('div');
-    document.body.append(container);
-    const app = createApp({
-      setup: () => () =>
-        h(CanvasComponentTree, {
-          tree: {
-            element: 'renderless-container',
-            slots: {
-              children: [
-                component('js-site-header', 'header-one'),
-                component('js-article', 'article-one'),
-                component('js-site-footer', 'footer-one'),
-              ],
-            },
-          },
-          components,
-        }),
-    });
-    app.mount(container);
-
-    expect(container.textContent).toBe('HeaderContentFooter');
-
-    app.unmount();
-  });
-
-  it('keeps marker identity when a component moves from a slot to the root', async () => {
-    const action = component('js-action-link', 'action-one');
-    const firstCard = component('js-hello-card', 'card-one', {
-      content: [action],
-    });
-    const secondCard = component('js-hello-card', 'card-two', {
-      content: [],
-    });
-    const value = ref(tree([firstCard, secondCard]));
-    const container = document.createElement('div');
-    document.body.append(container);
-    const app = createApp({
-      setup: () => () =>
-        h(CanvasComponentTree, {
-          tree: value.value,
-          components,
-        }),
-    });
-    app.mount(container);
-
-    value.value = tree([
-      component('js-hello-card', 'card-one', { content: [] }),
-      secondCard,
-      action,
-    ]);
-    await nextTick();
-
-    const starts = commentMarkers(container).filter((marker) =>
-      /^canvas-start-/.test(marker),
-    );
-    expect(starts).toEqual([
-      'canvas-start-card-one',
-      'canvas-start-card-two',
-      'canvas-start-action-one',
-    ]);
-    expect(new Set(starts).size).toBe(starts.length);
-
-    app.unmount();
+    expect(html).toContain('<aside>Hello</aside>');
+    expect(html).not.toContain('<article>');
   });
 });

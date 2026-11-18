@@ -18,7 +18,16 @@ describe('language negotiation transport', () => {
     async (foreign) => {
       const received: Array<{ url: string; authorization?: string }> = [];
       const result = {
-        content: { element: 'canvas-page' },
+        content: {
+          root: 'canvas-page',
+          elements: {
+            'canvas-page': {
+              type: 'canvas-page',
+              props: {},
+              children: [],
+            },
+          },
+        },
         head: { title: 'French draft' },
         route: { managedByCanvas: true },
       };
@@ -111,7 +120,12 @@ describe('isPageRedirect', () => {
     ).toBe(true);
     expect(
       isPageRedirect({
-        content: { element: 'canvas-page' },
+        content: {
+          root: 'el-0',
+          elements: {
+            'el-0': { type: 'canvas-page', props: {}, children: [] },
+          },
+        },
         head: { title: 'Page' },
         context: { page: null, site: null },
         route: {
@@ -148,6 +162,7 @@ describe('isPageRedirect', () => {
             langcode: 'en',
           },
         },
+        isPreview: false,
       }),
     ).toBe(false);
     expect(
@@ -164,6 +179,7 @@ describe('isPageRedirect', () => {
           translations: [],
           entity: null,
         },
+        isPreview: false,
       }),
     ).toBe(false);
   });
@@ -411,7 +427,12 @@ describe('interface translations', () => {
       baseUrl: 'https://drupal.example',
       fetchImpl: vi.fn().mockResolvedValue(
         Response.json({
-          content: { element: 'js-greeting' },
+          content: {
+            root: 'greeting',
+            elements: {
+              greeting: { type: 'js.greeting', props: {}, children: [] },
+            },
+          },
           head: { title: 'Page' },
           route: { managedByCanvas: false, negotiatedLanguage: 'fr' },
           context: { page: null, site: null, translations: drupal },

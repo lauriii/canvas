@@ -6,6 +6,10 @@
  * `/canvas/content-api/entity?type={type}&id={id}&viewMode={viewMode}`.
  */
 
+import {
+  CANVAS_CLIENT_CAPABILITIES_HEADER,
+  CANVAS_HEADLESS_CAPABILITIES,
+} from '../constants';
 import { getSessionToken } from '../token';
 
 import type { DraftData } from '../draft-data';
@@ -43,7 +47,11 @@ export async function fetchEntity(options: {
     fetchImpl = fetch,
   } = options;
 
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    [CANVAS_CLIENT_CAPABILITIES_HEADER]:
+      CANVAS_HEADLESS_CAPABILITIES.join(', '),
+  };
   let liveDraft = false;
   if (draftData) {
     const token = getSessionToken(draftData);
@@ -72,15 +80,12 @@ export async function fetchEntity(options: {
   if (!response.ok) {
     return null;
   }
-  const result = (await response.json()) as EntityResult;
-  if (liveDraft && result.managedByCanvas) {
-    return {
-      ...result,
-      content: {
-        ...(result.content ?? { element: 'renderless-container' }),
-        canvasDraftMode: true,
-      },
-    };
-  }
-  return result;
+  const entityResult = (await response.json()) as Omit<
+    EntityResult,
+    'isPreview'
+  >;
+  return {
+    ...entityResult,
+    isPreview: liveDraft && entityResult.managedByCanvas,
+  };
 }
