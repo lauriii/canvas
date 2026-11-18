@@ -21,9 +21,13 @@ export interface EmptySlotDropZoneProps {
   slot: SlotNode;
   slotName: string;
   parentComponent: ComponentNode;
+  // The preview renders content in this slot that is not in the layout (the
+  // content template preview entity's override): keep the drop target, but
+  // without the frosted label covering that content.
+  isFilledByPreview?: boolean;
 }
 const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
-  const { slot, slotName, parentComponent } = props;
+  const { slot, slotName, parentComponent, isFilledByPreview = false } = props;
   const layout = useAppSelector(selectLayout);
   const [activeName, setActiveName] = useState('');
   const [activeOrigin, setActiveOrigin] = useState('');
@@ -74,13 +78,14 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
       <div
         className={clsx(styles.emptySlotDropZone, {
           [styles.isOver]: isOver,
+          [styles.filledByPreview]: isFilledByPreview,
         })}
         data-testid={`canvas-empty-slot-drop-zone-${kebabCase(parentComponentName)}:${kebabCase(slotName)}`}
         ref={setDropRef}
       >
         {activeName ? (
           activeName
-        ) : (
+        ) : isFilledByPreview ? null : (
           <>
             <BoxModelIcon />
             <div>{slotName}</div>

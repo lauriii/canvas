@@ -8,17 +8,18 @@ import {
 } from '@/features/ui/dialogSlice';
 import { useDeletePatternMutation } from '@/services/patterns';
 
-import type { Pattern } from '@/types/Pattern';
-
 const DeletePatternDialog = () => {
   const dispatch = useAppDispatch();
   const { deletePatternConfirm } = useAppSelector(selectDialogOpen);
   const { open, data } = deletePatternConfirm;
   const [deletePattern, { isLoading, isSuccess, isError, error, reset }] =
     useDeletePatternMutation();
-  const { name, id } = data as Pattern;
+  const { name, id } = data;
 
   const handleDelete = async () => {
+    if (!id) {
+      return;
+    }
     await deletePattern(id);
   };
 

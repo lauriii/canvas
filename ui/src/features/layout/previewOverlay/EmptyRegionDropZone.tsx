@@ -3,11 +3,15 @@ import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import { useDroppable } from '@dnd-kit/core';
-import { FileTextIcon } from '@radix-ui/react-icons';
+import { BoxModelIcon, FileTextIcon } from '@radix-ui/react-icons';
 import { Text } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
+import {
+  selectExposedSlots,
+  selectIsPerContentMode,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 
@@ -26,6 +30,11 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   const [activeOrigin, setActiveOrigin] = useState('');
   const isTemplateRoute =
     useAppSelector(selectEditorFrameContext) === 'template';
+  // Per-content editing: an exposed slot's drop zone is captioned with the
+  // slot's label, not the page caption.
+  const perContentMode = useAppSelector(selectIsPerContentMode);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const isSlotRegion = perContentMode && !!exposedSlots?.[region.id];
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
   const regionPath = [regionIndex, 0];
@@ -64,16 +73,31 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   }, [active]);
 
   return (
-    <div className={styles.emptyPageContainer}>
+    // Per-content editing: an exposed slot sits in the template's markup at
+    // slot size, so it uses the compact empty slot drop zone, not the
+    // full-page one.
+    <div
+      className={
+        isSlotRegion ? styles.emptySlotContainer : styles.emptyPageContainer
+      }
+    >
       <div
-        className={clsx(styles.emptyPageDropZone, {
-          [styles.isOver]: isOver,
-        })}
+        className={clsx(
+          isSlotRegion ? styles.emptySlotDropZone : styles.emptyPageDropZone,
+          {
+            [styles.isOver]: isOver,
+          },
+        )}
         ref={setDropRef}
         data-testid={`canvas-empty-region-drop-zone-${kebabCase(region.name)}`}
       >
         {activeName ? (
           activeName
+        ) : isSlotRegion ? (
+          <>
+            <BoxModelIcon />
+            <div>{region.name}</div>
+          </>
         ) : (
           <>
             {isTemplateRoute ? <TemplateIcon /> : <FileTextIcon />}

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\EntityHandlers;
 
 use Drupal\canvas\Access\CanvasUiAccessCheck;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -50,6 +52,10 @@ class ContentCreatorVisibleCanvasConfigEntityAccessControlHandler extends Canvas
       // their status is enabled.
       'view' => $this->canvasUiAccessCheck->access($account)->andIf(AccessResult::allowedIf($entity->status())
         ->addCacheableDependency($entity)),
+      // The empty slot marker always stays disabled.
+      // @see \Drupal\canvas\Entity\Component::preSave()
+      'enable' => AccessResult::forbiddenIf($entity instanceof Component && $entity->id() === Marker::EMPTY_SLOT_COMPONENT_ID, 'The empty slot marker cannot be enabled.')
+        ->orIf(parent::checkAccess($entity, $operation, $account)),
       default => parent::checkAccess($entity, $operation, $account),
     };
   }

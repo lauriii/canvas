@@ -288,10 +288,30 @@ Which content entity types can be _edited_ in Canvas is a separate question, tra
 
 If a `ContentTemplate` is used for rendering a content entity, then `hook_entity_display_build_alter()` will NOT be invoked for that entity, because that hook (and all its implementations) assume field formatters are used to render (all or some) fields in sequence, which is not the case when using Canvas.
 
+A `ContentTemplate` may _expose_ slots (`exposed_slots`): a Site Builder marks slots in the template's component tree as
+editable per entity. Each exposed slot is a `component_tree` field on the template's bundle, one value per entity, and
+the field's machine name is the slot's key in `exposed_slots` and its stable identity. The expose dialog either:
+- creates a new `canvas_slot_`-prefixed field, or
+- reuses an existing `component_tree` field that no other exposed slot of the template references: one already on the
+  bundle, or a `canvas_slot_` field of another bundle of the same entity type, whose storage is then shared by adding the
+  field to this bundle. Reusing a field restores the content that entities already stored in it.
+
+Removing an exposed slot from the template _detaches_ it: only the `exposed_slots` entry is dropped. The field and every
+entity's content in it are kept, are not rendered, and reappear when the field is exposed again (on any slot). Deleting
+the field is the only destructive action and happens in Field UI: the template declares config dependencies on those
+field configs, so deleting a field detaches the slot via `onDependencyRemoval()`.
+
+Each entity stores its per-entity content for the slot as an ordinary component tree in that field, merged into the
+template's target slot at render time; see the storage shape in [`Canvas Data Model` doc](data-model.md) and the merge in
+`\Drupal\canvas\Entity\ContentTemplate::getMergedComponentTree()`.
+
+An empty slot field renders the template's default content for that slot. The empty slot marker (`marker.empty_slot`)
+as the sole root of the field is an empty override: the slot renders nothing. The marker is a `Component` config entity
+that ships disabled in Canvas's install configuration. Existing sites get it from a post-update, so sites deploying with
+config sync must export config after running database updates, or the next import removes the marker again.
+
 ⚠️ Still to be built:
 - A UI to create content templates, and manage existing templates: https://www.drupal.org/i/3518248
-- Later, when support for exposed slots is added, a second requirement will be added: "The entity is opted into Drupal
-Canvas, which means it has an `Canvas field`."
 
 ### 3.6 `StagedConfigUpdate` config entity
 

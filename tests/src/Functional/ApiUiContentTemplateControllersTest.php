@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
@@ -669,6 +671,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
         'http_response',
         $content_entity_type_id . '_list:' . $bundle,
       ],
@@ -688,11 +691,11 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     }
 
     $expected = [
-      1 => ['id' => '1', 'label' => 'Entity 1'],
-      2 => ['id' => '2', 'label' => 'Entity 2'],
-      3 => ['id' => '3', 'label' => 'Entity 3'],
-      4 => ['id' => '4', 'label' => 'Entity 4'],
-      5 => ['id' => '5', 'label' => 'Entity 5'],
+      1 => ['id' => '1', 'label' => 'Entity 1', 'editUrl' => '/node/1/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Entity 2', 'editUrl' => '/node/2/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      3 => ['id' => '3', 'label' => 'Entity 3', 'editUrl' => '/node/3/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      4 => ['id' => '4', 'label' => 'Entity 4', 'editUrl' => '/node/4/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      5 => ['id' => '5', 'label' => 'Entity 5', 'editUrl' => '/node/5/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
     ];
     $json = $this->assertExpectedResponse(
       method: 'GET',
@@ -704,6 +707,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
+        'content_template_list',
+        'entity_bundles',
+        'entity_field_info',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -733,6 +740,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
+        'content_template_list',
+        'entity_bundles',
+        'entity_field_info',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -745,7 +756,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_page_cache: 'UNCACHEABLE (request policy)',
       expected_dynamic_page_cache: 'MISS',
     );
-    $expected = [6 => ['id' => '6', 'label' => 'Entity LAST']] + $expected;
+    $expected = [6 => ['id' => '6', 'label' => 'Entity LAST', 'editUrl' => '/node/6/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL]] + $expected;
     $this->assertSame($expected, $json);
 
     /** @var \Drupal\node\NodeInterface $updated_entity */
@@ -762,6 +773,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
+        'content_template_list',
+        'entity_bundles',
+        'entity_field_info',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -775,12 +790,12 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       expected_dynamic_page_cache: 'MISS',
     );
     $expected = [
-      3 => ['id' => '3', 'label' => 'Updated article'],
-      6 => ['id' => '6', 'label' => 'Entity LAST'],
-      1 => ['id' => '1', 'label' => 'Entity 1'],
-      2 => ['id' => '2', 'label' => 'Entity 2'],
-      4 => ['id' => '4', 'label' => 'Entity 4'],
-      5 => ['id' => '5', 'label' => 'Entity 5'],
+      3 => ['id' => '3', 'label' => 'Updated article', 'editUrl' => '/node/3/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      6 => ['id' => '6', 'label' => 'Entity LAST', 'editUrl' => '/node/6/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      1 => ['id' => '1', 'label' => 'Entity 1', 'editUrl' => '/node/1/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Entity 2', 'editUrl' => '/node/2/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      4 => ['id' => '4', 'label' => 'Entity 4', 'editUrl' => '/node/4/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      5 => ['id' => '5', 'label' => 'Entity 5', 'editUrl' => '/node/5/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
     ];
     $this->assertSame($expected, $json);
 
@@ -828,6 +843,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user',
       ],
       expected_cache_tags: [
+        'config:core.extension',
+        'content_template_list',
+        'entity_bundles',
+        'entity_field_info',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':10',
@@ -847,18 +866,78 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // Expected should now include the unpublished nodes and exclude
     // the oldest ones to maintain the 10-entity limit.
     $expected = [
-      11 => ['id' => '11', 'label' => 'New Entity 11'],
-      10 => ['id' => '10', 'label' => 'New Entity 10'],
-      9 => ['id' => '9', 'label' => 'New Entity 9'],
-      8 => ['id' => '8', 'label' => 'Unpublished Entity 2'],
-      7 => ['id' => '7', 'label' => 'Unpublished Entity 1'],
-      3 => ['id' => '3', 'label' => 'Updated article'],
-      6 => ['id' => '6', 'label' => 'Entity LAST'],
-      1 => ['id' => '1', 'label' => 'Entity 1'],
-      2 => ['id' => '2', 'label' => 'Entity 2'],
-      4 => ['id' => '4', 'label' => 'Entity 4'],
+      11 => ['id' => '11', 'label' => 'New Entity 11', 'editUrl' => '/node/11/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      10 => ['id' => '10', 'label' => 'New Entity 10', 'editUrl' => '/node/10/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      9 => ['id' => '9', 'label' => 'New Entity 9', 'editUrl' => '/node/9/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      8 => ['id' => '8', 'label' => 'Unpublished Entity 2', 'editUrl' => '/node/8/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      7 => ['id' => '7', 'label' => 'Unpublished Entity 1', 'editUrl' => '/node/7/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      3 => ['id' => '3', 'label' => 'Updated article', 'editUrl' => '/node/3/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      6 => ['id' => '6', 'label' => 'Entity LAST', 'editUrl' => '/node/6/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      1 => ['id' => '1', 'label' => 'Entity 1', 'editUrl' => '/node/1/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Entity 2', 'editUrl' => '/node/2/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      4 => ['id' => '4', 'label' => 'Entity 4', 'editUrl' => '/node/4/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
     ];
     $this->assertSame($expected, $json);
+
+    // Exposing a slot on the bundle's `full` template makes its entities
+    // editable in Canvas, like the "Edit in Canvas" entity operation.
+    $component = Component::load('sdc.canvas_test_sdc.props-slots');
+    \assert($component instanceof Component);
+    $host_uuid = '414f6e2e-fa5f-4e37-b0c2-8a4bcb2b573b';
+    $this->createComponentTreeField($content_entity_type_id, $bundle, 'canvas_slot_main');
+    ContentTemplate::create([
+      'content_entity_type_id' => $content_entity_type_id,
+      'content_entity_type_bundle' => $bundle,
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $host_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => 'Host'],
+        ],
+      ],
+      'exposed_slots' => [
+        'canvas_slot_main' => [
+          'component_uuid' => $host_uuid,
+          'slot_name' => 'the_body',
+          'label' => 'Main content',
+        ],
+      ],
+    ])->setStatus(TRUE)->save();
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: ['user'],
+      expected_cache_tags: [
+        'config:canvas.content_template.node.article.full',
+        'config:core.extension',
+        'content_template_list',
+        'entity_bundles',
+        'entity_field_info',
+        'http_response',
+        $content_entity_type_id . ':1',
+        $content_entity_type_id . ':10',
+        $content_entity_type_id . ':11',
+        $content_entity_type_id . ':2',
+        $content_entity_type_id . ':3',
+        $content_entity_type_id . ':4',
+        $content_entity_type_id . ':6',
+        $content_entity_type_id . ':7',
+        $content_entity_type_id . ':8',
+        $content_entity_type_id . ':9',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'UNCACHEABLE (poor cacheability)',
+    );
+    \assert(\is_array($json));
+    $this->assertSame(
+      \array_map(static fn (int|string $id): string => "/canvas/editor/node/$id", \array_keys($expected)),
+      \array_values(\array_column($json, 'canvasUrl')),
+    );
   }
 
   /**
@@ -914,6 +993,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         'user.permissions',
       ],
       expected_cache_tags: [
+        'config:core.extension',
+        'content_template_list',
+        'entity_bundles',
+        'entity_field_info',
         'http_response',
         $content_entity_type_id . ':1',
         $content_entity_type_id . ':2',
@@ -927,11 +1010,49 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     // Only published entities should be returned,
     // unpublished entities 4 and 5 should NOT be included.
     $expected = [
-      1 => ['id' => '1', 'label' => 'Published Entity 1'],
-      2 => ['id' => '2', 'label' => 'Published Entity 2'],
-      3 => ['id' => '3', 'label' => 'Published Entity 3'],
+      1 => ['id' => '1', 'label' => 'Published Entity 1', 'editUrl' => '/node/1/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      2 => ['id' => '2', 'label' => 'Published Entity 2', 'editUrl' => '/node/2/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
+      3 => ['id' => '3', 'label' => 'Published Entity 3', 'editUrl' => '/node/3/edit', 'canvasUrl' => NULL, 'manageFieldsUrl' => NULL],
     ];
     $this->assertSame($expected, $json);
+
+    // With Field UI, a user who may administer the bundle's fields but not
+    // edit its content gets the "Manage fields" URL and no edit URL.
+    $this->container->get(ModuleInstallerInterface::class)->install(['field_ui']);
+    $field_administrator = $this->createUser([
+      ContentTemplate::ADMIN_PERMISSION,
+      'administer node fields',
+    ]);
+    \assert($field_administrator instanceof UserInterface);
+    $this->drupalLogin($field_administrator);
+    $json = $this->assertExpectedResponse(
+      method: 'GET',
+      url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
+      request_options: [],
+      expected_status: Response::HTTP_OK,
+      expected_cache_contexts: [
+        'user.node_grants:view',
+        'user.permissions',
+      ],
+      expected_cache_tags: [
+        'content_template_list',
+        'entity_bundles',
+        'entity_field_info',
+        'http_response',
+        $content_entity_type_id . ':1',
+        $content_entity_type_id . ':2',
+        $content_entity_type_id . ':3',
+        $content_entity_type_id . '_list:' . $bundle,
+      ],
+      expected_page_cache: 'UNCACHEABLE (request policy)',
+      expected_dynamic_page_cache: 'MISS',
+    );
+    $manage_fields_url = '/admin/structure/types/manage/article/fields';
+    $this->assertSame([
+      1 => ['id' => '1', 'label' => 'Published Entity 1', 'editUrl' => NULL, 'canvasUrl' => NULL, 'manageFieldsUrl' => $manage_fields_url],
+      2 => ['id' => '2', 'label' => 'Published Entity 2', 'editUrl' => NULL, 'canvasUrl' => NULL, 'manageFieldsUrl' => $manage_fields_url],
+      3 => ['id' => '3', 'label' => 'Published Entity 3', 'editUrl' => NULL, 'canvasUrl' => NULL, 'manageFieldsUrl' => $manage_fields_url],
+    ], $json);
   }
 
   /**

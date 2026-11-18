@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\Core\Validation\ConstraintManager;
@@ -58,7 +58,11 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     if ($value === NULL) {
       return;
     }
+    // The entity whose field is validated, independent of where validation
+    // started. Config trees and field default values are plain arrays.
+    $host_entity = NULL;
     if ($value instanceof ComponentTreeItemList) {
+      $host_entity = $value->getParent() !== NULL ? $value->getEntity() : NULL;
       $value = $value->getValue();
     }
     \assert($constraint instanceof ComponentTreeStructureConstraint);
@@ -146,7 +150,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
           callback: self::validateComponentInstance(...),
           payload: [
             'entity_type_manager' => $this->entityTypeManager,
-            'root' => $this->context->getRoot(),
+            'host_entity' => $host_entity,
           ]
         ),
       ]
@@ -246,7 +250,22 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       return;
     }
 
-    $root = $payload['root'];
+    // The empty slot marker is only valid as the only item in an entity's
+    // component tree field. This is not checked against the template's exposed
+    // slots, because a detached slot field keeps its content.
+    if (($component_instance['component_id'] ?? NULL) === Marker::EMPTY_SLOT_COMPONENT_ID) {
+      $host = $payload['host_entity'];
+      $is_entity_host = $host instanceof FieldableEntityInterface && !($host instanceof ComponentTreeEntityInterface);
+      $is_sole_root = \count($tree) === 1 && empty($component_instance['parent_uuid']) && empty($component_instance['slot']);
+      if (!$is_entity_host || !$is_sole_root) {
+        $context->buildViolation('The %component component may only be used as the sole, empty override of an exposed slot.', [
+          '%component' => Marker::EMPTY_SLOT_COMPONENT_ID,
+        ])
+          ->atPath('component_id')
+          ->addViolation();
+        return;
+      }
+    }
 
     if (empty($component_instance['parent_uuid'])) {
       // The mirror image of the "a parent UUID requires a slot name" check
@@ -311,27 +330,9 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       return;
     }
 
+    // Each field stores an ordinary tree, so a non-root item's parent must
+    // exist in the same tree being validated.
     $parent = \array_filter($tree, static fn (array $item) => $item['uuid'] === $component_instance['parent_uuid']);
-
-    if ($root instanceof EntityAdapter) {
-      // We might have a subtree here that works with a content template.
-      // Attempt to fetch the template.
-      $entity = $root->getValue();
-      \assert($entity instanceof EntityInterface);
-      $content_template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
-      $template_id = implode('.', [
-        $entity->getEntityTypeId(),
-        $entity->bundle(),
-        // Only the full view mode can expose slots.
-        // @see `type: canvas.content_template.*.*.*`'s
-        'full',
-      ]);
-      $template = $content_template_storage->load($template_id);
-      if ($template instanceof ContentTemplate) {
-        $template_tree = $template->getComponentTree();
-        $parent = \array_merge($parent, $template_tree->getValue());
-      }
-    }
 
     if (\count($parent) === 0) {
       $context->buildViolation('Invalid component tree item with UUID %uuid references an invalid parent %parent_uuid.', [

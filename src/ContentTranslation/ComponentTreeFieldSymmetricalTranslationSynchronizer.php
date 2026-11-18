@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ContentTranslation;
 
+use Drupal\canvas\Controller\ApiContentTemplateSlotFieldController;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -11,7 +12,9 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 
 /**
@@ -20,7 +23,8 @@ use Drupal\Core\Field\FieldDefinitionInterface;
  * After core's synchronizer handles tree-structure synchronization (the 'tree'
  * column group: uuid, parent_uuid, slot, component_id, component_version),
  * this decorator additionally synchronizes non-translatable input keys within
- * the 'inputs' JSON property across all translations.
+ * the 'inputs' JSON property across all translations. It also synchronizes an
+ * empty tree, which core's synchronizer skips.
  *
  * @see \Drupal\content_translation\FieldTranslationSynchronizer
  * @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem
@@ -37,7 +41,46 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
   public function synchronizeFields(ContentEntityInterface $entity, $sync_langcode, $original_langcode = NULL): void {
     $net_new = $this->getDefaultTranslationNewComponentInstanceUuids($entity);
     $this->decorated->synchronizeFields($entity, $sync_langcode, $original_langcode);
+    $this->synchronizeEmptyComponentTrees($entity, $sync_langcode);
     $this->synchronizeComponentInstanceInputs($entity, $net_new);
+  }
+
+  /**
+   * Empties a symmetric component tree in all translations if the source is.
+   *
+   * Core's synchronizer skips fields that are empty in the translation being
+   * saved. For component tree fields, empty is a valid state: a page without
+   * components, or an exposed slot field that inherits the template's default
+   * content. The tree is shared across all translations, so it must be emptied
+   * in every translation.
+   *
+   * @see \Drupal\content_translation\FieldTranslationSynchronizer::synchronizeFields()
+   */
+  private function synchronizeEmptyComponentTrees(ContentEntityInterface $entity, ?string $sync_langcode): void {
+    $translations = $entity->getTranslationLanguages();
+    if (empty($sync_langcode) || $entity->isNew() || \count($translations) < 2) {
+      return;
+    }
+    // Same synchronization source as core.
+    if ($entity->isNewRevision() && $entity->isDefaultTranslationAffectedOnly()) {
+      if (!$entity->isDefaultRevision()) {
+        return;
+      }
+      $sync_langcode = $entity->getUntranslated()->language()->getId();
+    }
+
+    $source = $entity->getTranslation($sync_langcode);
+    foreach ($source->getFieldDefinitions() as $field_name => $field_definition) {
+      if ($field_definition->getType() !== ComponentTreeItem::PLUGIN_ID) {
+        continue;
+      }
+      if (!self::isSymmetricallyTranslated($this->decorated, $field_definition) || !$source->get($field_name)->isEmpty()) {
+        continue;
+      }
+      foreach (\array_keys($translations) as $langcode) {
+        $entity->getTranslation($langcode)->get($field_name)->setValue([]);
+      }
+    }
   }
 
   /**
@@ -61,13 +104,16 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
    * this propagates non-translatable input values from the default translation
    * to all other translations, for every component tree field on the entity.
    *
-   * @param list<string> $net_new
-   *   UUIDs of net new component instances in the default translation.
+   * @param array<string, list<string>> $net_new
+   *   UUIDs of net new component instances in the default translation, keyed
+   *   by field name.
    */
   private function synchronizeComponentInstanceInputs(ContentEntityInterface $entity, array $net_new): void {
     foreach ($this->allComponentTreeSymmetricalTranslations($entity) as $target_tree) {
-      $default_tree = $entity->getUntranslated()->get($target_tree->getName());
+      $field_name = $target_tree->getName();
+      $default_tree = $entity->getUntranslated()->get($field_name);
       \assert($default_tree instanceof ComponentTreeItemList);
+      $field_net_new = $net_new[$field_name] ?? [];
       foreach ($target_tree as $delta => $target_item) {
         \assert($target_item instanceof ComponentTreeItem);
         $default_item = $default_tree->get($delta);
@@ -84,7 +130,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
         // Non-translatable from default, translatable from target (or
         // default for newly added instances with no prior translation).
         $target_item->setInput(\array_merge(
-          !\in_array($target_item->getUuid(), $net_new, TRUE)
+          !\in_array($target_item->getUuid(), $field_net_new, TRUE)
             ? $target_inputs
             // Core's createMergedItem() merges by delta position; after a
             // prepend/reorder, target_item may carry inputs from a different
@@ -109,23 +155,28 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
    *
    * "New" means not yet present in any non-default translation.
    *
-   * @return list<string>
+   * @return array<string, list<string>>
+   *   UUIDs keyed by field name.
    */
   private function getDefaultTranslationNewComponentInstanceUuids(ContentEntityInterface $entity): array {
+    $net_new = [];
     foreach ($this->allComponentTreeSymmetricalTranslations($entity) as $target_tree) {
-      $default_tree = $entity->getUntranslated()->get($target_tree->getName());
-      \assert($default_tree instanceof ComponentTreeItemList);
-      $net_new = iterator_to_array($default_tree->componentTreeItemsIterator(
-        ComponentTreeItemList::doesNotExistInOtherComponentTree($target_tree)
-      ));
+      $field_name = (string) $target_tree->getName();
       // All non-default translations must be in sync, so checking only the
-      // first non-default translation suffices.
-      return \array_values(\array_map(
+      // first non-default translation of each field suffices.
+      if (isset($net_new[$field_name])) {
+        continue;
+      }
+      $default_tree = $entity->getUntranslated()->get($field_name);
+      \assert($default_tree instanceof ComponentTreeItemList);
+      $net_new[$field_name] = \array_values(\array_map(
         fn (ComponentTreeItem $i) => $i->getUuid(),
-        $net_new,
+        iterator_to_array($default_tree->componentTreeItemsIterator(
+          ComponentTreeItemList::doesNotExistInOtherComponentTree($target_tree)
+        )),
       ));
     }
-    return [];
+    return $net_new;
   }
 
   /**
@@ -226,6 +277,58 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
       'tree' => '0',
     ]);
     $override->save();
+  }
+
+  /**
+   * Sets symmetrical translation on a slot field.
+   *
+   * The same combination as for the Canvas Page `components` field: input
+   * values of component instances are translatable, the component tree is
+   * shared across languages. Does not save the field.
+   *
+   * Must only be called when the content_translation module is installed.
+   *
+   * @see \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::create()
+   * @see self::ensureSymmetricalSlotFields()
+   */
+  public static function setSymmetricalSlotFieldTranslation(FieldConfigInterface $field_config): void {
+    $field_config->setThirdPartySetting('content_translation', 'translation_sync', [
+      'inputs' => 'inputs',
+      'tree' => '0',
+    ]);
+  }
+
+  /**
+   * Sets symmetrical translation on slot fields that have no setting yet.
+   *
+   * A slot field created before content_translation was installed has no
+   * `translation_sync` setting, so it would be translated asymmetrically.
+   * Other `component_tree` fields and explicit settings are not changed.
+   *
+   * Must only be called when the content_translation module is installed.
+   *
+   * @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
+   */
+  public static function ensureSymmetricalSlotFields(): void {
+    $entity_type_manager = \Drupal::service(EntityTypeManagerInterface::class);
+    \assert($entity_type_manager instanceof EntityTypeManagerInterface);
+    // Without the field module, there are no slot fields.
+    if (!$entity_type_manager->hasDefinition('field_config')) {
+      return;
+    }
+    $storage = $entity_type_manager->getStorage('field_config');
+    $ids = $storage->getQuery()
+      ->condition('field_type', ComponentTreeItem::PLUGIN_ID)
+      ->condition('field_name', ApiContentTemplateSlotFieldController::FIELD_NAME_PREFIX, 'STARTS_WITH')
+      ->execute();
+    foreach ($storage->loadMultiple($ids) as $field_config) {
+      \assert($field_config instanceof FieldConfigInterface);
+      if ($field_config->getThirdPartySetting('content_translation', 'translation_sync') !== NULL) {
+        continue;
+      }
+      self::setSymmetricalSlotFieldTranslation($field_config);
+      $field_config->save();
+    }
   }
 
 }

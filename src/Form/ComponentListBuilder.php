@@ -6,6 +6,7 @@ namespace Drupal\canvas\Form;
 
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
@@ -74,6 +75,20 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
     $row['component_usage'] = $usage === 0 ? '' : $usage;
 
     return $row + parent::buildRow($entity);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDefaultOperations(EntityInterface $entity, ?CacheableMetadata $cacheability = NULL): array {
+    $operations = parent::getDefaultOperations(...\func_get_args());
+    // Core offers "Enable" for every disabled entity, but the empty slot marker
+    // always stays disabled.
+    // @see \Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::checkAccess()
+    if ($entity->id() === Marker::EMPTY_SLOT_COMPONENT_ID) {
+      unset($operations['enable']);
+    }
+    return $operations;
   }
 
   public function getOperations(EntityInterface $entity, ?CacheableMetadata $cacheability = NULL): array {

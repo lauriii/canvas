@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentTreeInputExtractor;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -187,7 +188,11 @@ final class ComponentTreeInputs extends ProcessorPluginBase implements PluginFor
           // Intentionally accepted behavior: if linked content has no
           // translation for the indexed langcode, Drupal resolves a fallback,
           // which can inject source-language tokens into this item.
-          $tree = $template->getComponentTree($entity);
+          // The merged tree includes the entity's own exposed-slot content in
+          // place of the template defaults it overrides, so what is indexed
+          // matches what renders. Field access is not checked, as for other
+          // indexed fields.
+          $tree = $template->getMergedComponentTree($entity, new CacheableMetadata(), check_access: FALSE);
           $inputs = ComponentTreeInputExtractor::extractFromTree($tree, $ignored_prop_names);
         }
       }

@@ -3,6 +3,7 @@
 
 :root {
   --canvas--sortable-empty-slot-height: 40px;
+  --canvas--sortable-empty-slot-width: 120px;
   --canvas--sortable-empty-region-height: 320px;
 }
 
@@ -12,6 +13,12 @@
   width: 100%;
   height: 100%;
   min-height: var(--canvas--sortable-empty-slot-height);
+}
+
+/* A slot wrapper that shrinks to its content (e.g. a flex item in a centered
+ * column) leaves width: 100% at zero, which leaves no drop target. */
+.canvas--slot-empty-placeholder {
+  min-width: var(--canvas--sortable-empty-slot-width);
 }
 
 .canvas--region-empty-placeholder {

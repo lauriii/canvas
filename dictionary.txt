@@ -156,6 +156,7 @@ preflight
 preflights
 quasis
 replayable
+rerooted
 sindresorhus
 slugified
 slugifies
@@ -227,6 +228,7 @@ transpiles
 tsconfigs
 tseslint
 turbopack
+unaddressable
 unbuilt
 unconfigurable
 uncurry

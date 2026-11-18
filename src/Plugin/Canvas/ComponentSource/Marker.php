@@ -8,8 +8,12 @@ use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -23,16 +27,25 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * stands in for content that Canvas injects at render time. Markers are never
  * offered in the component library and are managed intrinsically by Canvas.
  *
- * The first marker is the page content marker (`marker.page_content`), which
- * designates where a page variant injects the route's main content. Future
- * markers (for example an exposed-slot marker) are additional local ids of this
- * same source, so the "hide from the library" and intrinsic handling key on the
- * source, not on each marker.
+ * Each marker is a local id of this one source, so the "hide from the library"
+ * and intrinsic handling key on the source, not on each marker:
+ * - The page content marker (`marker.page_content`) designates where a page
+ *   variant injects the route's main content.
+ * - The empty slot marker (`marker.empty_slot`) is an empty override of an
+ *   exposed slot: when it is the only item in the slot's field, the slot
+ *   renders nothing. An empty field renders the template default instead. It
+ *   is only valid as the sole root of a content entity's component tree field.
+ *   It ships disabled, because "disabled" means no new instances are created
+ *   from the library or the component list API: only Canvas creates it, as an
+ *   empty override. Disabled components still render and validate in
+ *   existing trees, so every status-filtered consumer skips it without knowing
+ *   about markers.
  *
  * Markers have no settings and no explicit inputs.
  *
  * @see \Drupal\canvas\Entity\PageVariant
  * @see \Drupal\canvas\Plugin\Validation\Constraint\PageVariantHasContentMarkerConstraint
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
  */
 #[ComponentSource(
   id: self::SOURCE_PLUGIN_ID,
@@ -58,6 +71,50 @@ final class Marker extends ComponentSourceBase {
    * The full Component config entity id of the page content marker.
    */
   public const string PAGE_CONTENT_COMPONENT_ID = self::SOURCE_PLUGIN_ID . '.' . self::PAGE_CONTENT_LOCAL_ID;
+
+  /**
+   * The local source id of the empty slot marker.
+   */
+  public const string EMPTY_SLOT_LOCAL_ID = 'empty_slot';
+
+  /**
+   * The full Component config entity id of the empty slot marker.
+   *
+   * @see config/install/canvas.component.marker.empty_slot.yml
+   */
+  public const string EMPTY_SLOT_COMPONENT_ID = self::SOURCE_PLUGIN_ID . '.' . self::EMPTY_SLOT_LOCAL_ID;
+
+  /**
+   * Creates (or returns) a marker's Component config entity.
+   *
+   * Markers ship in Canvas's install configuration. Recipe-based installs can
+   * skip that configuration, and existing sites do not import new install
+   * configuration during updates, so those paths must ensure it exists. The
+   * shipped configuration is imported verbatim.
+   *
+   * @param string $local_id
+   *   The marker's local source id, for example self::EMPTY_SLOT_LOCAL_ID.
+   *
+   * @return \Drupal\canvas\Entity\Component
+   *   The marker's Component config entity.
+   *
+   * @see \Drupal\canvas\PageVariantMigration::ensurePageContentMarker()
+   * @see \Drupal\canvas\EventSubscriber\RecipeSubscriber::ensureComponentsExist()
+   */
+  public static function ensureComponent(string $local_id): Component {
+    $component_id = self::SOURCE_PLUGIN_ID . '.' . $local_id;
+    $marker = Component::load($component_id);
+    if ($marker instanceof Component) {
+      return $marker;
+    }
+
+    $install_storage = new FileStorage(\Drupal::service(ModuleExtensionList::class)->getPath('canvas') . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY);
+    $values = $install_storage->read('canvas.component.' . $component_id);
+    \assert(\is_array($values));
+    $marker = Component::create($values);
+    $marker->save();
+    return $marker;
+  }
 
   /**
    * The marker's local source id (which marker this is).
@@ -89,6 +146,7 @@ final class Marker extends ComponentSourceBase {
   public function getComponentDescription(): TranslatableMarkup {
     return match ($this->getLocalId()) {
       self::PAGE_CONTENT_LOCAL_ID => new TranslatableMarkup('Page content'),
+      self::EMPTY_SLOT_LOCAL_ID => new TranslatableMarkup('Empty slot'),
       default => new TranslatableMarkup('Marker'),
     };
   }
@@ -97,12 +155,21 @@ final class Marker extends ComponentSourceBase {
    * {@inheritdoc}
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
-    // A marker renders nothing on its own. In a page variant, the renderer
-    // injects the route's main content in its place by resuming the fiber with
-    // that content: suspending yields this source so the variant can recognize
-    // the marker. TRICKY: a current fiber does not imply the variant renderer,
-    // because core renders placeholders in fibers too; those resume with NULL,
-    // so only an array counts as injected content.
+    if ($this->getLocalId() === self::EMPTY_SLOT_LOCAL_ID) {
+      // Renders nothing on the live site. In the editor preview, render the
+      // empty slot placeholder, so the slot keeps its size and stays a drop
+      // target. It never suspends: only the page content marker receives the
+      // route's main content.
+      return $isPreview
+        ? ['#markup' => Markup::create(ComponentTreeItemList::EMPTY_SLOT_PLACEHOLDER)]
+        : [];
+    }
+    // The page content marker renders nothing on its own. In a page variant,
+    // the renderer injects the route's main content in its place by resuming
+    // the fiber with that content: suspending yields this source so the
+    // variant can recognize the marker. TRICKY: a current fiber does not imply
+    // the variant renderer, because core renders placeholders in fibers too;
+    // those resume with NULL, so only an array counts as injected content.
     // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
     // @see \Drupal\Core\Render\Renderer::replacePlaceholders()
     if (\Fiber::getCurrent() !== NULL) {

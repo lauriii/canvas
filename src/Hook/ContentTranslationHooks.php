@@ -53,13 +53,16 @@ final readonly class ContentTranslationHooks {
    *
    * Ensures the Canvas Page `components` base field override exists with the
    * symmetrical `translation_sync` setting whenever canvas and
-   * content_translation are both installed, in whichever order.
+   * content_translation are both installed, in whichever order. Slot fields
+   * created before content_translation was installed get the same setting.
    *
    * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents()
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalSlotFields()
    */
   #[Hook('modules_installed')]
   public function modulesInstalled(array $modules, bool $is_syncing): void {
-    // During config sync, the override comes from the synced config itself.
+    // During config sync, the override and the slot field settings come from
+    // the synced config itself.
     if ($is_syncing) {
       return;
     }
@@ -70,6 +73,7 @@ final readonly class ContentTranslationHooks {
       return;
     }
     ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalCanvasPageComponents();
+    ComponentTreeFieldSymmetricalTranslationSynchronizer::ensureSymmetricalSlotFields();
   }
 
 }

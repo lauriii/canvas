@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.canvas_slot_footer
+    - node.type.article
+  module:
+    - canvas
+id: node.article.canvas_slot_footer
+field_name: canvas_slot_footer
+entity_type: node
+bundle: article
+label: 'Footer content'
+description: ''
+required: false
+translatable: false
+default_value: {}
+default_value_callback: ''
+settings: {}
+field_type: component_tree

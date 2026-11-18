@@ -5,8 +5,14 @@ import { useNavigate, useParams } from 'react-router';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ConflictWarning from '@/features/editor/ConflictWarning';
+import ContentNotEditable, {
+  NO_EDITABLE_TREE_REASON,
+} from '@/features/editor/ContentNotEditable';
 import EditorFrame from '@/features/editorFrame/EditorFrame';
-import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
+import {
+  clearLatestError,
+  selectLatestError,
+} from '@/features/error-handling/queryErrorSlice';
 import { FORM_TYPES } from '@/features/form/constants';
 import { clearFieldValues } from '@/features/form/formStateSlice';
 import LayoutLoader from '@/features/layout/LayoutLoader';
@@ -40,7 +46,8 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
   const { isUndoable, dispatchUndo } = useUndoRedo();
   const latestError = useAppSelector(selectLatestError);
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const { entityId, entityType, bundle, viewMode } = useParams();
+  const { entityId, entityType, bundle, viewMode, previewEntityId } =
+    useParams();
   const { navigateToTemplateEditor } = useEditorNavigation();
 
   useEffect(() => {
@@ -56,11 +63,23 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
     dispatch(setFirstLoadComplete(false));
     dispatch(resetPageData());
     dispatch(clearFieldValues(FORM_TYPES.ENTITY_FORM));
-  }, [dispatch, entityId, entityType]);
+    // A query error belongs to the previously open entity or template. Template
+    // routes change bundle, view mode or preview entity, not entityId.
+    dispatch(clearLatestError());
+  }, [dispatch, entityId, entityType, bundle, viewMode, previewEntityId]);
 
   if (latestError) {
     if (latestError.status === '409') {
       return <ConflictWarning />;
+    }
+    // Per-content editing: the entity became non-editable in Canvas (its
+    // template stopped exposing slots) while it was open. Degrade gracefully
+    // instead of the generic "unexpected error" boundary.
+    if (
+      latestError.status === '403' &&
+      latestError.message.includes(NO_EDITABLE_TREE_REASON)
+    ) {
+      return <ContentNotEditable />;
     }
   }
 

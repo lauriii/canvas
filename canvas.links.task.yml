@@ -28,3 +28,13 @@ entity.canvas_page.edit_form:
   title: 'Edit'
   base_route: entity.canvas_page.canonical
   route_name: entity.canvas_page.edit_form
+
+# Opens a content entity in the Canvas editor. Shown on node pages only.
+# @todo Generalize `base_route` beyond node once other entity types support content templates, see https://www.drupal.org/i/3498525.
+# @see \Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask
+canvas.content.layout:
+  title: 'Edit in Canvas'
+  route_name: canvas.boot.entity
+  base_route: entity.node.canonical
+  class: Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask
+  weight: 10

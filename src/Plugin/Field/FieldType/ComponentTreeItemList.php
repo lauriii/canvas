@@ -107,6 +107,9 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   }
 
   /**
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   The host entity, used to resolve dynamic props into the client `model`.
+   *
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
   public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL): array {
@@ -177,6 +180,75 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     return static fn (ComponentTreeItem $item) => $item->getParentUuid() === $parent_uuid && $item->getSlot() === $slot_name;
   }
 
+  /**
+   * Collects the raw values of a set of roots plus all transitive descendants.
+   *
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $list
+   *   The list to read from.
+   * @param string[] $root_uuids
+   *   The UUIDs of the subtree roots to collect.
+   *
+   * @return array<string, array<string, mixed>>
+   *   The collected item values, keyed by UUID, ordered depth-first from each
+   *   root (a root immediately followed by its descendants).
+   */
+  private static function collectSubtreeValues(ComponentTreeItemList $list, array $root_uuids): array {
+    $values_by_uuid = [];
+    $children_by_parent = [];
+    foreach ($list->componentTreeItemsIterator() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $values_by_uuid[$item->getUuid()] = $item->getValue();
+      $children_by_parent[$item->getParentUuid() ?? self::ROOT_UUID][] = $item->getUuid();
+    }
+    $ordered = [];
+    $walk = static function (string $uuid) use (&$walk, &$ordered, $values_by_uuid, $children_by_parent): void {
+      if (!\array_key_exists($uuid, $values_by_uuid) || \array_key_exists($uuid, $ordered)) {
+        return;
+      }
+      $ordered[$uuid] = $values_by_uuid[$uuid];
+      foreach ($children_by_parent[$uuid] ?? [] as $child_uuid) {
+        $walk($child_uuid);
+      }
+    };
+    foreach ($root_uuids as $root_uuid) {
+      $walk($root_uuid);
+    }
+    return $ordered;
+  }
+
+  /**
+   * Extracts each exposed slot's content in the shape of a slot field.
+   *
+   * The components directly in the slot become roots (empty `parent_uuid` and
+   * `slot`); their descendants are kept as they are.
+   *
+   * @param ExposedSlotDefinitions $exposed_slot_info
+   *   The exposed slot definitions, keyed by the backing field machine name.
+   *
+   * @return array<string, array<int, array<string, mixed>>>
+   *   The collected rows, keyed by backing field machine name. Every exposed
+   *   slot is present (empty when it has no content).
+   */
+  public function extractExposedSlotContent(array $exposed_slot_info): array {
+    $fields = [];
+    foreach ($exposed_slot_info as $field_name => $slot_detail) {
+      $root_uuids = [];
+      foreach ($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($slot_detail['component_uuid'], $slot_detail['slot_name'])) as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $root_uuids[] = $item->getUuid();
+      }
+      $rows = [];
+      foreach (self::collectSubtreeValues($this, $root_uuids) as $uuid => $value) {
+        if (\in_array($uuid, $root_uuids, TRUE)) {
+          unset($value['parent_uuid'], $value['slot']);
+        }
+        $rows[] = $value;
+      }
+      $fields[$field_name] = $rows;
+    }
+    return $fields;
+  }
+
   public static function doesNotExistInOtherComponentTree(ComponentTreeItemList $other): callable {
     return static fn (ComponentTreeItem $item) => $other->getComponentTreeItemByUuid($item->getUuid()) === NULL;
   }
@@ -245,8 +317,12 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
 
   /**
    * {@inheritdoc}
+   *
+   * @param array<string, true> $suppressAnnotationsFor
+   *   Component instance UUIDs, keyed by UUID, to render in preview without
+   *   the client-side annotation comments.
    */
-  public function toRenderable(ComponentTreeEntityInterface|FieldableEntityInterface|null $entity = NULL, bool $isPreview = FALSE): array {
+  public function toRenderable(ComponentTreeEntityInterface|FieldableEntityInterface|null $entity = NULL, bool $isPreview = FALSE, array $suppressAnnotationsFor = []): array {
     // We have to allow NULL for the entity argument here for co-variance with
     // the parent interface, but we don't support it.
     \assert(!\is_null($entity));
@@ -258,7 +334,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $hydrated = $renderable_component_tree->getTree();
 
     \assert(\array_keys($hydrated) === [self::ROOT_UUID]);
-    $build = self::renderify(self::buildRenderingContext($this, $entity), $hydrated, $isPreview);
+    $build = self::renderify(self::buildRenderingContext($this, $entity), $hydrated, $isPreview, $suppressAnnotationsFor);
 
     // @see \Drupal\Core\Entity\EntityViewBuilder::getBuildDefaults()
     CacheableMetadata::createFromObject($renderable_component_tree)
@@ -277,11 +353,14 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    *   An array generated by ::getValue().
    * @param bool $isPreview
    *   TRUE if is preview.
+   * @param array<string, true> $suppressAnnotationsFor
+   *   Component instance UUIDs, keyed by UUID, to render in preview without
+   *   the client-side annotation comments.
    *
    * @return array
    *   The corresponding render array.
    */
-  private static function renderify(string $componentRenderingContext, array $hydrated, bool $isPreview = FALSE) {
+  private static function renderify(string $componentRenderingContext, array $hydrated, bool $isPreview = FALSE, array $suppressAnnotationsFor = []) {
     $build = [];
     foreach ($hydrated as $component_subtree_uuid => $component_instances) {
       foreach ($component_instances as $component_instance_uuid => $component_instance) {
@@ -313,8 +392,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           }
 
           // Wrap each rendered component instance in HTML comments that allow
-          // the client side to identify it.
-          if ($isPreview) {
+          // the client side to identify it. Suppressed for components the
+          // consumer declared non-addressable (per-content template chrome):
+          // they render as inert markup, while still rendering in preview
+          // mode so the slot markers their Twig emits keep working.
+          if ($isPreview && !\array_key_exists($component_instance_uuid, $suppressAnnotationsFor)) {
             $element['#prefix'] = Markup::create("<!-- canvas-start-$component_instance_uuid -->");
             $element['#suffix'] = Markup::create("<!-- canvas-end-$component_instance_uuid -->");
           }
@@ -355,7 +437,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
               // Explicit slot value: renderify, just like the rest of the
               // component tree.
               else {
-                $slots += self::renderify($componentRenderingContext, [$slot => $slot_value], $isPreview);
+                $slots += self::renderify($componentRenderingContext, [$slot => $slot_value], $isPreview, $suppressAnnotationsFor);
               }
             }
 
@@ -642,11 +724,114 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   }
 
   /**
-   * @param ExposedSlotDefinitions $exposed_slot_info
-   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $subTreeItemList
+   * Merges one exposed slot's per-entity field content into this tree.
+   *
+   * An empty field keeps the template's default content. Otherwise the field's
+   * tree replaces the slot's default content entirely.
+   *
+   * @param string $parent_uuid
+   *   The UUID of the template component instance that owns the slot.
+   * @param string $slot_name
+   *   The name of the slot on that component instance.
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $slotField
+   *   The entity's backing field for this slot.
+   *
    * @return $this
    */
+  public function injectSlotContent(string $parent_uuid, string $slot_name, ComponentTreeItemList $slotField): self {
+    // UUID-keyed sets, so each lookup below is constant time.
+    $override_roots = [];
+    foreach ($slotField->componentTreeItemsIterator(self::inRootLevel()) as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $override_roots[$item->getUuid()] = TRUE;
+    }
+    if (\count($override_roots) === 0) {
+      return $this;
+    }
+
+    // Preflight before mutating anything: every override UUID must be new to
+    // this tree (minus the default subtree about to be replaced), so a
+    // collision throws while the tree is still intact and callers catching the
+    // exception render the unmodified template.
+    $default_roots = [];
+    $existing_uuids = [];
+    $is_default_root = self::isChildOfComponentTreeItemSlot($parent_uuid, $slot_name);
+    foreach ($this->componentTreeItemsIterator() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $existing_uuids[$item->getUuid()] = TRUE;
+      if ($is_default_root($item)) {
+        $default_roots[] = $item->getUuid();
+      }
+    }
+    $replaced_uuids = $default_roots === [] ? [] : self::collectSubtreeValues($this, $default_roots);
+    $override_values = self::collectSubtreeValues($slotField, \array_keys($override_roots));
+    foreach (\array_keys($override_values) as $uuid) {
+      if (!isset($replaced_uuids[$uuid]) && isset($existing_uuids[$uuid])) {
+        throw new SubtreeInjectionException("Cannot inject subtree because some of its components are already in the final tree.");
+      }
+    }
+    if (\count($default_roots) > 0) {
+      // Remove by descending delta so earlier indices stay valid, and so the
+      // surviving items keep their stored form (removeItem does not re-set
+      // them, unlike a full setValue round-trip).
+      $deltas_to_remove = [];
+      foreach ($this->componentTreeItemsIterator() as $delta => $item) {
+        \assert($item instanceof ComponentTreeItem);
+        if (isset($replaced_uuids[$item->getUuid()])) {
+          $deltas_to_remove[] = $delta;
+        }
+      }
+      \rsort($deltas_to_remove);
+      foreach ($deltas_to_remove as $delta) {
+        $this->removeItem($delta);
+      }
+    }
+
+    // Inject the entity's subtree, nesting each root under the template's real
+    // target slot. Descendants keep their parent_uuid and slot, so the merged
+    // tree hydrates correctly. Collisions were rejected above, before any
+    // mutation.
+    foreach ($override_values as $uuid => $value) {
+      if (isset($override_roots[$uuid])) {
+        // Re-root under the template's real slot, inserting parent_uuid + slot
+        // in the canonical column order (right after component_id) so the row
+        // matches the shape of any other nested row.
+        $rerooted = [];
+        foreach ($value as $key => $item_value) {
+          if ($key === 'parent_uuid' || $key === 'slot') {
+            continue;
+          }
+          $rerooted[$key] = $item_value;
+          if ($key === 'component_id') {
+            $rerooted['parent_uuid'] = $parent_uuid;
+            $rerooted['slot'] = $slot_name;
+          }
+        }
+        $value = $rerooted;
+      }
+      $this->appendItem($value);
+    }
+    return $this;
+  }
+
+  /**
+   * Merges alias-keyed subtrees into this tree.
+   *
+   * @param ExposedSlotDefinitions $exposed_slot_info
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList $subTreeItemList
+   *
+   * @return $this
+   *
+   * @api Kept for backwards compatibility until removal.
+   *
+   * @deprecated in canvas:1.13.0 and is removed from canvas:2.0.0. Use
+   *   ::injectSlotContent() instead.
+   *
+   * @phpcs:ignore Drupal.Commenting.Deprecated.DeprecatedWrongSeeUrlFormat
+   * @see https://www.drupal.org/project/canvas/issues/3591817
+   */
   public function injectSubTreeItemList(array $exposed_slot_info, ComponentTreeItemList $subTreeItemList): self {
+    @\trigger_error(__METHOD__ . '() is deprecated in canvas:1.13.0 and is removed from canvas:2.0.0. Use ::injectSlotContent() instead. See https://www.drupal.org/project/canvas/issues/3591817', \E_USER_DEPRECATED);
     foreach ($exposed_slot_info as $slot_detail) {
       $parent_uuid = $slot_detail['component_uuid'] ?? NULL;
       $slot = $slot_detail['slot_name'] ?? NULL;

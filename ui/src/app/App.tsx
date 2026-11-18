@@ -48,8 +48,8 @@ function customCollisionDetectionAlgorithm(
   // but outside the previewed page there is no target, so dropping cancels.
   const pointer = args.pointerCoordinates;
   const pane = document.querySelector('[data-canvas-editor-pane="true"]');
-  const root = document.querySelector<HTMLElement>(
-    '.canvas--viewport-overlay [data-canvas-drop-container]',
+  const viewport = document.querySelector<HTMLElement>(
+    '.canvas--viewport-overlay',
   );
   const within = (el: Element, p: { x: number; y: number }) => {
     const r = el.getBoundingClientRect();
@@ -59,10 +59,23 @@ function customCollisionDetectionAlgorithm(
     (origin === 'overlay' || origin === 'library') &&
     pointer &&
     pane &&
-    root &&
+    viewport &&
     within(pane, pointer)
   ) {
-    if (within(root.closest('.canvas--viewport-overlay')!, pointer)) {
+    if (within(viewport, pointer)) {
+      // Per-content editing renders one root region per exposed slot; use the
+      // one under the pointer. A single root region is used wherever the
+      // pointer is.
+      const roots = Array.from(
+        viewport.querySelectorAll<HTMLElement>(
+          ':scope > [data-canvas-drop-container]',
+        ),
+      );
+      const root =
+        roots.length === 1 ? roots[0] : roots.find((el) => within(el, pointer));
+      if (!root) {
+        return [];
+      }
       const id = findPreviewDropZoneId(root, pointer, args.active.id);
       const droppable = args.droppableContainers.find((d) => d.id === id);
       return droppable

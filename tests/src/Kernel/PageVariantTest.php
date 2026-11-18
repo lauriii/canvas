@@ -18,6 +18,7 @@ use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigException;
@@ -769,6 +770,22 @@ final class PageVariantTest extends CanvasKernelTestBase {
     $anchor = '<a id="main-content" tabindex="-1"></a>';
     self::assertStringContainsString($anchor, $html);
     self::assertLessThan(\strpos($html, $sentinel), \strpos($html, $anchor));
+
+    // Only the page content marker receives the main content. The empty slot
+    // marker is a marker too, but never suspends the variant's fiber: it
+    // renders nothing (or its preview placeholder) wherever it is rendered.
+    $empty_slot_marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $empty_slot_marker);
+    $source = $empty_slot_marker->getComponentSource();
+    self::assertInstanceOf(Marker::class, $source);
+    $render_in_fiber = static function (bool $is_preview) use ($source): array {
+      $fiber = new \Fiber(fn () => $source->renderComponent([], [], '44444444-4444-4444-8444-444444444444', $is_preview));
+      self::assertNull($fiber->start());
+      self::assertTrue($fiber->isTerminated());
+      return $fiber->getReturn();
+    };
+    self::assertSame([], $render_in_fiber(FALSE));
+    self::assertSame(ComponentTreeItemList::EMPTY_SLOT_PLACEHOLDER, (string) $render_in_fiber(TRUE)['#markup']);
   }
 
   /**

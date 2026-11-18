@@ -40,7 +40,8 @@ final class PageVariantsInstallAndMigrateUpdateTest extends CanvasUpdatePathTest
    * Tests that page variants are installed and page regions migrated.
    */
   public function testPageVariantsInstalledAndPageRegionsMigrated(): void {
-    // The fixture site predates page variants entirely.
+    // The fixture site predates page variants and exposed slots entirely.
+    $this->assertTrue(\Drupal::config('canvas.component.' . Marker::EMPTY_SLOT_COMPONENT_ID)->isNew());
     $this->assertNull(\Drupal::entityDefinitionUpdateManager()->getEntityType(PageVariant::ENTITY_TYPE_ID));
     $this->assertTrue(\Drupal::configFactory()->get('canvas.settings')->isNew());
     $this->assertFalse(\Drupal::moduleHandler()->moduleExists('canvas_page_template_component'));
@@ -54,6 +55,13 @@ final class PageVariantsInstallAndMigrateUpdateTest extends CanvasUpdatePathTest
     $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
     $this->assertNotNull($marker);
     $this->assertEntityIsValid($marker);
+
+    // 0031: the empty slot marker component exists, and is never placeable
+    // from the library.
+    $empty_slot_marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
+    $this->assertNotNull($empty_slot_marker);
+    $this->assertEntityIsValid($empty_slot_marker);
+    $this->assertFalse($empty_slot_marker->status());
 
     // 0029: the stark page region was converted into the `theme_stark`
     // variant, which became the site default (stark is the default theme).

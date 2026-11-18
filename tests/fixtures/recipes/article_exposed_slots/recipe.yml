@@ -1,0 +1,15 @@
+name: 'Article exposed slots'
+description: 'An Article content template with two exposed slots, plus article nodes.'
+type: 'Canvas'
+recipes:
+  - core/recipes/article_content_type
+install:
+  - canvas:canvas_test_sdc
+# Not strict: the component config may already exist after module install.
+config:
+  strict: false
+content:
+  node:
+    - 1111aaaa-2222-4bbb-8ccc-dddddddddddd
+    - 2222bbbb-3333-4ccc-8ddd-eeeeeeeeeeee
+    - 3333cccc-4444-4ddd-8eee-ffffffffffff

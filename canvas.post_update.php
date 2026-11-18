@@ -18,6 +18,7 @@ use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Hook\PageHooks;
 use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -866,4 +867,13 @@ function canvas_post_update_0031_canvas_page_canonical_url_metatag_default(array
 
   $sandbox['progress'] += \count($batch);
   $sandbox['#finished'] = $sandbox['total'] == 0 ? 1 : ($sandbox['progress'] / $sandbox['total']);
+}
+
+/**
+ * Installs the empty slot marker component on existing sites.
+ */
+function canvas_post_update_0032_install_empty_slot_marker(): void {
+  // config/install is only processed at module install time, but exposed
+  // slots need the marker component to represent empty overrides.
+  Marker::ensureComponent(Marker::EMPTY_SLOT_LOCAL_ID);
 }

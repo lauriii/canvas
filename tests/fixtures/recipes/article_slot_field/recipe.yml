@@ -1,0 +1,10 @@
+name: 'Article slot field'
+description: 'An unused slot field on Article, with content on one article node.'
+type: 'Canvas'
+recipes:
+  - core/recipes/article_content_type
+install:
+  - canvas:canvas_test_sdc
+content:
+  node:
+    - 4444dddd-5555-4eee-8fff-aaaaaaaaaaaa

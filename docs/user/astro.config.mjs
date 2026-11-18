@@ -187,6 +187,7 @@ export default defineConfig({
           items: [
             { label: 'Introduction', slug: 'guides' },
             { label: 'Translations', slug: 'guides/translations' },
+            { label: 'Exposed slots', slug: 'guides/exposed-slots' },
           ],
         },
         {

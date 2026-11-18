@@ -3,6 +3,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import {
   setLayoutModel,
+  setPreviewSlotOverrides,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
 import { previewEditCount } from '@/features/layout/preview/previewEdits';
@@ -20,7 +21,14 @@ import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
-import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
+import type { ExposedSlotServerDefinition } from '@/features/layout/exposedSlots';
+import type {
+  ExposedSlotDefinition,
+  PerContentTemplateInfo,
+  RootLayoutModel,
+  SlotDefaultContent,
+  SlotOverrideState,
+} from '@/features/layout/layoutModelSlice';
 import type {
   UpdateComponentQueryArg,
   UpdateComponentResultType,
@@ -44,6 +52,18 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  // Per-content editing (templated entity with exposed slots), emitted by the
+  // slot-scoped Layout API GET. @see ApiLayoutController per-content mode.
+  exposedSlots?: Record<string, ExposedSlotDefinition>;
+  slotOverrides?: Record<string, SlotOverrideState>;
+  // Content template editor: each exposed slot's override state on the
+  // preview entity, whose own content the preview shows in that slot.
+  previewSlotOverrides?: Record<string, SlotOverrideState>;
+  slotDefaults?: Record<string, SlotDefaultContent | null>;
+  contentTemplate?: PerContentTemplateInfo;
+  editFormUrl?: string | null;
+  // The `<id>@<version>` type of the empty slot marker (per-content mode).
+  emptySlotMarkerType?: string;
   // For content entities: the page variant rendering this entity, null when
   // core block layout renders the page. Absent for config entities.
   resolvedPageVariant?: string | null;
@@ -55,6 +75,10 @@ export type TemplateViewMode = {
   viewMode: string;
   viewModeLabel: string;
   label: string;
+  // The template's exposed slots, keyed by field name, from
+  // normalizeForClientSide().
+  // Used for the template-editor initial working set and the list count badge.
+  exposed_slots?: Record<string, ExposedSlotServerDefinition>;
   status: boolean;
   id: string;
   suggestedPreviewEntityId?: number | string | null;
@@ -74,9 +98,12 @@ export type TemplatesInBundle = {
   [key: string]: TemplateInBundle;
 };
 
-type TemplateList = {
+export type TemplateList = {
   [key: string]: {
+    // The bundles' collection label, e.g. "Content types".
     label: string;
+    // The entity type's own collection label, e.g. "Content".
+    entityTypeLabel: string;
     bundles: TemplatesInBundle;
   };
 };
@@ -97,6 +124,15 @@ export type ViewModesList = {
 export type PreviewContentEntity = {
   id: string;
   label: string;
+  // Present only when the current user may update this entity: the entity's
+  // edit-form URL. Gates the "Edit CMS content" link.
+  editUrl?: string | null;
+  // Present only when the user may edit this entity in Canvas, which requires
+  // exposed slots on its bundle's `full` template. Gates "Edit in Canvas".
+  canvasUrl?: string | null;
+  // Present only when the user may administer this bundle's fields: the Field
+  // UI "Manage fields" URL. Gates the "Manage fields" link.
+  manageFieldsUrl?: string | null;
 };
 
 export type PreviewContentEntitiesResponse = {
@@ -347,8 +383,18 @@ export const componentAndLayoutApi = createApi({
       }),
     }),
     postTemplateLayout: builder.mutation<
-      { html: string; autoSaves: AutoSavesHash },
-      { layout: any; model: any; entity_form_fields: any }
+      {
+        html: string;
+        autoSaves: AutoSavesHash;
+        previewSlotOverrides?: Record<string, SlotOverrideState>;
+      },
+      {
+        layout: any;
+        model: any;
+        entity_form_fields: any;
+        // Template editor's exposed-slot working set, persisted with the layout.
+        exposed_slots?: Record<string, ExposedSlotServerDefinition>;
+      }
     >({
       query: (body) => ({
         url: 'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',
@@ -358,7 +404,7 @@ export const componentAndLayoutApi = createApi({
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const editsAtRequest = previewEditCount();
         const { data, meta } = await queryFulfilled;
-        const { html, autoSaves } = data;
+        const { html, autoSaves, previewSlotOverrides } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
             { type: 'PendingChanges', id: 'LIST' },
@@ -367,6 +413,11 @@ export const componentAndLayoutApi = createApi({
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our template preview slice.
         dispatch(setHtml(html, editsAtRequest));
+        // Exposing or detaching a slot changes which of the preview entity's
+        // overrides the preview shows.
+        if (previewSlotOverrides) {
+          dispatch(setPreviewSlotOverrides(previewSlotOverrides));
+        }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },

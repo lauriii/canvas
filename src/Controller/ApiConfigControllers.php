@@ -166,6 +166,7 @@ final class ApiConfigControllers extends ApiControllerBase {
 
     // 1. Create the hierarchy:
     // - all supported content entity types with their bundle collection label
+    //   and their own collection label
     // - all bundles for each supported content entity type with their label
     $hierarchical_json = [];
     $additional_cacheability = new CacheableMetadata();
@@ -216,6 +217,9 @@ final class ApiConfigControllers extends ApiControllerBase {
 
       $hierarchical_json[$entity_type_id] = [
         'label' => $label,
+        // The content entity type's own collection label ("Content"), unlike
+        // `label`, which names its bundles ("Content types").
+        'entityTypeLabel' => (string) $entity_type->getCollectionLabel(),
         'bundles' => $bundles,
       ];
       // For bundleless content entity types, omit the label.

@@ -29,3 +29,8 @@
   max-width: 100%;
 }
 
+/* Leaked Drupal admin link styles recolor it. */
+.externalLinkButton:hover,
+.externalLinkButton:active {
+  color: var(--accent-contrast);
+}

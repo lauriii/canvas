@@ -16,6 +16,7 @@ use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessCo
 use Drupal\canvas\EntityHandlers\VersionedConfigEntityStorage;
 use Drupal\canvas\Form\ComponentListBuilder;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
@@ -614,6 +615,12 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   }
 
   public function preSave(EntityStorageInterface $storage): void {
+    // Keep the empty slot marker disabled, even when a recipe config action
+    // enables all components.
+    // @see config/install/canvas.component.marker.empty_slot.yml
+    if ($this->id() === Marker::EMPTY_SLOT_COMPONENT_ID) {
+      $this->setStatus(FALSE);
+    }
     if (!$this->isSyncing()) {
       $this->getConfigUpdater()->updatePropFieldDefinitionsWithRequiredFlag($this);
       $this->getConfigUpdater()->updatePropFieldDefinitionsUsingTextValue($this);

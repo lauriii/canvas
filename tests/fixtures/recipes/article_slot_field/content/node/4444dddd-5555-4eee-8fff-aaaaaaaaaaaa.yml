@@ -1,0 +1,46 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 4444dddd-5555-4eee-8fff-aaaaaaaaaaaa
+  bundle: article
+  default_langcode: en
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: 'Slot field alpha'
+  created:
+    -
+      value: 1752624000
+  promote:
+    -
+      value: true
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  canvas_slot_reusable:
+    -
+      parent_uuid: null
+      slot: null
+      uuid: 5c1e7a2b-3d4f-4a6b-9c8d-0e1f2a3b4c5d
+      component_id: sdc.canvas_test_sdc.my-hero
+      component_version: a681ae184a8f6b7f
+      inputs:
+        heading: 'Reused hero'
+        subheading: 'Stored in the reusable slot field'
+        cta1: View
+        cta1href:
+          uri: 'https://drupal.org'
+          options: {  }
+        cta2: Click

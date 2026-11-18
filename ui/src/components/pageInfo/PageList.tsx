@@ -195,8 +195,9 @@ const createPageMenuContent = (
   );
 };
 
-// Component for individual page item to manage menu state
-const PageListItem = ({
+// Component for individual page item to manage menu state.
+// Also used by the Content panel's templated-entity groups.
+export const PageListItem = ({
   item,
   isSelected,
   isHomepage,

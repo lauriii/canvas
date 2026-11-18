@@ -1,0 +1,43 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - canvas_test_sdc
+label: 'Canvas test SDC with props and slots'
+id: sdc.canvas_test_sdc.props-slots
+source: sdc
+source_local_id: 'canvas_test_sdc:props-slots'
+provider: canvas_test_sdc
+active_version: 0e79e884426a53ae
+versioned_properties:
+  active:
+    settings:
+      prop_field_definitions:
+        heading:
+          required: true
+          field_type: string
+          field_storage_settings: {  }
+          field_instance_settings: {  }
+          field_widget: string_textfield
+          default_value:
+            -
+              value: 'There goes my hero'
+          expression: ℹ︎string␟value
+          derived_schema_metadata:
+            string_shape: {  }
+    fallback_metadata:
+      slot_definitions:
+        the_body:
+          title: 'The Body'
+          description: 'The contents of the body.'
+          examples:
+            - '<p>Example value for <strong>the_body</strong> slot in <strong>prop-slots</strong> component.</p>'
+        the_footer:
+          title: 'The Footer'
+          description: 'The contents of the footer.'
+          examples:
+            - 'Example value for <strong>the_footer</strong>.'
+        the_colophon:
+          title: 'The Colophon'
+          description: 'The contents of the colophon.'
+          examples: {  }

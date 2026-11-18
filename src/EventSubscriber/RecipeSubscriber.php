@@ -6,6 +6,7 @@ namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\PageVariantMigration;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Config\Action\ConfigActionManager;
 use Drupal\Core\DefaultContent\PreImportEvent;
 use Drupal\Core\Recipe\RecipeAppliedEvent;
@@ -48,6 +49,7 @@ final class RecipeSubscriber implements EventSubscriberInterface {
     $this->componentSourceManager->generateComponents();
     // Intrinsic marker components are not generated through discovery.
     PageVariantMigration::ensurePageContentMarker();
+    Marker::ensureComponent(Marker::EMPTY_SLOT_LOCAL_ID);
   }
 
   /**

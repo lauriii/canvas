@@ -152,7 +152,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     }
     $build = $this->decorated->view($entity, $view_mode, $langcode);
     \assert($entity instanceof FieldableEntityInterface);
-    $this->addCacheability($build, $this->loadTemplate($entity, $build['#view_mode'] ?? $view_mode));
+    $this->addCacheability($build, $entity, $this->loadTemplate($entity, $build['#view_mode'] ?? $view_mode));
     return $build;
   }
 
@@ -179,7 +179,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     $build_list = $this->decorated->viewMultiple($entities, $view_mode, $langcode);
     foreach ($entities as $key => $entity) {
       \assert($entity instanceof FieldableEntityInterface);
-      $this->addCacheability($build_list[$key], $this->loadTemplate($entity, $build_list[$key]['#view_mode'] ?? $view_mode));
+      $this->addCacheability($build_list[$key], $entity, $this->loadTemplate($entity, $build_list[$key]['#view_mode'] ?? $view_mode));
     }
     return $build_list;
   }
@@ -222,7 +222,7 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
       : parent::getBuildDefaults($entity, $view_mode);
     \assert($entity instanceof FieldableEntityInterface);
     $template = $this->loadTemplate($entity, $defaults['#view_mode']);
-    $this->addCacheability($defaults, $template);
+    $this->addCacheability($defaults, $entity, $template);
 
     // Content templates own the complete output, including new entities and
     // non-default revisions, which do not have render cache keys.
@@ -237,10 +237,12 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
    *
    * @param array $build
    *   The render array of a single entity.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity being rendered.
    * @param \Drupal\canvas\Entity\ContentTemplate|null $template
    *   The content template for the entity and view mode, if any.
    */
-  private function addCacheability(array &$build, ?ContentTemplate $template): void {
+  private function addCacheability(array &$build, FieldableEntityInterface $entity, ?ContentTemplate $template): void {
     // The rendered output varies based on whether we're in the Canvas editor UI
     // (preview mode). Use a specialized cache context that's narrower than
     // `route.name` to avoid creating separate cache entries per route, which
@@ -257,9 +259,14 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
     // If a template exists, no matter if disabled, this render array depends
     // on it changing.
     if ($template) {
-      CacheableMetadata::createFromRenderArray($build)
-        ->addCacheableDependency($template)
-        ->applyTo($build);
+      $cacheability = CacheableMetadata::createFromRenderArray($build)
+        ->addCacheableDependency($template);
+      // Exposed slots render the entity's own slot fields, so saving the
+      // entity must invalidate the output.
+      if ($template->getExposedSlots() !== []) {
+        $cacheability->addCacheableDependency($entity);
+      }
+      $cacheability->applyTo($build);
     }
     // We need to ensure that as soon as a content template is added, we are
     // using it.
