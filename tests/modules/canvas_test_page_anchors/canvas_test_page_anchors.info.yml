@@ -1,0 +1,6 @@
+name: 'Canvas Test Page Anchors'
+type: module
+description: 'Provides a section that renders an anchor id and a button that can link to it.'
+package: Testing
+dependencies:
+  - canvas:canvas
