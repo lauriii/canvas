@@ -8,6 +8,7 @@ use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
 use Drupal\canvas\Block\BlockManagerDecorator;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -140,7 +141,34 @@ final class BlockManagerDecoratorTest extends CanvasKernelTestBase {
 
     $block_manager = $this->container->get(BlockManagerInterface::class);
     self::assertInstanceOf(BlockManagerDecorator::class, $block_manager);
-    self::assertFalse($block_manager->moduleInstallInProgress);
+    self::assertFalse($block_manager->moduleInstallOrUninstallInProgress);
+  }
+
+  /**
+   * Uninstalling block_content must not break the site.
+   *
+   * Core drops the module's tables while uninstalling its entity types. That
+   * clears the cached field definitions, and Layout Builder responds by
+   * clearing the block plugin cache. Generating components at that moment
+   * queries the dropped block_content tables.
+   *
+   * @see \Drupal\Core\Extension\ModuleInstaller::uninstall()
+   * @see \Drupal\layout_builder\Cache\ExtraFieldBlockCacheTagInvalidator
+   * @see https://www.drupal.org/project/canvas/issues/3592377
+   */
+  public function testUninstallingBlockContentWithLayoutBuilderDoesNotDiscoverBlocksAfterTablesAreDropped(): void {
+    // Canvas's uninstall validator audits Canvas pages, and core's user module
+    // clears its per-module data while any module uninstalls.
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->installSchema('user', ['users_data']);
+    $module_installer = $this->container->get(ModuleInstallerInterface::class);
+    $module_installer->install(['layout_builder', 'block_content']);
+
+    // The uninstall must not throw, whether or not any reusable blocks exist.
+    $module_installer->uninstall(['block_content']);
+
+    // Components for the remaining block plugins are still there.
+    self::assertNotNull(Component::load('block.system_powered_by_block'));
   }
 
 }

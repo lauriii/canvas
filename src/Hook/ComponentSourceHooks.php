@@ -71,13 +71,45 @@ readonly final class ComponentSourceHooks {
    * Tells the block manager decorator to skip component generation until the
    * install is done.
    *
-   * @see \Drupal\canvas\Block\BlockManagerDecorator::$moduleInstallInProgress
+   * @see \Drupal\canvas\Block\BlockManagerDecorator::$moduleInstallOrUninstallInProgress
    */
   #[Hook('module_preinstall')]
   public function modulePreinstall(string $module, bool $is_syncing): void {
     $block_manager = $this->kernel->getContainer()->get('plugin.manager.block');
     \assert($block_manager instanceof BlockManagerDecorator);
-    $block_manager->moduleInstallInProgress = TRUE;
+    $block_manager->moduleInstallOrUninstallInProgress = TRUE;
+  }
+
+  /**
+   * Implements hook_module_preuninstall().
+   *
+   * Core drops the module's database tables during an uninstall, and other
+   * modules (for example Layout Builder) clear the block plugin cache right
+   * afterward. Tells the block manager decorator to skip component generation
+   * so it does not query tables that no longer exist.
+   *
+   * @see \Drupal\canvas\Block\BlockManagerDecorator::$moduleInstallOrUninstallInProgress
+   * @see https://www.drupal.org/project/canvas/issues/3592377
+   */
+  #[Hook('module_preuninstall')]
+  public function modulePreuninstall(string $module, bool $is_syncing): void {
+    $block_manager = $this->kernel->getContainer()->get('plugin.manager.block');
+    \assert($block_manager instanceof BlockManagerDecorator);
+    $block_manager->moduleInstallOrUninstallInProgress = TRUE;
+  }
+
+  /**
+   * Implements hook_modules_uninstalled().
+   *
+   * Core rebuilds the container while uninstalling, which already resets the
+   * flag and regenerates components without the uninstalled module. Reset it
+   * explicitly in case a container was reused.
+   */
+  #[Hook('modules_uninstalled')]
+  public function modulesUninstalled(array $modules, bool $is_syncing): void {
+    $block_manager = $this->kernel->getContainer()->get('plugin.manager.block');
+    \assert($block_manager instanceof BlockManagerDecorator);
+    $block_manager->moduleInstallOrUninstallInProgress = FALSE;
   }
 
   /**
@@ -89,7 +121,7 @@ readonly final class ComponentSourceHooks {
     // components again.
     $block_manager = $this->kernel->getContainer()->get('plugin.manager.block');
     \assert($block_manager instanceof BlockManagerDecorator);
-    $block_manager->moduleInstallInProgress = FALSE;
+    $block_manager->moduleInstallOrUninstallInProgress = FALSE;
 
     // Canvas needs canvas_stark in order to work, so *always* install it
     // regardless of whether config is syncing. The theme installer is smart
