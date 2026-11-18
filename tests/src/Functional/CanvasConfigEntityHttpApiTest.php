@@ -2729,6 +2729,10 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Even though the list of ContentTemplates is empty, the hierarchy of the
     // supported entity types and bundles is still present.
     $expected_empty_list_normalization = [
+      'media' => [
+        'label' => 'Media types',
+        'bundles' => [],
+      ],
       'node' => [
         'label' => 'Content types',
         'bundles' => [
@@ -2768,6 +2772,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'config:core.extension',
       'config:content_template_list',
       'config:node_type_list',
+      'config:media_type_list',
       'entity_bundles',
       'entity_types',
       'http_response',
@@ -2808,7 +2813,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
 
     // The list response MUST contain unpublished ContentTemplates.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny', 'config:media_type_list', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     $expected_list_normalization = $expected_empty_list_normalization;
     $expected_list_normalization['node']['bundles']['bunny']['viewModes']['full'] = $expected_full_bunny_normalization;
     $this->assertSame($expected_list_normalization, $body);
@@ -2863,7 +2868,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny', 'entity_types'], 'UNCACHEABLE (request policy)', 'HIT');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions', 'user.node_grants:view'], ['config:core.extension', 'config:content_template_list', 'http_response', 'entity_bundles', 'config:node_type_list', 'node_list:bunny', 'config:media_type_list', 'entity_types'], 'UNCACHEABLE (request policy)', 'HIT');
     $this->assertSame($expected_list_normalization, $body);
 
     // Create a ContentTemplate via the Canvas HTTP API, correctly: 201.
@@ -2900,11 +2905,11 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'editFieldsUrl' => NULL,
       'deleteUrl' => NULL,
     ];
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'config:media_type_list', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_list_normalization, $body);
 
     // Re-retrieve list: 200, unchanged, but now is a Dynamic Page Cache hit.
-    $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'HIT');
+    $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node_list:bunny', 'node_list:llama', 'config:media_type_list', 'entity_types'], 'UNCACHEABLE (request policy)', 'HIT');
     // @phpstan-ignore-next-line method.alreadyNarrowedType
     $this->assertSame($expected_list_normalization, $body);
 
@@ -2920,7 +2925,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Re-retrieve list: 200, now has suggested preview entity, Dynamic Page
     // Cache miss. Note the presence of the suggested preview entity's
     // individual cache tag: this is because it had its "view" access checked.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:bunny', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:bunny', 'node_list:llama', 'config:media_type_list', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     // Change the expectation from `NULL` to the entity ID.
     $expected_list_normalization['node']['bundles']['llama']['viewModes']['full']['suggestedPreviewEntityId'] = (int) $node->id();
     $this->assertSame($expected_list_normalization, $body);
@@ -2936,7 +2941,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Re-retrieve empty list: 200. Dynamic Page Cache miss. Note that the cache
     // tag related to the `bunny` NodeType has disappeared.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'config:media_type_list', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     unset($expected_list_normalization['node']['bundles']['bunny']['viewModes']['full']);
     $this->assertSame($expected_list_normalization, $body);
 
@@ -2953,7 +2958,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'deleteUrl' => NULL,
     ];
     ksort($expected_list_normalization['node']['bundles']);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'config:media_type_list', 'entity_types'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_list_normalization, $body);
 
     // PATCH the existing llama template (CLI push path).

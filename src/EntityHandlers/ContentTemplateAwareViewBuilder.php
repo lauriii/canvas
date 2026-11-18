@@ -185,6 +185,33 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
   }
 
   /**
+   * Builds a render array returned by ::view() now, if it is not built yet.
+   *
+   * For a caller that needs a built render array because the decorated view
+   * builder would have returned one.
+   *
+   * @param array $build
+   *   A render array returned by ::view().
+   *
+   * @return array
+   *   The built render array.
+   *
+   * @see \Drupal\canvas\Block\BuildsContentBlockImmediatelyTrait
+   *
+   * @todo Remove when core builds content blocks in its block plugins: https://www.drupal.org/project/drupal/issues/3638853
+   *
+   * @internal
+   */
+  public function buildImmediately(array $build): array {
+    $key = \array_search([$this, 'build'], $build['#pre_render'] ?? [], TRUE);
+    if ($key === FALSE) {
+      return $build;
+    }
+    unset($build['#pre_render'][$key]);
+    return $this->build($build);
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function getBuildDefaults(EntityInterface $entity, $view_mode) {

@@ -22,10 +22,10 @@ final readonly class ContentTemplateRepository {
   /**
    * Returns whether an entity type supports content templates.
    *
-   * A content entity type is eligible if 4 conditions are met: 1) opted into
-   * Field UI, 2) stored, 3) has a page of its own, and 4) does not have a
-   * component tree of its own. The reason for each condition, with examples, is
-   * in docs/config-management.md.
+   * A content entity type is eligible if 3 conditions are met: 1) opted into
+   * Field UI, 2) stored, and 3) does not have a component tree of its own.
+   * `comment` is excluded. The reason for each condition, with examples, is in
+   * docs/config-management.md.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type to check.
@@ -42,19 +42,12 @@ final readonly class ContentTemplateRepository {
       && (bool) $entity_type->get('field_ui_base_route')
       // 2. It is stored: its entity storage is not ContentEntityNullStorage.
       && !\is_a($entity_type->getStorageClass(), ContentEntityNullStorage::class, TRUE)
-      // 3. It has a page of its own: its `canonical` link template is not its
-      //    `edit-form` link template. Media only has one if stand-alone media
-      //    URLs are enabled.
-      // TRICKY: `comment` is an edge case: its metadata complies with this rule
-      // but its implementation redirects to the commented entity.
-      && (
-        $entity_type->hasLinkTemplate('canonical')
-        && $entity_type->getLinkTemplate('canonical') !== $entity_type->getLinkTemplate('edit-form')
-        // @see \Drupal\comment\Controller\CommentController::commentPermalink()
-        && $entity_type->id() !== 'comment'
-      )
-      // 4. It does not implement ComponentTreeEntityInterface.
-      && !$entity_type->entityClassImplements(ComponentTreeEntityInterface::class);
+      // 3. It does not implement ComponentTreeEntityInterface.
+      && !$entity_type->entityClassImplements(ComponentTreeEntityInterface::class)
+      // TRICKY: `comment` is excluded by name. A comment is rendered in a
+      // thread, whose threading and indentation a content template would lose.
+      // @see \Drupal\comment\CommentViewBuilder::alterBuild()
+      && $entity_type->id() !== 'comment';
   }
 
   /**
