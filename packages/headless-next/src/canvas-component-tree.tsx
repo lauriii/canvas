@@ -10,7 +10,7 @@ import type { CanvasComponentTreeProps as ReactCanvasComponentTreeProps } from '
 
 export type CanvasComponentTreeProps = Pick<
   ReactCanvasComponentTreeProps,
-  'tree' | 'context' | 'jsonApi'
+  'tree' | 'context' | 'jsonApi' | 'preview'
 >;
 
 /**
@@ -27,12 +27,14 @@ export function CanvasComponentTree({
   tree,
   context,
   jsonApi,
+  preview,
 }: CanvasComponentTreeProps) {
   return (
     <ReactCanvasComponentTree
       tree={tree}
       context={context}
       jsonApi={jsonApi}
+      preview={preview}
       components={canvasComponents}
     />
   );

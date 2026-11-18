@@ -10,7 +10,7 @@ hooks, and configuration may change without a deprecation path.
 
 - [Simple OAuth module](https://www.drupal.org/project/simple_oauth) (>=6.1.0), with its RSA keypair configured (see
   `/admin/config/people/simple_oauth`). The same keypair signs preview assertions; no additional keys are needed.
-- The `custom_elements` module.
+- [Custom Elements module](https://www.drupal.org/project/custom_elements) (>= 3.5.0).
 - A frontend app built on the Drupal Canvas Headless SDK. The SDK ships as the workspace package
   `@drupal-canvas/headless` (framework-agnostic core) plus one adapter per framework —
   `@drupal-canvas/headless-next` (Next.js), `@drupal-canvas/headless-astro` (Astro),
@@ -112,6 +112,10 @@ hook documentation, including the site-policy `_alter` hook.
 are supported; fragments are rejected. File URLs in content responses are absolute so they resolve from the
 headless frontend rather than from the Drupal origin implicitly.
 
+The Headless SDK sends `Canvas-Client-Capabilities: json-render` to request json-render content.
+The header accepts comma-separated, case-insensitive tokens. Without `json-render`, Canvas returns legacy Custom Elements JSON.
+Canvas 2.0.0 will remove legacy output and return json-render by default.
+
 ### Read-only preview language
 
 Canvas's language selector passes the selected language through the embedded
@@ -140,6 +144,8 @@ Cross-domain language negotiation is not supported for this internal preview hin
 content entity directly. Pass `viewMode={viewMode}` to render a specific
 content-template view mode, for example
 `/canvas/content-api/entity?type=node&id=1&viewMode=teaser`.
+The capabilities header selects the same json-render or legacy Custom Elements
+content format as the routed content endpoint.
 
 ### Entity response
 
@@ -157,8 +163,8 @@ content-template view mode, for example
 }
 ```
 
-`content` is one structured root or `null`. `managedByCanvas` is `false` when
-Canvas does not manage the requested entity and view mode.
+`content` is a json-render document or `null`. `managedByCanvas` is `false`
+when Canvas does not manage the requested entity and view mode.
 
 ### Content response
 
@@ -225,11 +231,12 @@ This example requests French, but renders English because the French translation
 }
 ```
 
-`content` is one structured root or `null`. Multiple roots use a transparent `renderless-container` with the ordered
-roots in its `default` slot. Routes Canvas does not manage and managed routes with empty trees both use `content: null`.
-`route.managedByCanvas` distinguishes them and remains `true` for an empty managed tree.
+`content` is a json-render document or `null`. Multiple roots use a transparent `renderless-container` with the ordered
+roots in its `children` field. Routes Canvas does not manage use `content: null`; empty managed trees use
+`root: ""` and `elements: {}`. `route.managedByCanvas` remains `true` for an empty managed tree.
 
-`context` is the page and site context that Code Components read. `context.translations` holds the interface
+`context` is the page and site context that Code Components read. Both legacy and json-render responses
+include the same component translations. `context.translations` holds the interface
 translations of the strings that the rendered code components translate, in the request's interface language, keyed
 by translation context (an empty string when none) and source string. It is absent when none of them is translated,
 and includes `pluralFormula` when a plural string is translated and a formula is available.

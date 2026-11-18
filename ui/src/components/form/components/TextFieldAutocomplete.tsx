@@ -28,6 +28,7 @@ const TextFieldAutocomplete = ({
   attributes['data-canvas-no-update'] = '';
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const changeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const fieldContext = useFieldContext();
 
   // This mutation observer responds to the addition of a
@@ -104,8 +105,11 @@ const TextFieldAutocomplete = ({
           // listeners in autocomplete.extend.js have had a chance to
           // determine if suggestions are available and prevent store/preview
           // updates or if they aren't it updates the store/preview with what
-          // has been typed.
-          setTimeout(() => {
+          // has been typed. Only the last keystroke's timeout may run: an
+          // earlier one can fire before the suggestions open, and the
+          // resulting store update re-renders the form, which closes them.
+          clearTimeout(changeTimeoutRef.current);
+          changeTimeoutRef.current = setTimeout(() => {
             const suggestionsOpen =
               inputRef.current &&
               jQuery(inputRef.current).data('ui-autocomplete') &&

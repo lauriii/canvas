@@ -34,6 +34,11 @@ use ShipMonk\PHPStan\DeadCode\Provider\VirtualUsageData;
  *    Drupal\canvas_headless\Plugin\Oauth2Grant\ implement
  *    Oauth2GrantInterface; simple_oauth's grant manager calls
  *    getGrantType() via plugin dispatch.
+ *
+ * 5. Custom Elements render converters: canvas_headless classes in
+ *    Drupal\canvas_headless\RenderConverter\ implement
+ *    RenderConverterInterface; custom_elements calls applies() and convert()
+ *    via tagged-service dispatch.
  */
 final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvider {
 
@@ -69,6 +74,15 @@ final class ContribPluginsUsageProvider extends ReflectionBasedMemberUsageProvid
     ) {
       return VirtualUsageData::withNote(
         \sprintf('Called by simple_oauth grant plugin dispatch: %s::getGrantType().', $method->getDeclaringClass()->getShortName()),
+      );
+    }
+
+    if (\in_array($method->getName(), ['applies', 'convert'], TRUE)
+      && $method->isPublic()
+      && $method->getDeclaringClass()->implementsInterface('Drupal\\custom_elements\\RenderConverter\\RenderConverterInterface')
+    ) {
+      return VirtualUsageData::withNote(
+        \sprintf('Called by custom_elements render converter dispatch: %s::%s().', $method->getDeclaringClass()->getShortName(), $method->getName()),
       );
     }
 

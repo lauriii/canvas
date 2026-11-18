@@ -2,6 +2,11 @@ services:
   _defaults:
     autoconfigure: true
     autowire: true
+  cache_context.canvas_headless_content_format:
+    class: Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext
+    arguments: ['@request_stack']
+    tags:
+      - { name: cache.context }
   Drupal\canvas_headless\PreviewAssertionFactoryInterface:
     class: Drupal\canvas_headless\PreviewAssertionFactory
   Drupal\canvas_headless\PreviewUrlGeneratorInterface:
@@ -10,6 +15,9 @@ services:
     autowire: false
     tags:
       - { name: http_middleware, priority: 150 }
+  Drupal\canvas_headless\PageCache\DisallowCanvasContentApiRequests:
+    arguments:
+      $languagePathProcessor: '@?path_processor_language'
   Drupal\canvas_headless\Routing\CanvasContentRouteEnhancer:
     tags:
       - { name: route_enhancer, priority: -1000 }
@@ -40,9 +48,14 @@ services:
       $inner: '@Drupal\canvas_headless\Access\NodePreviewAccessCheck.inner'
   Drupal\canvas_headless\ExternalComponentSync: {}
   Drupal\canvas_headless\Controller\ExternalComponentSyncController: {}
-  Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter:
-    decorates: custom_elements.canvas_render_converter
-    decoration_on_invalid: ignore
+  Drupal\canvas_headless\CanvasContentSerializer: {}
+  Drupal\canvas_headless\RenderConverter\CanvasRenderConverter:
+    tags:
+      # After Custom Element passthrough (100), before built-in Canvas conversion (50).
+      - { name: custom_elements.render_converter, priority: 60 }
+  Drupal\canvas_headless\JsonRender\CanvasJsonRenderNormalizer:
+    tags:
+      - { name: custom_elements.format_normalizer }
   Drupal\canvas_headless\Controller\CanvasContentController: {}
   Drupal\canvas_headless\Controller\CanvasEntityController: {}
   Drupal\canvas_headless\File\CanvasContentFileUrlGenerator:

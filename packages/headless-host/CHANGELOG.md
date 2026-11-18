@@ -1,5 +1,13 @@
 # @drupal-canvas/headless-host
 
+## 0.6.1
+
+### Patch Changes
+
+- Updated dependencies [c4e025b]
+- Updated dependencies [c4e025b]
+  - @drupal-canvas/headless@0.13.0
+
 ## 0.6.0
 
 ### Minor Changes

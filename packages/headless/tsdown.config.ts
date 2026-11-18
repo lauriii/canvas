@@ -17,6 +17,7 @@ export default defineConfig({
     'components-endpoint/index': 'src/components-endpoint/index.ts',
     'components-endpoint/handler': 'src/components-endpoint/handler.ts',
     'component-registry': 'src/component-registry.ts',
+    'json-render': 'src/json-render.ts',
     vite: 'src/vite.ts',
   },
   format: ['es'],

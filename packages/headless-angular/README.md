@@ -29,21 +29,28 @@ metadata is not passed as an input. `<canvas-slot />` renders the default slot;
 `name` selects a named slot. Render each slot once within its registry
 component's view.
 
-Render
-`<canvas-component-tree [tree]="page.content" [components]="components" />` with
-the generated registry, and import `@drupal-canvas/headless/preview.css` in the
-global stylesheet. Draft trees emit editor boundaries and empty drop targets;
-published trees do not.
+Render the page with the generated registry:
+
+```html
+<canvas-component-tree
+  [tree]="page.content"
+  [components]="components"
+  [preview]="page.isPreview"
+/>
+```
+
+Import `@drupal-canvas/headless/preview.css` in the global stylesheet. The
+`preview` input enables editor boundaries and empty drop targets.
 
 Angular hosts remain in the DOM even with `display: contents`: account for them
 in direct-child CSS selectors. Slots use ordinary Angular views and scoped
 injectors, without detached DOM or hydration opt-outs.
 
-**Only render trusted Drupal HTML.** Raw tree strings and `CanvasMarkup`'s
-`html` input bypass Angular sanitization. Angular's `[innerHTML]` binding
-replaces raw HTML descendants during hydration or updates; these descendants do
-not retain stateful DOM identity. Interactive components should use Angular
-templates.
+**Only render trusted Drupal HTML.** The `markup` prop on `drupal-markup`
+elements and `CanvasMarkup`'s `html` input bypass Angular sanitization.
+Angular's `[innerHTML]` binding replaces raw HTML descendants during hydration
+or updates; these descendants do not retain stateful DOM identity. Interactive
+components should use Angular templates.
 
 ## Discovery and build
 

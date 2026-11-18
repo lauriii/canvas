@@ -14,6 +14,7 @@ import { fetchPage } from '@drupal-canvas/headless/server';
 
 import { CanvasComponentTree } from './canvas-component-tree';
 
+import type { CanvasComponentTree as CanvasComponentTreeDocument } from '@drupal-canvas/headless';
 import type { CanvasContext } from 'drupal-canvas';
 
 const context: CanvasContext = {
@@ -47,7 +48,16 @@ function Header() {
   );
 }
 
-const tree = { element: 'js-header', props: { canvasUuid: 'header' } };
+const tree = {
+  root: 'header',
+  elements: {
+    header: {
+      type: 'js.header',
+      props: {},
+      children: [],
+    },
+  },
+} satisfies CanvasComponentTreeDocument;
 
 describe('CanvasComponentTree context and client', () => {
   afterEach(() => {
@@ -137,12 +147,18 @@ describe('CanvasComponentTree context and client', () => {
 
   it('renders a normalized Canvas 1.11 response without borrowing head or outer context', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const content = {
+      element: 'renderless-container',
+      slots: {
+        default: { element: 'js-header', props: { canvasUuid: 'header' } },
+      },
+    };
     // Release-shaped wire response: context is absent, not manually null-filled.
     const page = await fetchPage('/', {
       baseUrl: 'https://drupal.example',
       fetchImpl: vi.fn().mockResolvedValue(
         Response.json({
-          content: tree,
+          content,
           head: { title: 'Legacy head title' },
           route: {
             name: 'view.frontpage.page_1',
@@ -155,6 +171,7 @@ describe('CanvasComponentTree context and client', () => {
       ),
     });
     if (!page || !('context' in page)) throw new Error('Expected a page');
+    expect(page.content).toEqual(content);
     const html = renderToStaticMarkup(
       <CanvasContextProvider context={outerContext}>
         <CanvasComponentTree
@@ -168,6 +185,111 @@ describe('CanvasComponentTree context and client', () => {
     expect(html).not.toContain('Legacy head title');
     expect(html).not.toContain('From outer');
     expect(html).not.toContain('Outer site');
+  });
+
+  it('renders converted draft content with legacy names, markup, and drop zones', async () => {
+    const markup =
+      '<!-- canvas-start-server-one --><p>Server markup</p><!-- canvas-end-server-one -->';
+    const page = await fetchPage('/', {
+      baseUrl: 'https://drupal.example',
+      draftData: {
+        path: '/',
+        resourceVersion: 'rel:working-copy',
+        sub: '42',
+        renewUrl: 'https://drupal.example/canvas-headless/renew',
+        accessToken: 'draft-token',
+        tokenType: 'Bearer',
+        tokenExpiresAt: Date.now() + 60_000,
+        codeVerifier: 'draft-verifier',
+      },
+      fetchImpl: vi.fn().mockResolvedValue(
+        Response.json({
+          head: { title: 'Draft page' },
+          route: { managedByCanvas: true },
+          content: {
+            element: 'canvas-preview-content-region',
+            slots: {
+              default: {
+                element: 'js-hero-card',
+                props: { canvasUuid: 'hero-one' },
+                slots: {
+                  default: [
+                    { element: 'drupal-markup', slots: { default: markup } },
+                    [
+                      {
+                        element: 'js-inline-label',
+                        props: { canvasUuid: 'inline-one' },
+                      },
+                      {
+                        element: 'js-empty-card',
+                        props: { canvasUuid: 'empty-one' },
+                        slots: { default: [] },
+                      },
+                    ],
+                  ],
+                  aside: false,
+                },
+              },
+            },
+          },
+        }),
+      ),
+    });
+    if (!page || !('content' in page)) throw new Error('Expected a page');
+
+    const html = renderToStaticMarkup(
+      <CanvasComponentTree
+        tree={page.content}
+        preview={page.isPreview}
+        components={{
+          Hero_Card: ({ children, aside, ...props }) => {
+            expect(props).not.toHaveProperty('canvasUuid');
+            return (
+              <article>
+                {children}
+                <aside>{aside}</aside>
+              </article>
+            );
+          },
+          'inline-label': () => <b>Inline label</b>,
+          'empty-card': ({ children }) => <footer>{children}</footer>,
+        }}
+      />,
+    );
+
+    expect(html).toMatch(/<article>.*Server markup.*Inline label.*<aside>/);
+    expect(html).toContain(markup);
+    expect(html).toContain('data-canvas-slot-name="aside"');
+    expect(html).toContain('canvas--slot-empty-placeholder');
+    expect(html).toMatch(
+      /<footer>.*canvas--slot-empty-placeholder.*<\/footer>/,
+    );
+    expect(html.match(/data-canvas-region-id="content"/g)).toHaveLength(2);
+    expect(html.match(/data-canvas-uuid="hero-one"/g)).toHaveLength(2);
+    expect(html).not.toContain('data-canvas-uuid="el-');
+  });
+
+  it('preserves exact json-render tags and component props in native content', () => {
+    const html = renderToStaticMarkup(
+      <CanvasComponentTree
+        tree={{
+          root: 'el-0',
+          elements: {
+            'el-0': {
+              type: 'js-header',
+              props: { canvasUuid: 'application-data' },
+              children: [],
+            },
+          },
+        }}
+        components={{
+          'js-header': ({ canvasUuid }) => <p>{canvasUuid}</p>,
+          header: () => <p>Legacy registry match</p>,
+        }}
+      />,
+    );
+
+    expect(html).toBe('<p>application-data</p>');
   });
 
   it('creates a client from the runtime configuration and inherits an outer client otherwise', () => {

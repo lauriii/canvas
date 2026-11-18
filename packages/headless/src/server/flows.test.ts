@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DRAFT_DATA_COOKIE_NAME } from '../constants';
+import {
+  CANVAS_CLIENT_CAPABILITIES_HEADER,
+  DRAFT_DATA_COOKIE_NAME,
+} from '../constants';
 import { serializeDraftData } from '../draft-data';
 import { resolveDraftConfig } from './config';
 import { createDraftServer, redeemAssertion } from './flows';
@@ -673,7 +676,16 @@ describe('getClient', () => {
 
 describe('fetchPage', () => {
   const page = {
-    content: { element: 'canvas-page' },
+    content: {
+      root: 'canvas-page',
+      elements: {
+        'canvas-page': {
+          type: 'canvas-page',
+          props: {},
+          children: [],
+        },
+      },
+    },
     head: { title: 'Example page' },
     context: {
       page: {
@@ -712,14 +724,20 @@ describe('fetchPage', () => {
     const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
     const { server } = makeServer(fetchImpl as unknown as typeof fetch);
 
-    await expect(server.fetchPage('/example')).resolves.toEqual(page);
+    await expect(server.fetchPage('/example')).resolves.toEqual({
+      ...page,
+      isPreview: false,
+    });
     expect(fetchImpl).toHaveBeenCalledWith(
       new URL(
         'https://drupal.example/canvas/content-api?requestUri=%2Fexample',
       ),
       expect.objectContaining({
         cache: 'no-store',
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+        },
       }),
     );
   });
@@ -729,7 +747,10 @@ describe('fetchPage', () => {
     const fetchImpl = vi.fn().mockResolvedValue(Response.json(emptyPage));
     const { server } = makeServer(fetchImpl as unknown as typeof fetch);
 
-    await expect(server.fetchPage('/example')).resolves.toEqual(emptyPage);
+    await expect(server.fetchPage('/example')).resolves.toEqual({
+      ...emptyPage,
+      isPreview: false,
+    });
   });
 
   it('normalizes a Canvas 1.11 response without context to null page and site slots', async () => {
@@ -745,6 +766,7 @@ describe('fetchPage', () => {
     await expect(server.fetchPage('/example')).resolves.toEqual({
       ...legacyPage,
       context: { page: null, site: null },
+      isPreview: false,
     });
   });
 
@@ -1041,7 +1063,7 @@ describe('fetchPage', () => {
       ),
     ).resolves.toEqual({
       ...page,
-      content: { element: 'canvas-page', canvasDraftMode: true },
+      isPreview: true,
     });
     expect(fetchImpl).toHaveBeenCalledWith(
       new URL(
@@ -1051,6 +1073,7 @@ describe('fetchPage', () => {
         headers: {
           Accept: 'application/json',
           Authorization: 'Bearer old-token',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
         },
       }),
     );
@@ -1081,7 +1104,13 @@ describe('fetchPage', () => {
         new URL(
           `https://drupal.example/canvas/content-api?requestUri=%2F&componentId=js.example${previewUri ? '&language=pl' : ''}`,
         ),
-        expect.any(Object),
+        expect.objectContaining({
+          headers: {
+            Accept: 'application/json',
+            Authorization: 'Bearer old-token',
+            [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+          },
+        }),
       );
       expect(await server.getDraftData()).toMatchObject({
         path: '/example?language=fr',
@@ -1139,18 +1168,24 @@ describe('fetchPage', () => {
       }),
     );
 
-    await expect(server.fetchPage('/example')).resolves.toEqual(page);
+    await expect(server.fetchPage('/example')).resolves.toEqual({
+      ...page,
+      isPreview: false,
+    });
     expect(fetchImpl).toHaveBeenCalledWith(
       new URL(
         'https://drupal.example/canvas/content-api?requestUri=%2Fexample',
       ),
       expect.objectContaining({
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+        },
       }),
     );
   });
 
-  it('makes empty draft content editor-renderable', async () => {
+  it('marks empty draft content as preview output', async () => {
     const emptyPage = {
       ...page,
       content: null,
@@ -1163,10 +1198,7 @@ describe('fetchPage', () => {
 
     await expect(server.fetchPage('/example')).resolves.toEqual({
       ...emptyPage,
-      content: {
-        element: 'renderless-container',
-        canvasDraftMode: true,
-      },
+      isPreview: true,
     });
   });
 
@@ -1182,13 +1214,25 @@ describe('fetchPage', () => {
     );
     seedSession(liveDraftData());
 
-    await expect(server.fetchPage('/example')).resolves.toEqual(unmanagedPage);
+    await expect(server.fetchPage('/example')).resolves.toEqual({
+      ...unmanagedPage,
+      isPreview: false,
+    });
   });
 });
 
 describe('fetchEntity', () => {
   const entity = {
-    content: { element: 'js-article-card' },
+    content: {
+      root: 'article-card',
+      elements: {
+        'article-card': {
+          type: 'js.article-card',
+          props: {},
+          children: [],
+        },
+      },
+    },
     managedByCanvas: true,
     entity: {
       entityType: 'node',
@@ -1205,14 +1249,17 @@ describe('fetchEntity', () => {
 
     await expect(
       server.fetchEntity({ type: 'node', id: '2', viewMode: 'teaser' }),
-    ).resolves.toEqual(entity);
+    ).resolves.toEqual({ ...entity, isPreview: false });
     expect(fetchImpl).toHaveBeenCalledWith(
       new URL(
         'https://drupal.example/canvas/content-api/entity?type=node&id=2&viewMode=teaser',
       ),
       expect.objectContaining({
         cache: 'no-store',
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+        },
       }),
     );
   });
@@ -1228,7 +1275,7 @@ describe('fetchEntity', () => {
       server.fetchEntity({ type: 'node', id: '2' }),
     ).resolves.toEqual({
       ...entity,
-      content: { element: 'js-article-card', canvasDraftMode: true },
+      isPreview: true,
     });
   });
 
@@ -1245,7 +1292,12 @@ describe('fetchEntity', () => {
 
     await expect(
       server.fetchEntity({ type: 'node', id: '2' }),
-    ).resolves.toEqual({ ...entity, content: null, managedByCanvas: false });
+    ).resolves.toEqual({
+      ...entity,
+      content: null,
+      managedByCanvas: false,
+      isPreview: false,
+    });
   });
 
   it.each([

@@ -32,6 +32,8 @@ import type {} from '@nuxt/nitro-server';
 const SDK_PACKAGES = [
   '@drupal-canvas/headless',
   '@drupal-canvas/headless-nuxt',
+  '@drupal-canvas/json-render',
+  '@drupal-canvas/json-render-vue',
 ];
 
 /** The tag of the framework-free session element from the SDK core. */
@@ -107,6 +109,8 @@ export default defineNuxtModule<CanvasModuleOptions>({
       nuxt.options.vite.server.fs.allow ??= [nuxt.options.workspaceDir];
       nuxt.options.vite.server.fs.allow.push(
         resolver.resolve('../../headless'),
+        resolver.resolve('../../json-render'),
+        resolver.resolve('../../json-render-vue'),
       );
     }
 

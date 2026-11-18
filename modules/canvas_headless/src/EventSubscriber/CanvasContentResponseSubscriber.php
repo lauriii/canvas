@@ -6,6 +6,7 @@ namespace Drupal\canvas_headless\EventSubscriber;
 
 // cspell:ignore Repr
 
+use Drupal\canvas\CanvasClientCapabilities;
 use Drupal\canvas_headless\CanvasContentProblemResponse;
 use Drupal\canvas_headless\CanvasContentUrl;
 use Drupal\canvas_headless\Controller\CanvasEntityController;
@@ -161,12 +162,15 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
   }
 
   /**
-   * Adds Authorization variation after core finishes and redirect conversion.
+   * Adds request-header variation after core finishes response handling.
    */
-  public static function addAuthorizationVary(ResponseEvent $event): void {
+  public static function addVaryHeaders(ResponseEvent $event): void {
     if ($event->isMainRequest() && self::isContentApiRequest($event->getRequest())) {
       // Do not let shared caches serve a published response to a draft preview.
-      $event->getResponse()->setVary('Authorization', replace: FALSE);
+      $event->getResponse()->setVary([
+        'Authorization',
+        CanvasClientCapabilities::CAPABILITIES_HEADER,
+      ], replace: FALSE);
     }
   }
 
@@ -179,7 +183,7 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
         ['convertError', 9],
         ['addCacheability', 8],
         ['convertRedirect', -11],
-        ['addAuthorizationVary', -12],
+        ['addVaryHeaders', -12],
       ],
     ];
   }

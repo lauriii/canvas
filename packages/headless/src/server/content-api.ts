@@ -8,14 +8,19 @@
  * describes what the caller gets rather than how Drupal serves it.
  */
 
-import { CANVAS_COMPONENT_PREVIEW_QUERY } from '../constants';
-import { isPageRedirect } from '../page';
+import {
+  CANVAS_CLIENT_CAPABILITIES_HEADER,
+  CANVAS_COMPONENT_PREVIEW_QUERY,
+  CANVAS_HEADLESS_CAPABILITIES,
+} from '../constants';
 import { parsePreviewRequest, withPreviewContext } from '../preview-context';
 import { getSessionToken } from '../token';
 
 import type { DraftData } from '../draft-data';
-import type { PageResult } from '../page';
+import type { Page, PageRedirect, PageResult } from '../page';
 import type { PreviewContext } from '../preview-context';
+
+type ContentApiPage = Omit<Page, 'isPreview'>;
 
 /**
  * Fetches a page by its Drupal request URI (e.g. `/node/4?view=full`).
@@ -46,7 +51,11 @@ export async function fetchPage(
 ): Promise<PageResult | null> {
   const { baseUrl, draftData, componentPreviewId, fetchImpl = fetch } = options;
 
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    [CANVAS_CLIENT_CAPABILITIES_HEADER]:
+      CANVAS_HEADLESS_CAPABILITIES.join(', '),
+  };
   let liveDraft = false;
   if (draftData) {
     const token = getSessionToken(draftData);
@@ -89,8 +98,8 @@ export async function fetchPage(
   if (!response.ok) {
     return null;
   }
-  const raw = (await response.json()) as PageResult;
-  if (isPageRedirect(raw)) {
+  const raw = (await response.json()) as ContentApiPage | PageRedirect;
+  if ('redirect' in raw) {
     // A local redirect remains inside this preview document. Keep its context
     // without adding frontend-only parameters to external destinations.
     if (liveDraft && !raw.redirect.external) {
@@ -107,18 +116,9 @@ export async function fetchPage(
   // Sites running a Canvas version that predates the context API answer
   // without `context`; components then see missing context rather than
   // fabricated values.
-  const result: PageResult = {
+  return {
     ...raw,
     context: raw.context ?? { page: null, site: null },
+    isPreview: liveDraft && raw.route.managedByCanvas,
   };
-  if (liveDraft && result.route.managedByCanvas) {
-    return {
-      ...result,
-      content: {
-        ...(result.content ?? { element: 'renderless-container' }),
-        canvasDraftMode: true,
-      },
-    };
-  }
-  return result;
 }

@@ -34,6 +34,8 @@ const SDK_PACKAGES = [
   '@drupal-canvas/headless',
   '@drupal-canvas/headless-react',
   '@drupal-canvas/headless-tanstack-start',
+  '@drupal-canvas/json-render',
+  '@drupal-canvas/json-render-react',
 ];
 
 /**

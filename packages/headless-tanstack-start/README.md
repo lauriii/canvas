@@ -83,13 +83,17 @@ component renders `<DraftSession>` from
 `@drupal-canvas/headless-tanstack-start/client` with a render prop that owns the
 banner markup.
 
-**5. Component tree** — pass the structured content and context returned by
+**5. Component tree** — pass the json-render content and context returned by
 `fetchPage()` to `<CanvasComponentTree>`:
 
 ```tsx
 import { CanvasComponentTree } from '@drupal-canvas/headless-tanstack-start/CanvasComponentTree';
 
-<CanvasComponentTree tree={page.content} context={page.context} />;
+<CanvasComponentTree
+  tree={page.content}
+  preview={page.isPreview}
+  context={page.context}
+/>;
 ```
 
 `context` lets registered components read the page and site data through
@@ -160,4 +164,5 @@ responses with `DefaultSerializer`. `getJsonApiRuntimeConfig()` and
 `handleJsonApiProxy()` back the browser client and the proxy route.
 
 `fetchEntity({ type, id, viewMode })` renders one content entity without
-page-level route or head data. Use it for embedded renders such as teaser cards.
+page-level route or head data. Use it for embedded renders such as teaser cards,
+passing `result.content` and `result.isPreview` to `<CanvasComponentTree>`.

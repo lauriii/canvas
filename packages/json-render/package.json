@@ -1,0 +1,55 @@
+{
+  "name": "@drupal-canvas/json-render",
+  "version": "0.2.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
+  "description": "Framework-neutral Canvas json-render contracts and rendering helpers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/json-render"
+  },
+  "bugs": "https://git.drupalcode.org/project/canvas/-/work_items",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "sideEffects": [
+    "./dist/preview.css"
+  ],
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./renderer": {
+      "types": "./dist/renderer.d.ts",
+      "import": "./dist/renderer.js",
+      "default": "./dist/renderer.js"
+    },
+    "./preview.css": "./dist/preview.css"
+  },
+  "scripts": {
+    "build": "npm run type-check && NODE_ENV=production tsdown",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "dependencies": {
+    "@json-render/core": "^0.23.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@drupal-canvas/preview-geometry": "*",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

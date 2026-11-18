@@ -4,17 +4,26 @@
  * JSON returned by Drupal and are safe to use in server and browser bundles.
  */
 
+import type {
+  CanvasComponentTree as JsonRenderSpec,
+  JsonValue,
+} from '@drupal-canvas/json-render';
 import type { CanvasContext as CanvasContextData } from 'drupal-canvas/drupal-utils';
+import type { LegacyCustomElements } from './legacy-custom-elements';
+
+export type {
+  CanvasComponentTree as JsonRenderSpec,
+  CanvasComponentTreeElement,
+  CanvasComponentTreeSlot,
+  JsonValue,
+} from '@drupal-canvas/json-render';
 
 /**
- * A JSON value. The page payload is parsed JSON, so its loosely shaped
- * members are typed as JSON rather than `unknown`: it says exactly what
- * they can hold, and frameworks that check values crossing the server
- * boundary for serializable types (TanStack Start's server functions)
- * accept it.
+ * The content document in the format returned by Drupal.
+ *
+ * @todo Re-export `CanvasComponentTree` from `@drupal-canvas/json-render` when Canvas 1.13 is no longer supported.
  */
-export type JsonValue =
-  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type CanvasComponentTree = JsonRenderSpec | LegacyCustomElements;
 
 /** Scalar attributes for one document meta tag. */
 export type PageHeadMeta = Record<string, string>;
@@ -98,10 +107,12 @@ export type CanvasContext = CanvasContextData;
  * Drupal's resolved-and-rendered answer for a request URI.
  */
 export interface Page {
-  content: CanvasComponentTreeElement | null;
+  content: CanvasComponentTree | null;
   head: PageHead;
   route: DrupalRoute;
   context: CanvasContext;
+  /** Whether content was fetched through a live Canvas preview session. */
+  isPreview: boolean;
 }
 
 /** A redirect Drupal resolved before routed content. */
@@ -120,32 +131,6 @@ export type PageResult = Page | PageRedirect;
 export function isPageRedirect(result: PageResult): result is PageRedirect {
   return 'redirect' in result;
 }
-
-/**
- * One element of the rendered content tree: element name, scalar props,
- * and slots containing rendered markup or nested elements.
- */
-export interface CanvasComponentTreeElement {
-  /**
-   * Structural elements include `renderless-container` and the draft-only
-   * `canvas-preview-content-region` that locates routed content inside page
-   * chrome.
-   */
-  element: string;
-  props?: Record<string, JsonValue>;
-  slots?: Record<string, CanvasComponentTreeSlot>;
-  /** SDK render context: present while the draft/editor session is enabled. */
-  canvasDraftMode?: true;
-}
-
-/**
- * Slot values emitted by the Custom Elements API. A slot with one child is
- * serialized as that value; a multi-value slot is serialized as an array.
- * Drupal render arrays can preserve nested child groups, so arrays may be
- * nested while retaining their render order.
- */
-export type CanvasComponentTreeSlot =
-  string | CanvasComponentTreeElement | CanvasComponentTreeSlot[];
 
 /**
  * Serializes JSON for an inline data script without creating HTML markup.

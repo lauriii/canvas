@@ -44,7 +44,11 @@ export async function ComponentPreviewPage({
         nextjs-portal { display: none !important; }
       `}</style>
       <CanvasRuntime>
-        <CanvasComponentTree tree={page.content} context={page.context} />
+        <CanvasComponentTree
+          tree={page.content}
+          context={page.context}
+          preview={page.isPreview}
+        />
       </CanvasRuntime>
     </main>
   );

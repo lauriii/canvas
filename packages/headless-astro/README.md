@@ -61,15 +61,15 @@ import DraftSession from '@drupal-canvas/headless-astro/DraftSession.astro';
 </DraftSession>
 ```
 
-**3. Component tree** — pass the structured content returned by `fetchPage()` to
-`CanvasComponentTree.astro`:
+**3. Component tree** — pass the json-render content returned by `fetchPage()`
+to `CanvasComponentTree.astro`:
 
 ```astro
 ---
 import CanvasComponentTree from '@drupal-canvas/headless-astro/CanvasComponentTree.astro';
 ---
 
-<CanvasComponentTree tree={page.content} />
+<CanvasComponentTree tree={page.content} preview={page.isPreview} />
 ```
 
 The integration supplies a registry of every discovered component
@@ -119,7 +119,8 @@ shared `drupal-canvas` client (`createJsonApiClient()`), which deserializes
 responses with `DefaultSerializer`.
 
 `fetchEntity(Astro, { type, id, viewMode })` renders one content entity without
-page-level route or head data. Use it for embedded renders such as teaser cards.
+page-level route or head data. Use it for embedded renders such as teaser cards,
+passing `result.content` and `result.isPreview` to `<CanvasComponentTree>`.
 
 `page.context` carries the page and site context (title, breadcrumbs, primary
 entity, branding) Drupal generated for the routed page. To fetch JSON:API

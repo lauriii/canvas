@@ -26,6 +26,7 @@ import {
   ServerRenderingDraftFetchError,
 } from './canvas-component-tree';
 
+import type { CanvasComponentTree as CanvasComponentTreeDocument } from '@drupal-canvas/headless';
 import type { CanvasContext, JsonApiRuntimeConfig } from 'drupal-canvas';
 
 const context: CanvasContext = {
@@ -68,7 +69,16 @@ function ArticleTitle() {
   return <p data-testid="title">{data ? data.title : 'Loading'}</p>;
 }
 
-const tree = { element: 'js-article', props: { canvasUuid: 'article' } };
+const tree = {
+  root: 'article',
+  elements: {
+    article: {
+      type: 'js.article',
+      props: {},
+      children: [],
+    },
+  },
+} satisfies CanvasComponentTreeDocument;
 
 function App() {
   return (
@@ -198,7 +208,10 @@ describe('draft server rendering with SWR fallback and hydration', () => {
     const render = (langcode?: string) =>
       renderOnServer(
         <CanvasComponentTree
-          tree={{ element: 'js-date', props: { canvasUuid: 'date' } }}
+          tree={{
+            root: 'date',
+            elements: { date: { type: 'js.date', props: {}, children: [] } },
+          }}
           components={{ date: EventDate }}
           context={{
             ...context,
@@ -224,7 +237,12 @@ describe('draft server rendering with SWR fallback and hydration', () => {
     // browser render the same text.
     const translated = (
       <CanvasComponentTree
-        tree={{ element: 'js-greeting', props: { canvasUuid: 'greeting' } }}
+        tree={{
+          root: 'greeting',
+          elements: {
+            greeting: { type: 'js.greeting', props: {}, children: [] },
+          },
+        }}
         components={{ greeting: Greeting }}
         context={{
           ...context,
@@ -275,7 +293,12 @@ describe('draft server rendering with SWR fallback and hydration', () => {
         translations={{ strings: { '': { 'Hello @name': 'Salut @name' } } }}
       >
         <CanvasComponentTree
-          tree={{ element: 'js-greeting', props: { canvasUuid: 'greeting' } }}
+          tree={{
+            root: 'greeting',
+            elements: {
+              greeting: { type: 'js.greeting', props: {}, children: [] },
+            },
+          }}
           components={{ greeting: Greeting }}
           context={{
             ...context,

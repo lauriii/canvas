@@ -4,27 +4,41 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Kernel;
 
+use Drupal\canvas\CanvasClientCapabilities;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext;
+use Drupal\canvas_headless\CanvasContentSerializer;
+use Drupal\canvas_headless\CanvasCustomElement;
 use Drupal\canvas_headless\ExternalComponentSync;
 use Drupal\canvas_headless\FrontendUrl;
-use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
+use Drupal\canvas_headless\JsonRender\CanvasJsonRenderNormalizer;
+use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Render\Markup;
 use Drupal\custom_elements\CustomElement;
+use Drupal\custom_elements\CustomElementNormalizer;
+use Drupal\custom_elements\RenderConverter\RenderConverter;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\AbstractLogger;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Tests synchronization of external component definitions.
@@ -44,9 +58,9 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     'user',
     'path_alias',
     'serialization',
-    'custom_elements',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 
@@ -220,7 +234,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     ], $this->config('canvas_headless.settings')->get('frontends'));
 
     // Drupal keeps app-owned components renderless, while the headless
-    // Custom Elements converter exposes their props, identity, and slots.
+    // converter exposes their props, identity, and slots.
     $canvas_component = Component::load('js.heroBanner');
     self::assertInstanceOf(Component::class, $canvas_component);
     $source = $canvas_component->getComponentSource();
@@ -242,26 +256,292 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
         '#markup' => '',
       ],
     ]);
-    $converter = $this->container->get('custom_elements.canvas_render_converter');
-    self::assertInstanceOf(JsComponentCanvasRenderConverter::class, $converter);
-    $element = $converter->convertRenderArray([
+    $serializer = $this->container->get(CanvasContentSerializer::class);
+    self::assertInstanceOf(CanvasContentSerializer::class, $serializer);
+    $request_stack = $this->container->get(RequestStack::class);
+    self::assertInstanceOf(RequestStack::class, $request_stack);
+    // Match the request and normalization format without leaking request state.
+    $serialize = static function (array $build, string $format, bool $preview, CacheableMetadata $cacheability) use ($serializer, $request_stack): ?array {
+      $request = Request::create(CanvasContentApiRequest::API_PATH);
+      $request->attributes->set(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE, '/');
+      $request->headers->set(CanvasClientCapabilities::CAPABILITIES_HEADER, $format === CanvasContentSerializer::FORMAT_LEGACY ? '' : 'json-render');
+      $request_stack->push($request);
+      try {
+        [$content] = $serializer->serialize($build, $format, $preview, $cacheability);
+        return $content;
+      }
+      finally {
+        $request_stack->pop();
+      }
+    };
+    $component_build = [
       '#type' => 'component_container',
       '#component' => $build,
       '#component_uuid' => 'component-uuid',
-    ]);
-    self::assertSame('js-herobanner', $element->getTag());
-    self::assertSame('features', $element->getAttribute('anchorId'));
-    self::assertSame(3, $element->getAttribute('level'));
-    self::assertSame('component-uuid', $element->getAttribute('canvasUuid'));
-    $slot = $element->getSlot('content');
-    self::assertInstanceOf(CustomElement::class, $slot['content'] ?? NULL);
-    self::assertSame('js-child', $slot['content']->getTag());
-    self::assertSame('child-uuid', $slot['content']->getAttribute('canvasUuid'));
+    ];
+    $document = $serialize($component_build, CanvasContentSerializer::FORMAT_JSON_RENDER, FALSE, new BubbleableMetadata());
+    self::assertIsArray($document);
+    $element = $document['elements'][$document['root']];
+    self::assertSame('js.heroBanner', $element['type']);
+    self::assertSame('features', $element['props']['anchorId']);
+    self::assertSame(3, $element['props']['level']);
+    self::assertSame('component-uuid', $document['root']);
+    self::assertArrayNotHasKey('canvasUuid', $element['props']);
+    $child = $document['elements'][$element['slots']['content'][0]];
+    self::assertSame('js.child', $child['type']);
+    self::assertSame(['child-uuid'], $element['slots']['content']);
+    self::assertArrayNotHasKey('canvasUuid', $child['props']);
+
+    // The shared tree retains exact Canvas identity without putting it in props.
+    // The Canvas format does not replace Custom Elements' generic json-render.
+    $shared_converter = $this->container->get('custom_elements.render_converter');
+    self::assertInstanceOf(RenderConverter::class, $shared_converter);
+    $custom_element = $shared_converter->convert($component_build);
+    self::assertInstanceOf(CanvasCustomElement::class, $custom_element);
+    self::assertSame([
+      'componentId' => 'js.heroBanner',
+      'componentUuid' => 'component-uuid',
+    ], $custom_element->getCanvasMetadata());
+    $normalizer = $this->container->get('custom_elements.normalizer');
+    self::assertInstanceOf(CustomElementNormalizer::class, $normalizer);
+    $generic = $normalizer->normalize($custom_element, context: ['json_format' => 'json-render']);
+    self::assertIsArray($generic);
+    self::assertNotSame('component-uuid', $generic['root']);
+    self::assertSame('js-herobanner', $generic['elements'][$generic['root']]['type']);
+    // Missing json-render capability selects legacy only on headless API requests.
+    $legacy_tree = NULL;
+    /** @var list<array{string|null, bool, bool}> $request_cases */
+    $request_cases = [
+      [NULL, FALSE, TRUE],
+      ['', FALSE, TRUE],
+      [NULL, TRUE, FALSE],
+      ['', TRUE, FALSE],
+      ['invalid', TRUE, FALSE],
+      ['json-render', TRUE, TRUE],
+      ['Json-Render', TRUE, TRUE],
+      ['future-feature, json-render', TRUE, TRUE],
+    ];
+    foreach ($request_cases as [$capabilities, $is_api, $modern]) {
+      $request = Request::create('/ordinary-page');
+      if ($is_api) {
+        $request->attributes->set(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE, '/ordinary-page');
+      }
+      if ($capabilities !== NULL) {
+        $request->headers->set(CanvasClientCapabilities::CAPABILITIES_HEADER, $capabilities);
+      }
+      $request_stack->push($request);
+      try {
+        $tree = $shared_converter->convert($component_build);
+        $passthrough = CustomElement::create('existing-element');
+        self::assertSame($passthrough, $shared_converter->convert(['#custom_element' => $passthrough]));
+      }
+      finally {
+        $request_stack->pop();
+      }
+      self::assertSame($modern, $tree instanceof CanvasCustomElement);
+      self::assertSame($is_api, \in_array(HeadlessContentFormatCacheContext::CACHE_CONTEXT_ID, $tree->getCacheContexts(), TRUE));
+      if (!$modern) {
+        self::assertSame('component-uuid', $tree->getAttribute('canvasUuid'));
+        $legacy_tree = $tree;
+      }
+    }
+    self::assertInstanceOf(CustomElement::class, $legacy_tree);
+    self::assertArrayNotHasKey('canvasUuid', $custom_element->getAttributes());
+    self::assertSame($document, $normalizer->normalize($custom_element, context: ['json_format' => CanvasJsonRenderNormalizer::FORMAT]));
+
+    // Legacy SDKs keep their normalized tag names while json-render preserves
+    // the case-sensitive component IDs registered by the application.
+    $legacy = $serialize($component_build, CanvasContentSerializer::FORMAT_LEGACY, FALSE, new BubbleableMetadata());
+    self::assertIsArray($legacy);
+    self::assertSame('js-herobanner', $legacy['element']);
+    self::assertSame('js-child', $legacy['slots']['content']['element']);
+    self::assertSame('component-uuid', $legacy['props']['canvasUuid']);
+    self::assertSame('child-uuid', $legacy['slots']['content']['props']['canvasUuid']);
+    self::assertSame($legacy, $normalizer->normalize($legacy_tree, context: ['json_format' => 'explicit']));
+
+    // The built-in legacy serializer normalizes casing and retains
+    // single component slots, sibling arrays, and multiple roots.
+    $legacy_build = $component_build;
+    $legacy_build['#component'][JsComponent::EXTERNAL_RENDER_METADATA]['props']['nested_data'] = [
+      ['link_title' => 'A link', 'data-key' => 'value'],
+    ];
+    $footer_child = $build['#slots']['content'];
+    $footer_child[JsComponent::EXTERNAL_RENDER_METADATA]['component_uuid'] = 'footer-uuid';
+    $legacy_build['#component']['#slots']['footer_slot'] = [
+      $footer_child,
+      ['#markup' => '<p>Footer</p>'],
+    ];
+    $legacy_build['#component']['#slots']['empty_slot'] = [];
+    $legacy_content = $serialize($legacy_build, CanvasContentSerializer::FORMAT_LEGACY, FALSE, new BubbleableMetadata());
+    self::assertIsArray($legacy_content);
+    self::assertSame([['linkTitle' => 'A link', 'dataKey' => 'value']], $legacy_content['props']['nestedData']);
+    self::assertSame($legacy['slots']['content'], $legacy_content['slots']['content']);
+    self::assertSame([
+      ['element' => 'js-child', 'props' => ['label' => 'Nested component', 'canvasUuid' => 'footer-uuid']],
+      ['element' => 'drupal-markup', 'slots' => ['default' => '<p>Footer</p>']],
+    ], $legacy_content['slots']['footerSlot']);
+    self::assertArrayNotHasKey('emptySlot', $legacy_content['slots']);
+    self::assertSame([
+      'element' => 'renderless-container',
+      'slots' => ['default' => [$legacy_content, $legacy]],
+    ], $serialize([$legacy_build, [], $component_build], CanvasContentSerializer::FORMAT_LEGACY, FALSE, new BubbleableMetadata()));
+    foreach ([[], ['#markup' => '']] as $empty_build) {
+      self::assertNull($serialize($empty_build, CanvasContentSerializer::FORMAT_LEGACY, FALSE, new BubbleableMetadata()));
+    }
+    // Access-denied children stay absent, but still affect response caching.
+    $denied_build = $component_build;
+    $denied_build['#access'] = AccessResult::forbidden()->addCacheTags(['legacy-access'])->setCacheMaxAge(17);
+    $legacy_cacheability = new BubbleableMetadata();
+    self::assertNull($serialize($denied_build, CanvasContentSerializer::FORMAT_LEGACY, FALSE, $legacy_cacheability));
+    self::assertContains('legacy-access', $legacy_cacheability->getCacheTags());
+    self::assertSame(17, $legacy_cacheability->getCacheMaxAge());
+    $legacy_cacheability = new BubbleableMetadata();
+    self::assertSame($legacy, $serialize([$denied_build, $component_build], CanvasContentSerializer::FORMAT_LEGACY, FALSE, $legacy_cacheability));
+    self::assertContains('legacy-access', $legacy_cacheability->getCacheTags());
+    self::assertSame(17, $legacy_cacheability->getCacheMaxAge());
+    $document = $serialize($legacy_build, CanvasContentSerializer::FORMAT_JSON_RENDER, FALSE, new BubbleableMetadata());
+    self::assertIsArray($document);
+    self::assertSame([['link_title' => 'A link', 'data-key' => 'value']], $document['elements']['component-uuid']['props']['nested_data']);
+    self::assertArrayNotHasKey('nestedData', $document['elements']['component-uuid']['props']);
+    self::assertArrayHasKey('footer_slot', $document['elements']['component-uuid']['slots']);
+
+    // Props, including a prop named slot, are application data rather than
+    // HTML attributes. Raw slot markup still becomes a drupal-markup element.
+    $props = [
+      'slot' => 'default',
+      'nested_data' => ['link_title' => 'A link'],
+      'nestedData' => 'A separate prop',
+    ];
+    $markup_element = CanvasCustomElement::createWithCanvasMetadata([
+      'componentId' => 'js.markupComponent',
+      'componentUuid' => 'markup-component-uuid',
+    ], $props)
+      ->setSlot('default', Markup::create('<p>Slot markup</p>'));
+    self::assertSame([
+      'root' => 'markup-component-uuid',
+      'elements' => [
+        'markup-component-uuid' => [
+          'type' => 'js.markupComponent',
+          'props' => $props,
+          'children' => ['el-0'],
+        ],
+        'el-0' => [
+          'type' => 'drupal-markup',
+          'props' => ['markup' => '<p>Slot markup</p>'],
+          'children' => [],
+        ],
+      ],
+    ], $normalizer->normalize($markup_element, context: ['json_format' => CanvasJsonRenderNormalizer::FORMAT]));
+
+    // Reordering siblings changes references, not their component keys.
+    $sibling_build = [
+      JsComponent::EXTERNAL_RENDER_METADATA => [
+        'component_id' => 'js.child',
+        'component_uuid' => 'sibling-uuid',
+        'props' => ['label' => 'Sibling component'],
+      ],
+      '#markup' => '',
+    ];
+    foreach ([[$component_build, $sibling_build], [$sibling_build, $component_build]] as $index => $builds) {
+      $siblings = $serialize($builds, CanvasContentSerializer::FORMAT_JSON_RENDER, FALSE, new BubbleableMetadata());
+      self::assertIsArray($siblings);
+      self::assertSame($index === 0 ? ['component-uuid', 'sibling-uuid'] : ['sibling-uuid', 'component-uuid'], $siblings['elements'][$siblings['root']]['children']);
+      self::assertSame($element, $siblings['elements']['component-uuid']);
+    }
+
+    // Transparent slot groups keep children under their component parent, so
+    // inserting nested siblings cannot change an unchanged subtree's identity.
+    $slot_child = static fn(string $uuid, array $slots = []): array => [
+      JsComponent::EXTERNAL_RENDER_METADATA => [
+        'component_id' => 'js.child',
+        'component_uuid' => $uuid,
+        'props' => ['label' => $uuid],
+      ],
+      '#slots' => $slots,
+    ];
+    $nested_build = $component_build;
+    $nested_build['#component']['#slots']['content'] = [
+      $slot_child('first', [
+        'default' => [
+          $slot_child('first-one'),
+          $slot_child('first-two'),
+        ],
+      ]),
+      $slot_child('second', [
+        'footer_slot' => [
+          [$slot_child('second-one'), $slot_child('second-two')],
+          [],
+        ],
+      ]),
+    ];
+    foreach ([FALSE, TRUE] as $preview) {
+      $nested_document = $serialize($nested_build, CanvasContentSerializer::FORMAT_JSON_RENDER, $preview, new BubbleableMetadata());
+      self::assertIsArray($nested_document);
+      self::assertSame(['first', 'second'], $nested_document['elements']['component-uuid']['slots']['content']);
+      self::assertSame(['first-one', 'first-two'], $nested_document['elements']['first']['children']);
+      self::assertSame(['second-one', 'second-two'], $nested_document['elements']['second']['slots']['footer_slot']);
+      self::assertNotContains('renderless-container', \array_column($nested_document['elements'], 'type'));
+
+      $updated_build = $nested_build;
+      $updated_build['#component']['#slots']['content'][0]['#slots']['default'][] = $slot_child('inserted', [
+        'default' => [
+          $slot_child('new-one'),
+          $slot_child('new-two'),
+        ],
+      ]);
+      $updated_document = $serialize($updated_build, CanvasContentSerializer::FORMAT_JSON_RENDER, $preview, new BubbleableMetadata());
+      self::assertIsArray($updated_document);
+      self::assertSame(['first-one', 'first-two', 'inserted'], $updated_document['elements']['first']['children']);
+      self::assertSame(['new-one', 'new-two'], $updated_document['elements']['inserted']['children']);
+      self::assertSame($nested_document['elements']['second'], $updated_document['elements']['second']);
+    }
+
+    // Duplicate identities cannot silently replace an existing element.
+    try {
+      $serialize([$component_build, $component_build], CanvasContentSerializer::FORMAT_JSON_RENDER, FALSE, new BubbleableMetadata());
+      self::fail('Duplicate component UUIDs must be rejected.');
+    }
+    catch (\UnexpectedValueException $exception) {
+      self::assertSame('Duplicate Canvas component UUID in content document: component-uuid', $exception->getMessage());
+    }
+
+    // Any Marker source instance uses the same structural element. Its local
+    // ID lets headless renderers distinguish current and future marker types.
+    $marker_build = [
+      '#type' => 'container',
+      Marker::RENDER_METADATA => [
+        'marker_id' => 'future_marker',
+        'component_uuid' => 'future-marker-uuid',
+      ],
+      '#prefix' => Markup::create('<!-- canvas-start-future-marker-uuid -->'),
+      '#suffix' => Markup::create('<!-- canvas-end-future-marker-uuid -->'),
+      'content' => ['#markup' => 'Future marker'],
+    ];
+    $published_document = $serialize($marker_build, CanvasContentSerializer::FORMAT_JSON_RENDER, FALSE, new BubbleableMetadata());
+    self::assertIsArray($published_document);
+    self::assertSame('drupal-markup', $published_document['elements'][$published_document['root']]['type']);
+
+    $document = $serialize($marker_build, CanvasContentSerializer::FORMAT_JSON_RENDER, TRUE, new BubbleableMetadata());
+    self::assertIsArray($document);
+    $marker_element = $document['elements'][$document['root']];
+    self::assertSame(CanvasContentSerializer::MARKER_ELEMENT, $marker_element['type']);
+    self::assertSame('future_marker', $marker_element['props']['markerId']);
+    self::assertSame('future-marker-uuid', $document['root']);
+    self::assertArrayNotHasKey('canvasUuid', $marker_element['props']);
+    $legacy_marker = $serialize($marker_build, CanvasContentSerializer::FORMAT_LEGACY, TRUE, new BubbleableMetadata());
+    self::assertIsArray($legacy_marker);
+    self::assertStringContainsString('canvas-start-future-marker-uuid', $legacy_marker['slots']['default']);
+    self::assertStringContainsString('canvas-end-future-marker-uuid', $legacy_marker['slots']['default']);
+    self::assertSame(1, \substr_count($legacy_marker['slots']['default'], 'canvas-start-future-marker-uuid'));
+    unset($marker_build['#prefix'], $marker_build['#suffix']);
+    $legacy_marker = $serialize($marker_build, CanvasContentSerializer::FORMAT_LEGACY, FALSE, new BubbleableMetadata());
+    self::assertIsArray($legacy_marker);
+    self::assertStringNotContainsString('canvas-start-', $legacy_marker['slots']['default']);
 
     // Standard JS components keep their Drupal implementation, but the
     // headless converter represents their Astro islands as app-rendered
-    // Custom Elements without leaking island-only runtime props.
-    $element = $converter->convertRenderArray([
+    // components without leaking island-only runtime props.
+    $document = $serialize([
       '#type' => 'component_container',
       '#component' => [
         '#type' => 'astro_island',
@@ -275,13 +555,16 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
         ],
       ],
       '#component_uuid' => 'card-with-slot-uuid',
-    ]);
-    self::assertSame('js-cardwithslot', $element->getTag());
-    self::assertSame('Standard component', $element->getAttribute('title'));
-    self::assertSame('card-with-slot-uuid', $element->getAttribute('canvasUuid'));
-    self::assertNull($element->getAttribute('canvas_uuid'));
-    self::assertNull($element->getAttribute('canvas_slot_ids'));
-    self::assertNull($element->getAttribute('canvas_is_preview'));
+    ], CanvasContentSerializer::FORMAT_JSON_RENDER, FALSE, new BubbleableMetadata());
+    self::assertIsArray($document);
+    $element = $document['elements'][$document['root']];
+    self::assertSame('js.cardWithSlot', $element['type']);
+    self::assertSame('Standard component', $element['props']['title']);
+    self::assertSame('card-with-slot-uuid', $document['root']);
+    self::assertArrayNotHasKey('canvasUuid', $element['props']);
+    self::assertArrayNotHasKey('canvas_uuid', $element['props']);
+    self::assertArrayNotHasKey('canvas_slot_ids', $element['props']);
+    self::assertArrayNotHasKey('canvas_is_preview', $element['props']);
 
     // The payload's own warnings are surfaced in the Drupal log, and the
     // duplicate HeroBanner definition is skipped: heroBanner keeps the name

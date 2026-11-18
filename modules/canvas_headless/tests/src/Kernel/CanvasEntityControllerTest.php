@@ -7,25 +7,34 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 // cspell:ignore Contenu
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasClientCapabilities;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext;
 use Drupal\canvas_headless\Controller\CanvasEntityController;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
+use Drupal\canvas_headless\PageCache\DisallowCanvasContentApiRequests;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Cache\MemoryBackend;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\PageCache\ChainRequestPolicy;
+use Drupal\Core\PageCache\RequestPolicyInterface;
+use Drupal\Core\PageCache\ResponsePolicyInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\PermissionCheckerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\page_cache\StackMiddleware\PageCache;
 use Drupal\simple_oauth\Authentication\TokenAuthUser;
 use Drupal\simple_oauth\Entity\Oauth2Token;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -39,6 +48,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * Tests direct entity rendering through the Canvas entity API.
@@ -65,6 +75,7 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
     'field',
     'language',
     'node',
+    'page_cache',
     'path_alias',
     'serialization',
     'consumers',
@@ -153,6 +164,16 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
 
     self::assertSame(200, $response->getStatusCode());
     self::assertTrue($data['managedByCanvas']);
+    self::assertArrayHasKey('root', $data['content']);
+    self::assertArrayHasKey('elements', $data['content']);
+    self::assertContains(
+      HeadlessContentFormatCacheContext::CACHE_CONTEXT_ID,
+      $response->getCacheableMetadata()->getCacheContexts(),
+    );
+    self::assertContains(
+      CanvasClientCapabilities::CAPABILITIES_HEADER,
+      $response->getVary(),
+    );
     self::assertStringContainsString('Teaser template heading', $content);
     self::assertStringNotContainsString('Published template heading', $content);
     self::assertSame([
@@ -162,6 +183,14 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
       'uuid' => $node->uuid(),
       'langcode' => 'en',
     ], $data['entity']);
+
+    $legacy_data = self::responseData($this->renderEntity(
+      $node,
+      'teaser',
+      capabilities: '',
+    ));
+    self::assertArrayHasKey('element', $legacy_data['content']);
+    self::assertArrayNotHasKey('root', $legacy_data['content']);
   }
 
   /**
@@ -240,6 +269,32 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
     self::assertSame('fr', $data['entity']['langcode']);
     self::assertSame((string) $node->id(), $data['entity']['id']);
     self::assertSame($node->uuid(), $data['entity']['uuid']);
+
+    // Core's default request policy skips CLI requests. Allow them here so
+    // real Page Cache exercises our policy before the multilingual kernel.
+    $allow = $this->createMock(RequestPolicyInterface::class);
+    $allow->method('check')->willReturn(RequestPolicyInterface::ALLOW);
+    $policy = (new ChainRequestPolicy())
+      ->addPolicy($allow)
+      ->addPolicy($this->container->get(DisallowCanvasContentApiRequests::class));
+    $kernel = $this->createMock(HttpKernelInterface::class);
+    $kernel->method('handle')->willReturnCallback(fn (Request $request) => $this->request($request));
+    $page_cache = new PageCache(
+      static fn () => $kernel,
+      new MemoryBackend($this->container->get(TimeInterface::class)),
+      $policy,
+      $this->container->get(ResponsePolicyInterface::class),
+    );
+    foreach (['', 'json-render', 'future-feature, json-render'] as $capabilities) {
+      $capabilities_request = $request->duplicate();
+      $capabilities_request->headers->set(CanvasClientCapabilities::CAPABILITIES_HEADER, $capabilities);
+      $response = $page_cache->handle($capabilities_request);
+      self::assertInstanceOf(CacheableJsonResponse::class, $response);
+      $data = self::responseData($response);
+      self::assertSame('fr', $data['entity']['langcode']);
+      self::assertArrayHasKey($capabilities === '' ? 'element' : 'root', $data['content']);
+      self::assertSame('UNCACHEABLE (request policy)', $response->headers->get('X-Drupal-Cache'));
+    }
   }
 
   /**
@@ -497,7 +552,12 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
   /**
    * Renders an entity through the public kernel boundary.
    */
-  private function renderEntity(Node $node, string $view_mode = 'full', ?string $exclude_auto_save = NULL): CacheableJsonResponse {
+  private function renderEntity(
+    Node $node,
+    string $view_mode = 'full',
+    ?string $exclude_auto_save = NULL,
+    string $capabilities = 'json-render',
+  ): CacheableJsonResponse {
     $request = Request::create(
       CanvasEntityController::API_PATH . '?' . http_build_query([
         'type' => 'node',
@@ -505,6 +565,10 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
         'viewMode' => $view_mode,
         CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save,
       ]),
+    );
+    $request->headers->set(
+      CanvasClientCapabilities::CAPABILITIES_HEADER,
+      $capabilities,
     );
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
@@ -514,7 +578,12 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
   /**
    * Renders a page entity through the public kernel boundary.
    */
-  private function renderPageEntity(Page $page, string $view_mode = 'full', ?string $exclude_auto_save = NULL): CacheableJsonResponse {
+  private function renderPageEntity(
+    Page $page,
+    string $view_mode = 'full',
+    ?string $exclude_auto_save = NULL,
+    string $capabilities = 'json-render',
+  ): CacheableJsonResponse {
     $request = Request::create(
       CanvasEntityController::API_PATH . '?' . http_build_query([
         'type' => Page::ENTITY_TYPE_ID,
@@ -522,6 +591,10 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
         'viewMode' => $view_mode,
         CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save,
       ]),
+    );
+    $request->headers->set(
+      CanvasClientCapabilities::CAPABILITIES_HEADER,
+      $capabilities,
     );
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);

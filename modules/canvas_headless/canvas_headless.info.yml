@@ -5,6 +5,6 @@ package: Drupal Canvas
 core_version_requirement: ^11.3
 dependencies:
   - canvas:canvas
+  - custom_elements:custom_elements (>=3.5.0)
   - simple_oauth:simple_oauth (>=6.1.0)
   - consumers:consumers
-  - custom_elements:custom_elements

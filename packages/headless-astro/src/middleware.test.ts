@@ -85,7 +85,16 @@ describe('Astro request-local preview context', () => {
       const url = new URL(String(input));
       apiUrls.push(url);
       return Response.json({
-        content: { element: 'renderless-container' },
+        content: {
+          root: 'root',
+          elements: {
+            root: {
+              type: 'renderless-container',
+              props: {},
+              children: [],
+            },
+          },
+        },
         head: { title: url.searchParams.get('language') },
         route: { managedByCanvas: true },
       });

@@ -26,9 +26,9 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
     'user',
     'path_alias',
     'serialization',
-    'custom_elements',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 

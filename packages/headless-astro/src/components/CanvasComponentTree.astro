@@ -1,57 +1,28 @@
 ---
-import CanvasElement from './CanvasElement.astro';
-import canvasComponents from 'virtual:@drupal-canvas/headless/components';
-import '@drupal-canvas/headless/preview.css';
-import {
-  CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
-  formatCanvasCommentMarker,
-  hasCanvasPreviewContentRegion,
-  isCanvasComponentTreeDraft,
-  isCanvasComponentTreeEmpty,
-} from '@drupal-canvas/headless';
+// Carry the ambient declaration of the virtual components module into any
+// TypeScript program that includes this file.
+/// <reference path="../virtual.d.ts" />
 
-import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+import { convertLegacyCustomElementsFormat } from '@drupal-canvas/headless';
+import JsonRenderCanvasComponentTree from '@drupal-canvas/json-render-astro/CanvasComponentTree.astro';
+import canvasComponents from 'virtual:@drupal-canvas/headless/components';
+
+import type { CanvasComponentRegistry } from '@drupal-canvas/json-render-astro';
+import type { CanvasComponentTree } from '@drupal-canvas/headless';
 
 interface Props {
-  tree: CanvasComponentTreeElement | null;
-  components?: Record<string, unknown>;
+  tree: CanvasComponentTree | null;
+  components?: CanvasComponentRegistry;
+  /** Whether Canvas editor boundaries and empty drop areas should render. */
+  preview?: boolean;
 }
 
-const { tree, components = canvasComponents } = Astro.props;
-const editor = isCanvasComponentTreeDraft(tree);
-const previewContentRegion = editor && hasCanvasPreviewContentRegion(tree);
-const emptyRegion = editor && !previewContentRegion && isCanvasComponentTreeEmpty(tree);
+const { tree, components = canvasComponents, preview = false } = Astro.props;
+const renderTree = convertLegacyCustomElementsFormat(tree, components);
 ---
 
-{
-  editor && !previewContentRegion && (
-    <Fragment
-      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'start', id: 'content' })} -->`}
-    />
-  )
-}
-{
-  emptyRegion && (
-    <div
-      aria-hidden="true"
-      class={CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS}
-    />
-  )
-}
-{
-  tree && (
-    <CanvasElement
-      node={tree}
-      components={components}
-      path="tree"
-      editor={editor}
-    />
-  )
-}
-{
-  editor && !previewContentRegion && (
-    <Fragment
-      set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'end', id: 'content' })} -->`}
-    />
-  )
-}
+<JsonRenderCanvasComponentTree
+  tree={renderTree}
+  components={components}
+  preview={preview}
+/>

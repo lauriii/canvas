@@ -34,12 +34,23 @@ describe('CanvasComponentTree without providers', () => {
     const html = renderToStaticMarkup(
       <CanvasComponentTree
         tree={{
-          element: 'renderless-container',
-          slots: {
-            default: [
-              { element: 'js-header', props: { canvasUuid: 'one' } },
-              { element: 'js-header', props: { canvasUuid: 'two' } },
-            ],
+          root: 'root',
+          elements: {
+            root: {
+              type: 'renderless-container',
+              props: {},
+              children: ['one', 'two'],
+            },
+            one: {
+              type: 'js.header',
+              props: {},
+              children: [],
+            },
+            two: {
+              type: 'js.header',
+              props: {},
+              children: [],
+            },
           },
         }}
         components={{ header: Header }}

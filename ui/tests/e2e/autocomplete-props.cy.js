@@ -79,7 +79,7 @@ describe('Prop with autocomplete', () => {
     cy.get('@linkField').clear();
     cy.get('@linkField').type('Canvas With a block');
     cy.get('ul.ui-autocomplete').should('exist');
-    cy.get('ul.ui-autocomplete li').should(
+    cy.get('ul.ui-autocomplete li .canvas-link-suggestion__label').should(
       'have.text',
       'Canvas With a block in the layout',
     );
@@ -89,7 +89,7 @@ describe('Prop with autocomplete', () => {
 
     cy.get('@linkField').should(
       'have.value',
-      'Canvas With a block in the layout (3)',
+      'Canvas With a block in the layout (node/3)',
     );
     cy.get('@linkField').blur();
     // Wait for the preview to update.
