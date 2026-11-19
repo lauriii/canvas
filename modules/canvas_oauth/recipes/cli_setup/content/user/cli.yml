@@ -1,0 +1,33 @@
+_meta:
+  version: '1.0'
+  entity_type: user
+  uuid: 72810686-42f1-43cf-80fa-8a35a7cb5a08
+  default_langcode: en
+default:
+  preferred_langcode:
+    -
+      value: en
+  preferred_admin_langcode:
+    -
+      value: en
+  name:
+    -
+      value: 'Canvas CLI'
+  mail:
+    -
+      value: cli@example.com
+  timezone:
+    -
+      value: UTC
+  status:
+    -
+      value: true
+  access:
+    -
+      value: 0
+  login:
+    -
+      value: 0
+  init:
+    -
+      value: cli@example.com

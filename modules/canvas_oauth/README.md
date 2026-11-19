@@ -36,6 +36,15 @@ To interact with the API endpoints, you need a representation of a client. A cli
 certain scopes for authorization. (See the section "3. OAuth 2 scopes" below.) It's recommended to create separate
 clients for different use cases, e.g., a CLI tool running in a development environment, or a script running on CI.
 
+##### Automatic setup (recommended)
+
+Canvas OAuth includes a recipe that can perform the setup. Apply it at the command line:
+```shell
+dr recipe modules/contrib/canvas/modules/canvas_oauth/recipes/cli_setup
+```
+
+##### Manual setup
+
 _Note: The Simple OAuth module uses the terms "client" and "consumer" interchangeably._
 
 1. Visit `/admin/config/services/consumer`. Create a new client, or edit an existing one.

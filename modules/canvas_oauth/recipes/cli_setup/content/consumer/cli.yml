@@ -1,0 +1,80 @@
+_meta:
+  version: '1.0'
+  entity_type: consumer
+  uuid: 9a1724a1-6a79-4819-87e3-871542db531b
+  default_langcode: en
+  depends:
+    72810686-42f1-43cf-80fa-8a35a7cb5a08: user
+default:
+  owner_id:
+    -
+      target_id: 1
+  client_id:
+    -
+      value: cli
+  label:
+    -
+      value: 'Canvas CLI'
+  description:
+    -
+      value: 'API consumer for the Canvas CLI.'
+  third_party:
+    -
+      value: true
+  is_default:
+    -
+      value: false
+  status:
+    -
+      value: true
+  grant_types:
+    -
+      value: client_credentials
+  confidential:
+    -
+      value: true
+  scopes:
+    -
+      scope_id: canvas_asset_library
+    -
+      scope_id: canvas_brand_kit
+    -
+      scope_id: canvas_content_template
+    -
+      scope_id: canvas_js_component
+    -
+      scope_id: canvas_media_document_create
+    -
+      scope_id: canvas_media_image_create
+    -
+      scope_id: canvas_media_view
+    -
+      scope_id: canvas_page_create
+    -
+      scope_id: canvas_page_delete
+    -
+      scope_id: canvas_page_edit
+    -
+      scope_id: canvas_page_read
+    -
+      scope_id: canvas_page_region
+    -
+      scope_id: canvas_page_variant
+  access_token_expiration:
+    -
+      value: 300
+  refresh_token_expiration:
+    -
+      value: 1209600
+  user_id:
+    -
+      entity: 72810686-42f1-43cf-80fa-8a35a7cb5a08
+  pkce:
+    -
+      value: false
+  automatic_authorization:
+    -
+      value: false
+  remember_approval:
+    -
+      value: true
