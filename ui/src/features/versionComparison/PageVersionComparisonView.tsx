@@ -25,9 +25,11 @@ import {
   selectViewportWidth,
   setEditorFrameViewPort,
 } from '@/features/ui/uiSlice';
+import { PageVersionChanges } from '@/features/versionComparison/PageVersionChanges';
 import { buildFullPagePreviewDocument } from '@/features/versionComparison/pageVersionPreview';
 
 import type React from 'react';
+import type { PageVersionData } from '@/features/versionComparison/pageVersionDiff';
 
 import styles from './VersionComparisonPage.module.css';
 
@@ -67,6 +69,8 @@ const isEditableKeyboardTarget = (target: EventTarget | null): boolean => {
 
 export interface PageVersionContent {
   html: string;
+  // Layout, model, and entity form fields. Enables the "Changes" tab.
+  data?: PageVersionData;
   updated?: string;
   loading?: boolean;
   changed?: boolean;
@@ -186,6 +190,7 @@ export const PageVersionComparisonView = ({
         '_blank',
       ));
   const [tab, setTab] = useState('visual');
+  const hasChangesTab = 'data' in publishedVersion || 'data' in newVersion;
   const publishedContentHtml = useMemo(
     () => buildFullPagePreviewDocument(publishedVersion.html || EMPTY_HTML),
     [publishedVersion.html],
@@ -260,6 +265,11 @@ export const PageVersionComparisonView = ({
           <Tabs.Trigger className={styles.tabTrigger} value="visual">
             Visual
           </Tabs.Trigger>
+          {hasChangesTab && (
+            <Tabs.Trigger className={styles.tabTrigger} value="changes">
+              Changes
+            </Tabs.Trigger>
+          )}
         </Tabs.List>
         {tab === 'visual' && <ViewportSelector />}
       </Flex>
@@ -303,6 +313,14 @@ export const PageVersionComparisonView = ({
           </PreviewCard>
         </ComparisonGrid>
       </Tabs.Content>
+      {hasChangesTab && (
+        <Tabs.Content value="changes" className={styles.tabContent}>
+          <PageVersionChanges
+            before={publishedVersion.data}
+            after={newVersion.data}
+          />
+        </Tabs.Content>
+      )}
     </Tabs.Root>
   );
 };
