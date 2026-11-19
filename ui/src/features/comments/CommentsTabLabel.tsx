@@ -8,14 +8,14 @@ import styles from './CommentsPanel.module.css';
 /**
  * The "Comments" tab label, with the number of open threads on this surface.
  *
- * The count is the only thing that tells a user a page carries a conversation
- * before they go looking: pins are drawn only while comments are on screen,
- * and there is no other standing signal. Notion and Google Docs both put this
- * marker on the same affordance that opens the list, for the same reason.
+ * The count tells a user a page carries a conversation before they go
+ * looking, including for threads that have no pin on the canvas. Notion and
+ * Google Docs both put this marker on the same affordance that opens the
+ * list, for the same reason.
  *
- * This is the one place that fetches threads unconditionally. Everything else
- * skips the request until comments are actually being looked at, and shares
- * this cache entry when they are.
+ * The open threads are fetched for as long as the surface is open. The pin
+ * layer asks for the same thing while the panel is closed or on its "Open"
+ * filter, and shares this cache entry when it does.
  */
 const CommentsTabLabel = () => {
   const { surfaceType, surfaceId, hasSurface } = useCommentSurface();

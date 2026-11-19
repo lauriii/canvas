@@ -4,6 +4,7 @@ import { Box, Button, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Avatar from '@/components/Avatar';
+import { getAvatarInitialColor } from '@/components/review/utils';
 import CommentBody from '@/features/comments/CommentBody';
 import {
   clearActiveThread,
@@ -14,16 +15,16 @@ import {
 } from '@/features/comments/commentsSlice';
 import {
   filterThreads,
-  getReplyCount,
   getThreadLabel,
 } from '@/features/comments/commentThreadUtils';
 import MentionTextArea from '@/features/comments/MentionTextArea';
-import { toStoredBody } from '@/features/comments/mentionUtils';
+import { toMentions, toStoredBody } from '@/features/comments/mentionUtils';
 import useCommentSurface from '@/features/comments/useCommentSurface';
 import { formatTimestamp } from '@/features/notifications/formatTimestamp';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import {
+  isPending,
   useCreateThreadMutation,
   useGetCommentsQuery,
   useReplyToThreadMutation,
@@ -57,24 +58,32 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
   const [setThreadResolved, { isLoading: isResolving }] =
     useSetThreadResolvedMutation();
   const [openingComment, ...replies] = thread.comments;
-  const replyCount = getReplyCount(thread);
+  const replyCount = replies.length;
   const canWrite = hasPermission('createComments');
+  // Shown ahead of the server, so there is no thread to reply to or resolve
+  // yet.
+  const pending = isPending(thread);
 
   const submitReply = async () => {
     const body = replyBody.trim();
-    if (!body) {
+    // Enter submits too, and a held or repeated Enter must not post twice.
+    if (!body || isReplying || pending) {
       return;
     }
+    // The reply joins the thread at once, so the field is emptied at once too.
+    setReplyError(false);
+    setReplyBody('');
+    setReplyMentions({});
     try {
       await replyToThread({
         threadId: thread.id,
         body: toStoredBody(body, replyMentions),
+        mentions: toMentions(replyMentions),
       }).unwrap();
-      setReplyError(false);
-      setReplyBody('');
-      setReplyMentions({});
     } catch {
       // The composed text is deliberately kept so it is not lost.
+      setReplyBody(body);
+      setReplyMentions(replyMentions);
       setReplyError(true);
     }
   };
@@ -82,7 +91,10 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
   return (
     <Box
       asChild
-      className={clsx(styles.thread, { [styles.threadActive]: isActive })}
+      className={clsx(styles.thread, {
+        [styles.threadActive]: isActive,
+        [styles.pending]: pending,
+      })}
       data-testid="canvas-comment-thread"
       data-comment-thread-id={thread.id}
       data-resolved={thread.resolved ? 'true' : 'false'}
@@ -100,6 +112,7 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
             <Avatar
               name={thread.author.displayName}
               imageUrl={thread.author.avatar ?? undefined}
+              color={getAvatarInitialColor(thread.author.uid)}
             />
             <Flex direction="column" gap="1" className={styles.threadText}>
               <Flex gap="2" align="baseline">
@@ -134,12 +147,15 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
                 key={comment.id}
                 gap="2"
                 align="start"
-                className={styles.reply}
+                className={clsx(styles.reply, {
+                  [styles.pending]: isPending(comment),
+                })}
                 data-testid="canvas-comment-reply"
               >
                 <Avatar
                   name={comment.author.displayName}
                   imageUrl={comment.author.avatar ?? undefined}
+                  color={getAvatarInitialColor(comment.author.uid)}
                 />
                 <Flex direction="column" gap="1" className={styles.threadText}>
                   <Flex gap="2" align="baseline">
@@ -189,7 +205,7 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
                 <Flex gap="2" mt="2">
                   <Button
                     size="1"
-                    disabled={isReplying || !replyBody.trim()}
+                    disabled={isReplying || pending || !replyBody.trim()}
                     data-testid="canvas-comment-reply-submit"
                     onClick={submitReply}
                   >
@@ -199,7 +215,7 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
                     size="1"
                     variant="soft"
                     color="gray"
-                    disabled={isResolving}
+                    disabled={isResolving || pending}
                     data-testid="canvas-comment-resolve"
                     onClick={() =>
                       setThreadResolved({
@@ -267,21 +283,26 @@ export const CommentsPanel = () => {
 
   const submitNewThread = async () => {
     const body = newThreadBody.trim();
-    if (!body) {
+    // Enter submits too, and a held or repeated Enter must not post twice.
+    if (!body || isCreating) {
       return;
     }
+    // The thread is listed at once, so the field is emptied at once too.
+    setCreateError(false);
+    setNewThreadBody('');
+    setNewThreadMentions({});
     try {
       await createThread({
         surfaceType,
         surfaceId,
         componentUuid: selectedComponentUuid ?? null,
         body: toStoredBody(body, newThreadMentions),
+        mentions: toMentions(newThreadMentions),
       }).unwrap();
-      setCreateError(false);
-      setNewThreadBody('');
-      setNewThreadMentions({});
     } catch {
       // The composed text is deliberately kept so it is not lost.
+      setNewThreadBody(body);
+      setNewThreadMentions(newThreadMentions);
       setCreateError(true);
     }
   };

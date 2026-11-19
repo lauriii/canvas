@@ -70,11 +70,14 @@ const setUpStore = () => {
   return store;
 };
 
-const renderPanel = (store = setUpStore()) => {
+const renderPanel = (
+  store = setUpStore(),
+  location = '/editor/canvas_page/1',
+) => {
   render(
     <AppWrapper
       store={store}
-      location="/editor/canvas_page/1"
+      location={location}
       path="/editor/:entityType/:entityId/*"
     >
       <ContextualPanel />
@@ -104,6 +107,16 @@ describe('ContextualPanel', () => {
       (permission) => permission !== 'viewComments',
     );
     renderPanel();
+
+    expect(
+      screen.queryByTestId('canvas-contextual-panel--comments'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the comments tab on a surface that cannot be commented on', () => {
+    // The comment API only accepts a `canvas_page`. Offering the tab for any
+    // other entity could only ever show a request that was refused.
+    renderPanel(setUpStore(), '/editor/node/1');
 
     expect(
       screen.queryByTestId('canvas-contextual-panel--comments'),

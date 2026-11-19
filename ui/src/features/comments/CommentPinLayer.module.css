@@ -11,8 +11,19 @@
    to select components, so one click places a comment instead of changing the
    selection underneath it. */
 .placing {
-  cursor: crosshair;
+  /* The pointer is drawn as a pin instead; see `.pointerPin`. */
+  cursor: none;
   pointer-events: all;
+}
+
+/* The component a comment is being attached to. */
+.target {
+  position: absolute;
+  pointer-events: none;
+  border-radius: var(--radius-1);
+  outline: 2px solid var(--accent-9);
+  outline-offset: -2px;
+  background: var(--accent-a2);
 }
 
 .draftComposer {
@@ -20,6 +31,7 @@
   z-index: 1;
   width: 15rem;
   padding: var(--space-2);
+  cursor: auto;
   transform: translate(0, calc(-100% - var(--space-5)));
   pointer-events: all;
   border: 1px solid var(--gray-a5);
@@ -33,20 +45,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* A pin is a button once placed and a span before that, and the two do not
+     size their boxes alike by default. */
+  box-sizing: content-box;
   /* One letter, so a fixed square rather than a pill that grew with a count. */
   width: var(--space-5);
   height: var(--space-5);
   cursor: pointer;
   /* The square bottom-left corner below is the bubble's tail, so that corner
-     is what has to land on the anchor. Centring the bubble on the anchor
+     is what has to land on the anchor. Centering the bubble on the anchor
      instead left the tail pointing at nothing, half a pin up and to the
      left of the component it belongs to. */
   transform: translate(0, -100%);
   pointer-events: all;
-  color: var(--accent-contrast);
-  border: 1px solid var(--accent-a11);
+  /* The colors of an avatar in the review changes panel, so a person looks
+     the same in both. The accent is the author's, set per pin. The fill is
+     the opaque step: a pin sits on page content, not on a panel. */
+  color: var(--accent-11);
+  border: 1px solid var(--accent-11);
   border-radius: var(--radius-6) var(--radius-6) var(--radius-6) 0;
-  background: var(--accent-9);
+  background: var(--accent-3);
   box-shadow: var(--shadow-4);
   font-size: var(--font-size-1);
   font-weight: 500;
@@ -62,4 +80,17 @@
   color: var(--gray-12);
   border-color: var(--gray-a7);
   background: var(--gray-4);
+}
+
+/* The pin that stands in for the cursor while a comment is being placed. It
+   is the same element a placed pin is, so the two cannot drift apart. */
+.pointerPin {
+  top: var(--pointer-y);
+  left: var(--pointer-x);
+  display: none;
+  pointer-events: none;
+}
+
+.pinLayer[data-pointer-pin] .pointerPin {
+  display: flex;
 }

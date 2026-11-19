@@ -9,7 +9,10 @@ import CommentPinLayer, {
   getAuthorInitial,
   pinPosition,
 } from '@/features/comments/CommentPinLayer';
-import { setCommentMode } from '@/features/comments/commentsSlice';
+import {
+  setCommentFilter,
+  setCommentMode,
+} from '@/features/comments/commentsSlice';
 import { setConfiguration } from '@/features/configuration/configurationSlice';
 import { setEditorFrameViewPort } from '@/features/ui/uiSlice';
 
@@ -232,6 +235,9 @@ describe('CommentPinLayer', () => {
     stubFetch();
     const user = userEvent.setup();
     const store = setUpStore();
+    // The panel was last left on "Resolved". While it is closed it does not
+    // steer the canvas, so the pin on screen is still an open thread.
+    store.dispatch(setCommentFilter('resolved'));
     render(
       <AppWrapper
         store={store}
@@ -248,6 +254,9 @@ describe('CommentPinLayer', () => {
     // The panel is the comments tab of the contextual panel on the right, so
     // opening it is a comments-slice concern, not a primary-panel one.
     expect(store.getState().comments.panelOpen).toBe(true);
+    // It has to open on the list the clicked thread is in, or the thread that
+    // was just asked for would not be there.
+    expect(store.getState().comments.filter).toBe('open');
   });
 
   it('picks the smallest component containing the point', () => {
@@ -332,12 +341,24 @@ describe('CommentPinLayer', () => {
 
     const composer = await screen.findByTestId('canvas-comment-draft-composer');
     expect(composer).toBeInTheDocument();
+    // The pin is drawn where it will land, and its component is outlined.
+    expect(screen.getByTestId('canvas-comment-draft-pin')).toHaveStyle({
+      top: '150px',
+      left: '100px',
+    });
+    expect(
+      screen.getByTestId('canvas-comment-target-outline'),
+    ).toBeInTheDocument();
 
     await user.type(
       screen.getByTestId('canvas-comment-draft-input'),
       'Placed by clicking',
     );
     await user.click(screen.getByTestId('canvas-comment-draft-submit'));
+    // The composer does not wait for the server.
+    expect(
+      screen.queryByTestId('canvas-comment-draft-composer'),
+    ).not.toBeInTheDocument();
 
     await waitFor(() => {
       // The click lands 60px into a 260px-wide, 100px-tall component, so it

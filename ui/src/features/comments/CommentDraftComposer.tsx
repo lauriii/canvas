@@ -3,7 +3,7 @@ import { Button, Flex, Text } from '@radix-ui/themes';
 
 import { clampIntoBounds } from '@/features/comments/clampIntoBounds';
 import MentionTextArea from '@/features/comments/MentionTextArea';
-import { toStoredBody } from '@/features/comments/mentionUtils';
+import { toMentions, toStoredBody } from '@/features/comments/mentionUtils';
 import { useCreateThreadMutation } from '@/services/comments';
 
 import styles from './CommentPinLayer.module.css';
@@ -17,6 +17,8 @@ export interface CommentDraft {
   /** Where to draw the composer, in scaled overlay pixels. */
   top: number;
   left: number;
+  /** What was typed, when this is a comment the server refused. */
+  failed?: { body: string; mentions: Record<string, number> };
 }
 
 interface CommentDraftComposerProps {
@@ -25,6 +27,8 @@ interface CommentDraftComposerProps {
   surfaceId: string;
   onCancel: () => void;
   onPosted: () => void;
+  /** Called with the draft to reopen when the server refuses the comment. */
+  onFailed: (draft: CommentDraft) => void;
 }
 
 /**
@@ -39,11 +43,14 @@ const CommentDraftComposer = ({
   surfaceId,
   onCancel,
   onPosted,
+  onFailed,
 }: CommentDraftComposerProps) => {
   const composerRef = useRef<HTMLDivElement>(null);
   const [nudge, setNudge] = useState({ x: 0, y: 0 });
-  const [body, setBody] = useState('');
-  const [mentions, setMentions] = useState<Record<string, number>>({});
+  const [body, setBody] = useState(draft.failed?.body ?? '');
+  const [mentions, setMentions] = useState<Record<string, number>>(
+    draft.failed?.mentions ?? {},
+  );
 
   // Being a few pixels off the exact point is worth far less than being
   // usable, so a composer that would hang outside the preview is pulled back.
@@ -53,30 +60,45 @@ const CommentDraftComposer = ({
     if (!element || !bounds) {
       return;
     }
-    setNudge(clampIntoBounds(element.getBoundingClientRect(), bounds));
+    const rect = element.getBoundingClientRect();
+    // The measured box still carries the nudge of the previous anchor, so that
+    // is taken back out first. Clamping the already-nudged box would report
+    // that nothing needs correcting and drop a nudge this anchor still needs.
+    setNudge((applied) =>
+      clampIntoBounds(
+        {
+          top: rect.top - applied.y,
+          left: rect.left - applied.x,
+          right: rect.right - applied.x,
+        },
+        bounds,
+      ),
+    );
   }, [draft]);
-  const [failed, setFailed] = useState(false);
-  const [createThread, { isLoading }] = useCreateThreadMutation();
+  const [createThread] = useCreateThreadMutation();
 
-  const submit = async () => {
+  const submit = () => {
     const trimmed = body.trim();
     if (!trimmed) {
       return;
     }
-    try {
-      await createThread({
-        surfaceType,
-        surfaceId,
-        componentUuid: draft.componentUuid,
-        offsetX: draft.offsetX,
-        offsetY: draft.offsetY,
-        body: toStoredBody(trimmed, mentions),
-      }).unwrap();
-      onPosted();
-    } catch {
+    // The thread is pinned and listed the moment it is posted, so the composer
+    // has done its job and closes without waiting for the server. Closing also
+    // unmounts it, which is what keeps a held or repeated Enter from posting
+    // twice.
+    createThread({
+      surfaceType,
+      surfaceId,
+      componentUuid: draft.componentUuid,
+      offsetX: draft.offsetX,
+      offsetY: draft.offsetY,
+      body: toStoredBody(trimmed, mentions),
+      mentions: toMentions(mentions),
+    })
+      .unwrap()
       // The typed text is deliberately kept so it is not lost.
-      setFailed(true);
-    }
+      .catch(() => onFailed({ ...draft, failed: { body: trimmed, mentions } }));
+    onPosted();
   };
 
   return (
@@ -112,7 +134,7 @@ const CommentDraftComposer = ({
         autoFocus
         onSubmit={submit}
       />
-      {failed && (
+      {draft.failed && (
         <Text size="1" color="red" data-testid="canvas-comment-draft-error">
           Your comment could not be posted.
         </Text>
@@ -129,7 +151,7 @@ const CommentDraftComposer = ({
         </Button>
         <Button
           size="1"
-          disabled={isLoading || !body.trim()}
+          disabled={!body.trim()}
           onClick={submit}
           data-testid="canvas-comment-draft-submit"
         >

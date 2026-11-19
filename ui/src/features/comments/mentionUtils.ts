@@ -1,3 +1,5 @@
+import { escapeRegExp } from 'lodash';
+
 import type { CommentMention } from '@/services/comments';
 
 /** The stored form of a mention: the user's ID, never their name. */
@@ -18,7 +20,9 @@ export const getMentionQuery = (
   caret: number,
 ): { query: string; start: number } | null => {
   const before = text.slice(0, caret);
-  const match = before.match(/(^|\s)@([\w.-]*)$/);
+  // Letters and digits of any script: `\w` is ASCII-only, and would close the
+  // list at the first accented or non-Latin character of a name.
+  const match = before.match(/(^|\s)@([\p{L}\p{M}\p{N}_.-]*)$/u);
   if (!match) {
     return null;
   }
@@ -72,9 +76,12 @@ export const toStoredBody = (
   const names = Object.keys(picked).sort((a, b) => b.length - a.length);
   return names.reduce((body, name) => {
     // The name is user data, so it is escaped before becoming a pattern.
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escaped = escapeRegExp(name);
+    // The name must not run on into more of a word. This is a lookahead rather
+    // than `\b`, which is ASCII-only and so never matches after a name ending
+    // in an accented letter, a non-Latin letter or punctuation.
     return body.replace(
-      new RegExp(`@${escaped}\\b`, 'g'),
+      new RegExp(`@${escaped}(?![\\p{L}\\p{M}\\p{N}_])`, 'gu'),
       `@[user:${picked[name]}]`,
     );
   }, text);
@@ -118,3 +125,12 @@ export const splitBodyIntoSegments = (
   }
   return segments;
 };
+
+/**
+ * Lists the people picked in a composer, in the shape the API reports them.
+ *
+ * @param picked - The picked people, as display name to user ID.
+ * @returns The mentions of a comment the server has not confirmed yet.
+ */
+export const toMentions = (picked: Record<string, number>): CommentMention[] =>
+  Object.entries(picked).map(([displayName, uid]) => ({ uid, displayName }));

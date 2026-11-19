@@ -10,6 +10,7 @@ import {
   selectCommentModeActive,
   toggleCommentMode,
 } from '@/features/comments/commentsSlice';
+import useCommentSurface from '@/features/comments/useCommentSurface';
 import ViewportSelector from '@/features/layout/preview/ViewportSelector';
 import {
   scaleValues,
@@ -53,19 +54,17 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   const dispatch = useAppDispatch();
   const currentWidth = useAppSelector(selectViewportWidth);
   const commentModeActive = useAppSelector(selectCommentModeActive);
-  const canComment = hasPermission('createComments');
+  // Comment mode is only offered on a surface the comment API accepts.
+  const { hasSurface: hasCommentSurface } = useCommentSurface();
+  const canComment = hasPermission('createComments') && hasCommentSurface;
 
   // `c` is the same shortcut Figma uses for this, and `useHotkeys` already
   // ignores key presses that land in a form field.
   useHotkeys(
     'c',
-    () => {
-      if (canComment) {
-        dispatch(toggleCommentMode());
-      }
-    },
+    () => dispatch(toggleCommentMode()),
     { enabled: canComment },
-    [canComment, dispatch],
+    [dispatch],
   );
 
   const handleScaleToFit = () => {

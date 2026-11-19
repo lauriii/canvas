@@ -134,3 +134,8 @@
 .reply {
   margin-bottom: var(--space-2);
 }
+
+/* A thread or reply shown before the server has confirmed it. */
+.pending {
+  opacity: 0.6;
+}

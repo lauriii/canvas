@@ -386,6 +386,44 @@ describe('CommentsPanel', () => {
     expect(screen.getByTestId('canvas-comment-composer')).toHaveValue(
       'Rejected',
     );
+    // The thread was listed ahead of the server, and is taken back out.
+    expect(
+      screen.queryByTestId('canvas-comment-thread'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lists a new thread before the server has answered', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request =
+          input instanceof Request ? input : new Request(input, init);
+        if (request.url.endsWith('session/token')) {
+          return new Response('csrf-token', { status: 200 });
+        }
+        if (request.method !== 'GET') {
+          // The server never answers.
+          return new Promise<Response>(() => {});
+        }
+        return new Response(JSON.stringify({ threads: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.type(
+      await screen.findByTestId('canvas-comment-composer'),
+      'Shown at once',
+    );
+    await user.click(screen.getByTestId('canvas-comment-submit'));
+
+    expect(
+      await screen.findByTestId('canvas-comment-thread'),
+    ).toHaveTextContent('Shown at once');
+    expect(screen.getByTestId('canvas-comment-composer')).toHaveValue('');
   });
   it('offers people after an @ and posts the mention as a token', async () => {
     const user = userEvent.setup();

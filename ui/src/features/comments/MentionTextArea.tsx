@@ -72,8 +72,10 @@ const MentionTextArea = ({
     // Replying to a thread near the bottom of the panel leaves no room under
     // the field, and the list would be cut off by the scroll container it sits
     // in, so it opens upwards instead.
-    const { bottom } = element.getBoundingClientRect();
-    setDropUp(window.innerHeight - bottom < MENTION_LIST_MAX_HEIGHT);
+    if (found !== null) {
+      const { bottom } = element.getBoundingClientRect();
+      setDropUp(window.innerHeight - bottom < MENTION_LIST_MAX_HEIGHT);
+    }
   };
 
   const pick = (user: CommentAuthor) => {
@@ -97,6 +99,11 @@ const MentionTextArea = ({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // While an input method is composing, Enter and the arrow keys belong to
+    // its candidate list. Acting on them would post a half-composed comment.
+    if (event.nativeEvent.isComposing) {
+      return;
+    }
     if (mention !== null && users.length > 0) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();

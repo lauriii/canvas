@@ -1,7 +1,9 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { baseQuery } from '@/services/baseQuery';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
+import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
 import type { FetchArgs } from '@reduxjs/toolkit/query/react';
 
 export interface CommentAuthor {
@@ -89,11 +91,18 @@ export interface CreateThreadArgs {
   offsetX?: number;
   offsetY?: number;
   body: string;
+  /**
+   * The names behind the mention tokens in `body`. Never sent: they are only
+   * used to show the comment before the server has answered.
+   */
+  mentions?: CommentMention[];
 }
 
 export interface ReplyToThreadArgs {
   threadId: string;
   body: string;
+  /** See `CreateThreadArgs.mentions`. */
+  mentions?: CommentMention[];
 }
 
 export interface SetThreadResolvedArgs {
@@ -170,10 +179,17 @@ export const commentRequests = {
   getComments: (args: GetCommentsArgs): string => buildListUrl(args),
   getMentionableUsers: (args: MentionableUsersArgs): string =>
     buildMentionableUsersUrl(args),
-  createThread: (args: CreateThreadArgs): FetchArgs => ({
+  createThread: ({
+    surfaceType,
+    surfaceId,
+    componentUuid,
+    offsetX,
+    offsetY,
+    body,
+  }: CreateThreadArgs): FetchArgs => ({
     url: COMMENTS_ENDPOINT,
     method: 'POST',
-    body: args,
+    body: { surfaceType, surfaceId, componentUuid, offsetX, offsetY, body },
   }),
   replyToThread: ({ threadId, body }: ReplyToThreadArgs): FetchArgs => ({
     url: buildRepliesUrl(threadId),
@@ -191,6 +207,61 @@ export const commentRequests = {
 };
 
 const invalidatesCommentList = [{ type: 'Comments' as const, id: 'LIST' }];
+
+/** The ID prefix of a thread or comment the server has not confirmed yet. */
+const PENDING_ID_PREFIX = 'pending-';
+let pendingCount = 0;
+
+/**
+ * Whether a thread or comment is shown ahead of the server confirming it.
+ *
+ * It has no real ID yet, so it cannot be replied to or resolved.
+ *
+ * @param item - The thread or comment.
+ * @returns True until the server's version has replaced it.
+ */
+export const isPending = ({ id }: { id: string }): boolean =>
+  id.startsWith(PENDING_ID_PREFIX);
+
+/**
+ * The user writing comments in this editor.
+ *
+ * @returns The author to show on a comment the server has not confirmed yet.
+ * @see \Drupal\canvas\Controller\CanvasController
+ */
+export const getCommentAuthor = (): CommentAuthor =>
+  getCanvasSettings()?.commentAuthor ?? {
+    uid: 0,
+    displayName: '',
+    avatar: null,
+  };
+
+const buildPendingComment = (
+  body: string,
+  mentions: CommentMention[] = [],
+): Comment => {
+  const now = Math.floor(Date.now() / 1000);
+  pendingCount += 1;
+  return {
+    id: `${PENDING_ID_PREFIX}${pendingCount}`,
+    body,
+    created: now,
+    changed: now,
+    author: getCommentAuthor(),
+    mentions,
+  };
+};
+
+const replaceThread = (
+  threads: CommentThread[],
+  id: string,
+  thread: CommentThread,
+) => {
+  const index = threads.findIndex((candidate) => candidate.id === id);
+  if (index !== -1) {
+    threads[index] = thread;
+  }
+};
 
 export const commentsApi = createApi({
   reducerPath: 'commentsApi',
@@ -219,10 +290,74 @@ export const commentsApi = createApi({
     createThread: builder.mutation<CommentThreadResponse, CreateThreadArgs>({
       query: commentRequests.createThread,
       invalidatesTags: invalidatesCommentList,
+      // The thread is listed and pinned the moment it is posted, and taken
+      // back out if the server refuses it.
+      async onQueryStarted(args, { dispatch, queryFulfilled }) {
+        const comment = buildPendingComment(args.body, args.mentions);
+        const pending: CommentThread = {
+          id: comment.id,
+          uuid: comment.id,
+          surfaceType: args.surfaceType,
+          surfaceId: args.surfaceId,
+          componentUuid: args.componentUuid,
+          offsetX: args.offsetX ?? null,
+          offsetY: args.offsetY ?? null,
+          resolved: false,
+          created: comment.created,
+          changed: comment.changed,
+          author: comment.author,
+          comments: [comment],
+        };
+        const undo = dispatch(
+          patchThreadLists((threads, list) => {
+            if (
+              list.surfaceType === args.surfaceType &&
+              list.surfaceId === args.surfaceId
+            ) {
+              threads.push(pending);
+            }
+          }),
+        );
+        try {
+          const { data } = await queryFulfilled;
+          // The real thread replaces the pending one at once, so it can be
+          // replied to without waiting for the list to be fetched again.
+          dispatch(
+            patchThreadLists((threads) =>
+              replaceThread(threads, pending.id, data.thread),
+            ),
+          );
+        } catch {
+          undo();
+        }
+      },
     }),
     replyToThread: builder.mutation<CommentThreadResponse, ReplyToThreadArgs>({
       query: commentRequests.replyToThread,
       invalidatesTags: invalidatesCommentList,
+      // The reply joins its thread the moment it is posted, and is taken back
+      // out if the server refuses it.
+      async onQueryStarted(
+        { threadId, body, mentions },
+        { dispatch, queryFulfilled },
+      ) {
+        const comment = buildPendingComment(body, mentions);
+        const undo = dispatch(
+          patchThreadLists((threads) => {
+            threads.find(({ id }) => id === threadId)?.comments.push(comment);
+          }),
+        );
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            patchThreadLists((threads) =>
+              replaceThread(threads, threadId, data.thread),
+            ),
+          );
+        } catch {
+          undo();
+        }
+      },
     }),
     setThreadResolved: builder.mutation<
       CommentThreadResponse,
@@ -254,6 +389,39 @@ export const commentsApi = createApi({
     }),
   }),
 });
+
+/**
+ * Changes every cached thread list, ahead of the server.
+ *
+ * The panel, the pins and the tab label can each hold their own list of the
+ * same surface, so a change made to one of them alone would show in one place
+ * and not in another.
+ *
+ * @param recipe - The change, given a list's threads and what it lists.
+ * @returns A thunk that applies the change and returns how to undo it.
+ */
+function patchThreadLists(
+  recipe: (threads: CommentThread[], list: GetCommentsArgs) => void,
+) {
+  return (
+    dispatch: ThunkDispatch<any, any, UnknownAction>,
+    getState: () => any,
+  ): (() => void) => {
+    const patches = commentsApi.util
+      .selectInvalidatedBy(getState(), invalidatesCommentList)
+      .filter(({ endpointName }) => endpointName === 'getComments')
+      .map(({ originalArgs }) =>
+        dispatch(
+          commentsApi.util.updateQueryData(
+            'getComments',
+            originalArgs,
+            (draft) => recipe(draft.threads, originalArgs),
+          ),
+        ),
+      );
+    return () => patches.forEach((patch) => patch.undo());
+  };
+}
 
 export const {
   useGetCommentsQuery,

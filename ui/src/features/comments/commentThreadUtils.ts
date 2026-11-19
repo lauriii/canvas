@@ -7,7 +7,7 @@ import type { CommentThread } from '@/services/comments';
  * @param thread - The thread.
  * @returns The number of replies.
  */
-export const getReplyCount = (thread: CommentThread): number =>
+const getReplyCount = (thread: CommentThread): number =>
   Math.max(thread.comments.length - 1, 0);
 
 /**

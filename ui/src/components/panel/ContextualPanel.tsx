@@ -24,6 +24,7 @@ import {
   setCommentsPanelOpen,
 } from '@/features/comments/commentsSlice';
 import CommentsTabLabel from '@/features/comments/CommentsTabLabel';
+import useCommentSurface from '@/features/comments/useCommentSurface';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
 import {
   findExposedSlotEntry,
@@ -153,7 +154,10 @@ const ContextualPanel: React.FC = () => {
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
   const [hidePanel, setHidePanel] = useState(false);
-  const canViewComments = hasPermission('viewComments');
+  // The tab is only offered where comments can exist: the comment API accepts
+  // a subset of the surfaces this panel is shown for.
+  const { hasSurface: hasCommentSurface } = useCommentSurface();
+  const canViewComments = hasPermission('viewComments') && hasCommentSurface;
   const commentsOpen =
     useAppSelector(selectCommentsPanelOpen) && canViewComments;
   // Comments is a place you stay, not a reaction to the selection, so while it
@@ -178,8 +182,8 @@ const ContextualPanel: React.FC = () => {
     }
   }, [dispatch, selectedComponent, isMultiSelect]);
 
-  // Losing the permission mid-session must not strand the panel on a tab that
-  // no longer renders.
+  // Losing the permission mid-session, or navigating to a surface that cannot
+  // be commented on, must not strand the panel on a tab that no longer renders.
   useEffect(() => {
     if (!canViewComments) {
       dispatch(setCommentsPanelOpen(false));

@@ -1,3 +1,4 @@
+// cspell:ignore Ωmega Zoëlle
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -28,6 +29,12 @@ describe('getMentionQuery', () => {
 
   it('closes once the mention is finished', () => {
     expect(getMentionQuery('Ask @alice today', 16)).toBeNull();
+  });
+
+  it('follows a name written in any script', () => {
+    // An ASCII-only pattern closes the list at the first accented letter.
+    expect(getMentionQuery('Ask @Zoë', 8)).toEqual({ query: 'Zoë', start: 4 });
+    expect(getMentionQuery('@Ωmega', 6)).toEqual({ query: 'Ωmega', start: 0 });
   });
 });
 
@@ -71,6 +78,19 @@ describe('toStoredBody', () => {
   it('treats a name with regex characters literally', () => {
     expect(toStoredBody('Ask @a.b', { 'a.b': 7 })).toBe('Ask @[user:7]');
     expect(toStoredBody('Ask @axb', { 'a.b': 7 })).toBe('Ask @axb');
+  });
+
+  it('converts a name that does not end in an ASCII letter', () => {
+    // An ASCII word boundary never follows these, so the mention used to be
+    // posted as plain text.
+    expect(toStoredBody('Ask @Zoë to look', { Zoë: 5 })).toBe(
+      'Ask @[user:5] to look',
+    );
+    expect(toStoredBody('Ask @Sam (ACME) to look', { 'Sam (ACME)': 6 })).toBe(
+      'Ask @[user:6] to look',
+    );
+    // The name still must not run on into a longer one.
+    expect(toStoredBody('Ask @Zoëlle', { Zoë: 5 })).toBe('Ask @Zoëlle');
   });
 });
 

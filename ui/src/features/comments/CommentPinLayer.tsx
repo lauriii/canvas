@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import clsx from 'clsx';
+import { PlusIcon } from '@radix-ui/react-icons';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { getAvatarInitialColor } from '@/components/review/utils';
 import CommentDraftComposer from '@/features/comments/CommentDraftComposer';
 import {
   selectActiveThreadId,
@@ -9,6 +11,7 @@ import {
   selectCommentModeActive,
   selectCommentsPanelOpen,
   setActiveThread,
+  setCommentFilter,
   setCommentMode,
   setCommentsPanelOpen,
 } from '@/features/comments/commentsSlice';
@@ -19,15 +22,13 @@ import {
 import useCommentSurface from '@/features/comments/useCommentSurface';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import { selectEditorViewPortScale } from '@/features/ui/uiSlice';
-import { useGetCommentsQuery } from '@/services/comments';
+import { getCommentAuthor, useGetCommentsQuery } from '@/services/comments';
 import { hasPermission } from '@/utils/permissions';
 
 import type { CommentDraft } from '@/features/comments/CommentDraftComposer';
 import type { CommentThread } from '@/services/comments';
 
 import styles from './CommentPinLayer.module.css';
-
-export const COMMENTS_PANEL_ID = 'comments';
 
 /**
  * Finds the component instance under a point in the preview.
@@ -125,6 +126,8 @@ const CommentPinLayer = () => {
   const filter = useAppSelector(selectCommentFilter);
   const { surfaceType, surfaceId, hasSurface } = useCommentSurface();
   const [draft, setDraft] = useState<CommentDraft | null>(null);
+  // The component a comment placed now would be attached to.
+  const [hoveredUuid, setHoveredUuid] = useState<string | null>(null);
   // Pins used to be reachable only through the panel, which the permission
   // already gated. Drawn unconditionally they need their own check, or a user
   // without it would fetch comments and be refused.
@@ -132,40 +135,45 @@ const CommentPinLayer = () => {
 
   // In comment mode the layer swallows canvas clicks and turns the one the
   // user makes into an anchor, instead of letting it select a component.
-  const handleLayerClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      const bounds = event.currentTarget.getBoundingClientRect();
-      // Pins are positioned in unscaled preview pixels multiplied by the
-      // viewport scale, so the click has to be divided back down to match.
-      const x = (event.clientX - bounds.left) / editorViewPortScale;
-      const y = (event.clientY - bounds.top) / editorViewPortScale;
-      const componentUuid = findComponentAtPoint(geometryMap, x, y);
-      if (!componentUuid) {
-        // Clicking empty canvas abandons the draft rather than anchoring a
-        // thread to nothing: a surface-level thread is made from the panel.
-        setDraft(null);
-        return;
-      }
-      // Record where in the component this landed, so the pin can come back to
-      // the same spot rather than to the component's corner.
-      const { rect } = geometryMap.component[componentUuid];
-      setDraft({
-        componentUuid,
-        offsetX: rect.width === 0 ? 0 : (x - rect.left) / rect.width,
-        offsetY: rect.height === 0 ? 0 : (y - rect.top) / rect.height,
-        top: y * editorViewPortScale,
-        left: x * editorViewPortScale,
-      });
-    },
-    [editorViewPortScale, geometryMap],
-  );
+  const toPreviewPoint = (event: React.MouseEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    // Pins are positioned in unscaled preview pixels multiplied by the
+    // viewport scale, so the click has to be divided back down to match.
+    return {
+      x: (event.clientX - bounds.left) / editorViewPortScale,
+      y: (event.clientY - bounds.top) / editorViewPortScale,
+    };
+  };
 
-  const closeDraft = useCallback(() => setDraft(null), []);
-  const finishDraft = useCallback(() => {
+  const handleLayerClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const { x, y } = toPreviewPoint(event);
+    const componentUuid = findComponentAtPoint(geometryMap, x, y);
+    if (!componentUuid) {
+      // Clicking empty canvas abandons the draft rather than anchoring a
+      // thread to nothing: a surface-level thread is made from the panel.
+      setDraft(null);
+      return;
+    }
+    // Record where in the component this landed, so the pin can come back to
+    // the same spot rather than to the component's corner.
+    const { rect } = geometryMap.component[componentUuid];
+    setDraft({
+      componentUuid,
+      offsetX: rect.width === 0 ? 0 : (x - rect.left) / rect.width,
+      offsetY: rect.height === 0 ? 0 : (y - rect.top) / rect.height,
+      top: y * editorViewPortScale,
+      left: x * editorViewPortScale,
+    });
+  };
+
+  const closeDraft = () => setDraft(null);
+  const finishDraft = () => {
     setDraft(null);
     dispatch(setCommentMode(false));
+    // A new thread is open, so the panel has to be on the list it lands in.
+    dispatch(setCommentFilter('open'));
     dispatch(setCommentsPanelOpen(true));
-  }, [dispatch]);
+  };
 
   // Pins are drawn whenever the surface is open, not only while the panel is,
   // because the pin is how a page says it has been commented on at all. That
@@ -186,11 +194,22 @@ const CommentPinLayer = () => {
     { skip: !hasSurface || !canViewComments },
   );
 
-  if (!canViewComments || !data) {
+  // A skipped query can still hand back the last surface's threads, so the
+  // surface is checked here as well as in `skip`.
+  if (!canViewComments || !hasSurface || !data) {
     return null;
   }
 
   const threads = filterThreads(data.threads, effectiveFilter);
+  const ownColor = getAvatarInitialColor(getCommentAuthor().uid);
+  // While a comment is being placed or written, the component it belongs to
+  // is outlined: a pin alone does not say which of several nested components
+  // it will be attached to.
+  const targetUuid =
+    draft?.componentUuid ?? (commentModeActive ? hoveredUuid : null);
+  const targetRect = targetUuid
+    ? geometryMap.component[targetUuid]?.rect
+    : undefined;
 
   return (
     <div
@@ -200,7 +219,45 @@ const CommentPinLayer = () => {
       data-testid="canvas-comment-pin-layer"
       data-comment-mode={commentModeActive ? 'true' : 'false'}
       onClick={commentModeActive ? handleLayerClick : undefined}
+      onMouseMove={
+        commentModeActive
+          ? (event) => {
+              const { x, y } = toPreviewPoint(event);
+              setHoveredUuid(findComponentAtPoint(geometryMap, x, y));
+              // The pin under the pointer moves on every mouse event, so it is
+              // positioned straight on the element rather than through state,
+              // which would render every pin again each time. It gives way to
+              // the ordinary cursor over a pin or the composer.
+              const layer = event.currentTarget;
+              layer.style.setProperty(
+                '--pointer-x',
+                `${x * editorViewPortScale}px`,
+              );
+              layer.style.setProperty(
+                '--pointer-y',
+                `${y * editorViewPortScale}px`,
+              );
+              layer.toggleAttribute('data-pointer-pin', event.target === layer);
+            }
+          : undefined
+      }
+      onMouseLeave={(event) => {
+        setHoveredUuid(null);
+        event.currentTarget.removeAttribute('data-pointer-pin');
+      }}
     >
+      {targetRect && (
+        <div
+          className={styles.target}
+          data-testid="canvas-comment-target-outline"
+          style={{
+            top: `${targetRect.top * editorViewPortScale}px`,
+            left: `${targetRect.left * editorViewPortScale}px`,
+            width: `${targetRect.width * editorViewPortScale}px`,
+            height: `${targetRect.height * editorViewPortScale}px`,
+          }}
+        />
+      )}
       {threads.map((thread) => {
         if (!thread.componentUuid) {
           return null;
@@ -217,6 +274,9 @@ const CommentPinLayer = () => {
               [styles.active]: thread.id === activeThreadId,
               [styles.resolved]: thread.resolved,
             })}
+            // Each author keeps the color they have in the review changes
+            // panel.
+            data-accent-color={getAvatarInitialColor(thread.author.uid)}
             style={pinPosition(geometry.rect, thread, editorViewPortScale)}
             aria-label={getThreadLabel(thread)}
             data-testid="canvas-comment-pin"
@@ -224,6 +284,11 @@ const CommentPinLayer = () => {
             onClick={(event) => {
               event.stopPropagation();
               dispatch(setActiveThread(thread.id));
+              // The panel remembers its filter while closed, and the pins drawn
+              // then are the open threads whatever it says. Without this, a
+              // panel left on "Resolved" would open without the thread whose
+              // pin was just clicked.
+              dispatch(setCommentFilter(thread.resolved ? 'resolved' : 'open'));
               dispatch(setCommentsPanelOpen(true));
             }}
           >
@@ -231,14 +296,41 @@ const CommentPinLayer = () => {
           </button>
         );
       })}
+      {commentModeActive && (
+        // In comment mode the pointer is the pin about to be placed, held by
+        // the corner that lands on the clicked point.
+        <span
+          className={clsx(styles.pin, styles.pointerPin)}
+          data-accent-color={ownColor}
+          data-testid="canvas-comment-pointer-pin"
+          aria-hidden="true"
+        >
+          <PlusIcon width="12" height="12" />
+        </span>
+      )}
       {draft && (
-        <CommentDraftComposer
-          draft={draft}
-          surfaceType={surfaceType}
-          surfaceId={surfaceId}
-          onCancel={closeDraft}
-          onPosted={finishDraft}
-        />
+        <>
+          {/* The pin the comment will become, where it will be: the composer
+              above it would otherwise be the only sign of where the click
+              landed. */}
+          <span
+            className={styles.pin}
+            data-accent-color={ownColor}
+            style={{ top: `${draft.top}px`, left: `${draft.left}px` }}
+            data-testid="canvas-comment-draft-pin"
+            aria-hidden="true"
+          >
+            {getAuthorInitial(getCommentAuthor().displayName)}
+          </span>
+          <CommentDraftComposer
+            draft={draft}
+            surfaceType={surfaceType}
+            surfaceId={surfaceId}
+            onCancel={closeDraft}
+            onPosted={finishDraft}
+            onFailed={setDraft}
+          />
+        </>
       )}
     </div>
   );

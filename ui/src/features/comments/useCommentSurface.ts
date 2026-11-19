@@ -5,9 +5,21 @@ export interface CommentSurface {
   surfaceType: string;
   /** The `surfaceId` request argument, for example `1`. */
   surfaceId: string;
-  /** False until the route names an entity, and on non-editor routes. */
+  /**
+   * False until the route names an entity, on non-editor routes, and for an
+   * entity type that cannot be commented on.
+   */
   hasSurface: boolean;
 }
+
+/**
+ * The entity types the comment API accepts as a surface.
+ *
+ * Every other editor route (content entities using a template, templates,
+ * page variants) is answered with a 422, so no comment UI is offered there.
+ * Keep in step with `ApiCommentController::SUPPORTED_SURFACE_TYPES`.
+ */
+const SUPPORTED_SURFACE_TYPES = ['canvas_page'];
 
 /**
  * Resolves the surface that comments are read from and written to.
@@ -28,7 +40,10 @@ export const useCommentSurface = (): CommentSurface => {
   return {
     surfaceType: entityType ?? '',
     surfaceId: entityId ?? '',
-    hasSurface: !!entityType && !!entityId,
+    hasSurface:
+      !!entityType &&
+      !!entityId &&
+      SUPPORTED_SURFACE_TYPES.includes(entityType),
   };
 };
 

@@ -257,6 +257,14 @@ HTML;
               'viewComments' => $this->currentUser->hasPermission(CommentThread::VIEW_PERMISSION) || $this->currentUser->hasPermission(CommentThread::CREATE_PERMISSION),
               'createComments' => $this->currentUser->hasPermission(CommentThread::CREATE_PERMISSION),
             ],
+            // Lets the UI show a comment the moment it is posted, before the
+            // comment API has answered with its author.
+            // @see \Drupal\canvas\Controller\ApiCommentController::normalizeAuthor()
+            'commentAuthor' => [
+              'uid' => (int) $this->currentUser->id(),
+              'displayName' => (string) $this->currentUser->getDisplayName(),
+              'avatar' => NULL,
+            ],
             'contentEntityCreateOperations' => $content_entity_create_operations,
             'homepagePath' => $system_site_config->get('page.front'),
             'siteName' => $system_site_config->get('name'),
