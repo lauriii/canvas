@@ -24,8 +24,12 @@ final class MediaScopesHelper implements ContainerInjectionInterface {
 
   /**
    * Creates OAuth2 scopes for all media types with a supported source plugin.
+   *
+   * @param string[]|null $media_types
+   *   (optional) The media type IDs to create scopes for. If NULL, all media
+   *   types will be processed.
    */
-  public function ensureMediaScopes(): void {
+  public function ensureMediaScopes(?array $media_types = NULL): void {
     $dependencies = [
       'enforced' => [
         'module' => [
@@ -33,7 +37,7 @@ final class MediaScopesHelper implements ContainerInjectionInterface {
         ],
       ],
     ];
-    $media_types = $this->entityTypeManager->getStorage('media_type')->loadMultiple();
+    $media_types = $this->entityTypeManager->getStorage('media_type')->loadMultiple($media_types);
     $oauth2_scope_storage = $this->entityTypeManager->getStorage('oauth2_scope');
     foreach ($media_types as $media_type) {
       \assert($media_type instanceof MediaTypeInterface);

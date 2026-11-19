@@ -1,0 +1,11 @@
+name: Canvas CLI OAuth Setup
+description: Sets up OAuth for the Canvas CLI.
+install:
+  - canvas_oauth
+  - media
+config:
+  import:
+    canvas_oauth: '*'
+  actions:
+    media.type.*:
+      createOAuthScope: ~
