@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useErrorBoundary } from 'react-error-boundary';
 import NewTabIcon from '@assets/icons/new-tab.svg?react';
-import { ContextMenu, Flex, Skeleton } from '@radix-ui/themes';
+import { ContextMenu, Flex } from '@radix-ui/themes';
 
 import Dialog from '@/components/Dialog';
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
@@ -12,7 +11,6 @@ import { useGetEditedTemplateId } from '@/hooks/useGetEditedTemplateId';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import {
   useDeleteContentTemplateMutation,
-  useGetContentTemplatesQuery,
   useUpdateContentTemplateMutation,
 } from '@/services/componentAndLayout';
 import { useGetPageVariantsQuery } from '@/services/pageVariants';
@@ -21,6 +19,7 @@ import { hasPermission } from '@/utils/permissions';
 
 import type {
   TemplateInBundle,
+  TemplatesInBundle,
   TemplateViewMode,
 } from '@/services/componentAndLayout';
 
@@ -28,6 +27,8 @@ import nodeStyles from '@/components/sidePanel/SidebarNode.module.css';
 
 type TemplateListProps = {
   entityTypeId: string;
+  // The bundles of one entity type, as returned by the content templates list.
+  bundles: TemplatesInBundle;
 };
 
 type BundleListItemProps = {
@@ -35,53 +36,21 @@ type BundleListItemProps = {
   bundleKey: string;
   bundle: TemplateInBundle;
 };
-const TemplateList = ({ entityTypeId }: TemplateListProps) => {
-  const { showBoundary } = useErrorBoundary();
 
-  const { data, isLoading, isFetching, error } = useGetContentTemplatesQuery();
-  useEffect(() => {
-    if (error) {
-      showBoundary(error);
-    }
-  }, [error, showBoundary]);
-
-  const bundles = data?.[entityTypeId]?.bundles;
-
-  return (
-    <>
-      <Skeleton
-        loading={isLoading || isFetching}
-        height="1.2rem"
-        width="100%"
-        my="3"
-      >
-        {!!bundles &&
-          Object.entries(bundles)
-            .filter(([, bundle]) => Object.keys(bundle.viewModes).length > 0)
-            .map(([bundleKey, bundle]) => (
-              <BundleListItem
-                key={bundleKey}
-                entityTypeId={entityTypeId}
-                bundleKey={bundleKey}
-                bundle={bundle}
-              />
-            ))}
-      </Skeleton>
-      <Skeleton
-        loading={isLoading || isFetching}
-        height="1.2rem"
-        width="100%"
-        my="3"
-      />
-      <Skeleton
-        loading={isLoading || isFetching}
-        height="1.2rem"
-        width="100%"
-        my="3"
-      />
-    </>
-  );
-};
+const TemplateList = ({ entityTypeId, bundles }: TemplateListProps) => (
+  <>
+    {Object.entries(bundles)
+      .filter(([, bundle]) => Object.keys(bundle.viewModes).length > 0)
+      .map(([bundleKey, bundle]) => (
+        <BundleListItem
+          key={bundleKey}
+          entityTypeId={entityTypeId}
+          bundleKey={bundleKey}
+          bundle={bundle}
+        />
+      ))}
+  </>
+);
 
 const BundleListItem = ({
   entityTypeId,
