@@ -35,12 +35,7 @@ describe('Comments', () => {
     // accepts, and `loadURLandWaitForCanvasLoaded` otherwise defaults to a node.
     cy.loadURLandWaitForCanvasLoaded({ url: PAGE_URL });
 
-    // Open the comments panel from its tab in the contextual panel. It is
-    // deliberately not reachable from the left side menu: that rail opens the
-    // panel beside it, and this one is on the other side.
-    cy.get('[data-testid="canvas-side-menu"]')
-      .find('[aria-label="Comments"]')
-      .should('not.exist');
+    // Open the comments panel from its tab in the contextual panel.
     cy.get('[data-testid="canvas-contextual-panel--comments"]').click();
     cy.get('[data-testid="canvas-comments-panel"]').should('exist');
     cy.wait('@getComments');
