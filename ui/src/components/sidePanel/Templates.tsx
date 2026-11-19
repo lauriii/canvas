@@ -88,7 +88,10 @@ const Templates = () => {
               onTriggerClick={() => onClickHandler(entityTypeId)}
             >
               <ErrorBoundary title="An unexpected error has occurred while fetching templates.">
-                <TemplateList entityTypeId={entityTypeId} />
+                <TemplateList
+                  entityTypeId={entityTypeId}
+                  bundles={data?.[entityTypeId]?.bundles ?? {}}
+                />
               </ErrorBoundary>
             </AccordionDetails>
           ))}
