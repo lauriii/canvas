@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_ssr\Kernel;
 
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas_ssr\JsRunner\Deno\DenoRunner;
+use Drupal\canvas_ssr\Timeouts;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -46,6 +47,11 @@ final class RealmSetupTest extends CanvasSsrKernelTestBase {
     $container
       ->register(ChunkedLibraryProvider::class, ChunkedLibraryProvider::class)
       ->addTag('canvas_ssr.js_module_provider', ['priority' => 200]);
+    // The prototype search calls every method of every built-in in one
+    // island. That uses much of the default short limit even on a fast
+    // host, so on a busy one the island can run out of time and fall back
+    // to the client.
+    $container->setParameter('canvas_ssr.timeouts', ['short' => 1000] + Timeouts::DEFAULTS);
     // A site's addition, merged with the defaults.
     $container->setParameter('canvas_ssr.additional_tamed_properties', [
       'globals' => ['Map.prototype' => ['get']],
@@ -138,7 +144,8 @@ final class RealmSetupTest extends CanvasSsrKernelTestBase {
       // Some built-ins are reached only by calling something, like the
       // prototype of what entries() returns, so no walk from the globals
       // finds them. This constructs what the realm has, calls its methods,
-      // and looks at what comes back.
+      // and looks at what comes back. That takes far longer than a real
+      // island, hence the longer short limit in register().
       "nothing a call hands out has a prototype that isn't frozen" => function (): void {
         $searcher = $this->component('prototype_searcher', <<<'JS'
           function search() {
