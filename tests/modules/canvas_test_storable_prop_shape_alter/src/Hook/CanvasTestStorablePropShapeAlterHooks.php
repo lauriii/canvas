@@ -38,7 +38,7 @@ class CanvasTestStorablePropShapeAlterHooks {
       $storable_prop_shape->fieldWidget = 'uri';
     }
 
-    // Show that a contrib module can add support for a new prop shape, even
+    // Show that a contrib module can replace how a prop shape is stored, even
     // using a new field type.
     // That can be dynamic based on some other state, so it would need to add
     // the required cache tags in that case.

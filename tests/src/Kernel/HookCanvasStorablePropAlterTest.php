@@ -69,10 +69,10 @@ class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
       fieldWidget: 'uri',
     );
 
-    // 2. This proves it is possible to add support for an arbitrary (so not
-    // well-known, no `$ref`) prop shape that Canvas does not natively support.
+    // 2. This proves it is possible to replace how Canvas stores an arbitrary
+    // (so not well-known, no `$ref`) prop shape, even with a new field type.
     $storable_prop_shapes['type=integer&multipleOf=12'] = new StorablePropShape(
-      shape: parent::getExpectedUnstorablePropShapes()['type=integer&multipleOf=12'],
+      shape: new PropShape(['type' => 'integer', 'multipleOf' => 12]),
       fieldTypeProp: new FieldTypePropExpression('multiple_of', 'value'),
       fieldStorageSettings: ['must_be_divisible_by' => 12],
       fieldWidget: 'number',
@@ -96,7 +96,6 @@ class HookCanvasStorablePropAlterTest extends PropShapeRepositoryTest {
    */
   public static function getExpectedUnstorablePropShapes(): array {
     $unstorable_prop_shapes = parent::getExpectedUnstorablePropShapes();
-    unset($unstorable_prop_shapes['type=integer&multipleOf=12']);
     unset($unstorable_prop_shapes['type=object&$ref=json-schema-definitions://canvas.module/date-range']);
     return $unstorable_prop_shapes;
   }

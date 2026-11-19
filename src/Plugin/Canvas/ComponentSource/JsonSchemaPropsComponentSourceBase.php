@@ -1028,6 +1028,20 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
+      // Use `multipleOf` as the number input's step, which the UI's slider
+      // follows too. Read it from the raw component schema, like the color
+      // picker settings above: the stored prop shape is the same for every
+      // step.
+      // @see ui/src/components/form/components/NumberSlider.tsx
+      $is_array_prop = \in_array('array', (array) ($prop_schema['type'] ?? []), TRUE);
+      $multiple_of = $is_array_prop ? ($prop_schema['items']['multipleOf'] ?? NULL) : ($prop_schema['multipleOf'] ?? NULL);
+      if ($field_widget_plugin_id === 'number' && \is_numeric($multiple_of) && isset($form[$sdc_prop_name]['widget'])) {
+        foreach (Element::children($form[$sdc_prop_name]['widget']) as $delta) {
+          if (isset($form[$sdc_prop_name]['widget'][$delta]['value'])) {
+            $form[$sdc_prop_name]['widget'][$delta]['value']['#step'] = $multiple_of;
+          }
+        }
+      }
 
       if ($entity instanceof ContentTemplate) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);
