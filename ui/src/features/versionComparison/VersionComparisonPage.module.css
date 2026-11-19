@@ -303,3 +303,65 @@
   height: 24px;
   color: var(--gray-9);
 }
+
+.diffPanel {
+  overflow: auto;
+  height: 100%;
+  padding: 16px;
+  border: 1px solid var(--gray-6);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.diffSection + .diffSection {
+  margin-top: 24px;
+}
+
+.diffList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diffChange {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-4);
+}
+
+.diffValueChange {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) minmax(0, 1fr) minmax(
+      0,
+      1fr
+    );
+  gap: 12px;
+  align-items: baseline;
+}
+
+.diffValue {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+
+.diffRemoved,
+.diffAdded {
+  padding: 2px 6px;
+  text-decoration: none;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.diffRemoved {
+  color: var(--red-11);
+  background: var(--red-3);
+}
+
+.diffAdded {
+  color: var(--green-11);
+  background: var(--green-3);
+}
