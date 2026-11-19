@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\CommentThread;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -243,6 +244,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'publishChanges' => FALSE,
           'folders' => FALSE,
           'configureLanguages' => FALSE,
+          'viewComments' => FALSE,
+          'createComments' => FALSE,
         ],
       ],
       [
@@ -260,6 +263,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'publishChanges' => TRUE,
           'folders' => FALSE,
           'configureLanguages' => FALSE,
+          'viewComments' => FALSE,
+          'createComments' => FALSE,
         ],
       ],
       [
@@ -277,6 +282,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'publishChanges' => FALSE,
           'folders' => FALSE,
           'configureLanguages' => FALSE,
+          'viewComments' => FALSE,
+          'createComments' => FALSE,
         ],
       ],
       [
@@ -295,6 +302,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'publishChanges' => FALSE,
           'folders' => FALSE,
           'configureLanguages' => FALSE,
+          'viewComments' => FALSE,
+          'createComments' => FALSE,
         ],
       ],
       [
@@ -307,6 +316,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           AutoSaveManager::PUBLISH_PERMISSION,
           Folder::ADMIN_PERMISSION,
           'administer languages',
+          // Creating comments includes viewing them.
+          CommentThread::CREATE_PERMISSION,
         ],
         [
           'pageVariants' => TRUE,
@@ -317,6 +328,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'publishChanges' => TRUE,
           'folders' => TRUE,
           'configureLanguages' => TRUE,
+          'viewComments' => TRUE,
+          'createComments' => TRUE,
         ],
       ],
     ];

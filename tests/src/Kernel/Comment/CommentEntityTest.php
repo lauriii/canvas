@@ -181,6 +181,11 @@ final class CommentEntityTest extends CanvasKernelTestBase {
     self::assertFalse($thread->access('update', $viewer));
     self::assertFalse($comment->access('delete', $viewer));
 
+    // Creating includes viewing, without the view permission.
+    $writer = $this->createTestUser([CommentThread::CREATE_PERMISSION]);
+    self::assertTrue($thread->access('view', $writer));
+    self::assertTrue($comment->access('view', $writer));
+
     // Creating implies resolving: resolve and reopen are thread updates.
     self::assertTrue($thread_handler->createAccess(NULL, $author));
     self::assertTrue($comment_handler->createAccess(NULL, $author));

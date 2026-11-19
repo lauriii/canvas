@@ -65,7 +65,7 @@ view canvas comments:
 # @see \Drupal\canvas\Entity\CommentThread::CREATE_PERMISSION
 create canvas comments:
   title: 'Create Canvas comments'
-  description: 'Start comment threads, reply to them, and resolve or reopen them.'
+  description: 'Start comment threads, reply to them, and resolve or reopen them. Includes viewing comments.'
 
 # @see \Drupal\canvas\Entity\CommentThread::MODERATE_PERMISSION
 moderate canvas comments:

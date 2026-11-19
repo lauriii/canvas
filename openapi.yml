@@ -597,8 +597,9 @@ paths:
                   users:
                     type: array
                     description: >-
-                      Users who hold `view canvas comments`, so every offered
-                      mention can actually read the thread it lands in.
+                      Users who hold `view canvas comments` or `create canvas
+                      comments`, so every offered mention can actually read the
+                      thread it lands in.
                     items:
                       $ref: '#/components/schemas/CommentAuthor'
         '403':

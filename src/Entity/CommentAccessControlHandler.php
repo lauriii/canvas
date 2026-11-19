@@ -34,7 +34,11 @@ final class CommentAccessControlHandler extends EntityAccessControlHandler {
 
     return match ($operation) {
       'view' => $access->orIf(
-        AccessResult::allowedIfHasPermission($account, CommentThread::VIEW_PERMISSION)
+        // Creating comments includes reading them.
+        AccessResult::allowedIfHasPermissions($account, [
+          CommentThread::VIEW_PERMISSION,
+          CommentThread::CREATE_PERMISSION,
+        ], 'OR')
       ),
       'update' => $access->orIf(
         AccessResult::allowedIfHasPermission($account, CommentThread::CREATE_PERMISSION)

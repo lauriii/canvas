@@ -30,7 +30,11 @@ final class CommentThreadAccessControlHandler extends EntityAccessControlHandler
 
     return match ($operation) {
       'view' => $access->orIf(
-        AccessResult::allowedIfHasPermission($account, CommentThread::VIEW_PERMISSION)
+        // Creating comments includes reading them.
+        AccessResult::allowedIfHasPermissions($account, [
+          CommentThread::VIEW_PERMISSION,
+          CommentThread::CREATE_PERMISSION,
+        ], 'OR')
       ),
       // Resolving and reopening a thread are updates: anybody who may comment
       // may also resolve.

@@ -22,6 +22,10 @@ use Drupal\user\EntityOwnerTrait;
  * This entity type is unrelated to the one provided by Drupal core's `comment`
  * module, and Canvas does not depend on that module.
  *
+ * Like the thread it belongs to, the entity type is internal: it is reachable
+ * only through the Canvas comment API, which is what enforces view access to
+ * the commented surface.
+ *
  * @see \Drupal\canvas\Entity\CommentThread
  */
 #[ContentEntityType(
@@ -41,6 +45,7 @@ use Drupal\user\EntityOwnerTrait;
       "uuid" => "uuid",
       "owner" => "uid",
     ],
+    internal: TRUE,
   )
 ]
 final class Comment extends ContentEntityBase implements EntityOwnerInterface {

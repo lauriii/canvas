@@ -428,10 +428,17 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     // permission *and* view access to the surface, and without the former a
     // published page is not viewable either.
     $reader = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'mentionable-reader');
+    $writer = $this->createUser(['access content', CommentThread::CREATE_PERMISSION], 'mentionable-writer');
     $editor_without_comments = $this->createUser(['access content', Page::EDIT_PERMISSION], 'mentionable-editor');
     $blocked = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'mentionable-blocked');
     self::assertInstanceOf(UserInterface::class, $blocked);
     $blocked->block()->save();
+    // More accounts than one page of results, none of them commenters, and all
+    // of them sorting ahead of the reader. The result limit must be spent on
+    // people who can be mentioned, not on whoever comes first by name.
+    for ($i = 0; $i < 25; $i++) {
+      $this->createUser([], \sprintf('aaa-bystander-%02d', $i));
+    }
 
     $response = $this->request(Request::create($this->mentionableUsersUrl(), 'GET'));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
@@ -439,6 +446,8 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
 
     // Someone who can read comments can be named in one.
     self::assertContains($reader->getAccountName(), $names);
+    // Creating comments includes reading them.
+    self::assertContains($writer->getAccountName(), $names);
     // Someone who can edit the page but not read comments cannot: they would
     // be named in a conversation they have no way to open.
     self::assertNotContains($editor_without_comments->getAccountName(), $names);
@@ -496,7 +505,7 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that the autocomplete honours view access to the surface itself.
+   * Tests that the autocomplete honors view access to the surface itself.
    */
   public function testMentionableUsersRespectSurfaceAccess(): void {
     // Both hold the comment permission. Only one of them can view content, so

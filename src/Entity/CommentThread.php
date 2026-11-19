@@ -26,6 +26,13 @@ use Drupal\user\EntityOwnerTrait;
  * `(surface_type, surface_id, component_uuid)` triple, not an entity
  * reference. `surface_id` is a string because config entity IDs are strings.
  *
+ * The entity type is internal, which keeps it out of JSON:API and REST. Entity
+ * access knows only the comment permissions; view access to the commented
+ * surface is enforced by the Canvas comment API, so that API has to be the
+ * only way in.
+ *
+ * @see \Drupal\canvas\Controller\ApiCommentController
+ *
  * @todo Replace the flat `surface_type`, `surface_id` and `component_uuid` base fields with a dedicated `comment_anchor` field type when slot, prop and text-range anchoring are added.
  */
 #[ContentEntityType(
@@ -46,6 +53,7 @@ use Drupal\user\EntityOwnerTrait;
       "uuid" => "uuid",
       "owner" => "uid",
     ],
+    internal: TRUE,
   )
 ]
 final class CommentThread extends ContentEntityBase implements EntityOwnerInterface {

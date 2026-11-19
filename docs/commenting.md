@@ -163,14 +163,23 @@ directions:
 
 ```yaml
 view canvas comments:      # see threads and the sidebar
-create canvas comments:    # start threads, reply, resolve, reopen
+create canvas comments:    # start threads, reply, resolve, reopen; includes view
 moderate canvas comments:  # delete others' comments
 ```
+
+`create canvas comments` includes `view canvas comments`: replying to a thread
+or resolving it returns the whole thread, so a role that can write comments can
+always read them.
 
 Comment API access is authorized by a comment permission **plus view access
 to the surface**, never edit access. Editing your own comment is allowed;
 editing someone else's is never allowed, for anyone, including moderators. A
 moderator can delete; nobody can put words in your mouth.
+
+The surface check lives in the comment API, not in entity access, which knows
+only the three permissions. Both entity types are therefore marked `internal`,
+so JSON:API and REST do not expose them and the comment API stays the only way
+to read a thread.
 
 This split costs three lines of YAML now and is expensive to retrofit. Today,
 giving someone feedback rights on a page builder means giving them edit

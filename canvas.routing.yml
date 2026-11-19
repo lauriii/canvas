@@ -64,7 +64,8 @@ canvas.api.comments.list:
     _controller: 'Drupal\canvas\Controller\ApiCommentController::list'
   requirements:
     _canvas_authentication_required: TRUE
-    _permission: 'view canvas comments'
+    # Either permission: creating comments includes reading them.
+    _permission: 'view canvas comments+create canvas comments'
   methods: [GET]
   options:
     _format: 'json'

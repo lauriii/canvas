@@ -253,7 +253,8 @@ HTML;
               'publishChanges' => $this->currentUser->hasPermission(AutoSaveManager::PUBLISH_PERMISSION),
               'folders' => $this->currentUser->hasPermission(Folder::ADMIN_PERMISSION),
               'configureLanguages' => $this->currentUser->hasPermission('administer languages'),
-              'viewComments' => $this->currentUser->hasPermission(CommentThread::VIEW_PERMISSION),
+              // Creating comments includes reading them.
+              'viewComments' => $this->currentUser->hasPermission(CommentThread::VIEW_PERMISSION) || $this->currentUser->hasPermission(CommentThread::CREATE_PERMISSION),
               'createComments' => $this->currentUser->hasPermission(CommentThread::CREATE_PERMISSION),
             ],
             'contentEntityCreateOperations' => $content_entity_create_operations,
