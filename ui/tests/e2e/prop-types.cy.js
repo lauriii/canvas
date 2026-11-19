@@ -184,41 +184,44 @@ describe('Prop types editing', () => {
   );
 
   it('Enum (select) - string', { retries: { openMode: 0, runMode: 3 } }, () => {
-    cy.findByLabelText('String - Enum')
-      .parent()
-      .find('select')
+    // Short enums render as a segmented control backed by a hidden select.
+    cy.findByLabelText('String - Enum', { selector: 'select' })
       .as('select')
       .should('have.value', 'foo');
+    cy.findByRole('group', { name: 'String - Enum' }).as('segments');
     cy.findByText('This is the description of String - Enum').should('exist');
     cy.waitForElementContentInIframe('#test-string-enum', 'foo');
-    cy.get('@select').within(() => {
-      cy.get('option:selected').should('have.text', 'Foo');
-    });
-    cy.get('@select').select(0, { force: true });
+    cy.get('@segments')
+      .findByRole('radio', { name: 'Foo' })
+      .should('have.attr', 'aria-checked', 'true');
+    cy.get('@segments').findByRole('radio', { name: 'None' }).click();
     cy.get('@select').should('have.value', '_none');
-    cy.get('@select').within(() => {
-      cy.get('option:selected').should('have.text', '- None -');
-    });
+    cy.get('@segments')
+      .findByRole('radio', { name: 'None' })
+      .should('have.attr', 'aria-checked', 'true');
     cy.waitForElementContentNotInIframe('#test-string-enum', 'foo');
     cy.testInIframe('#test-string-enum code', (enumPreview) => {
       expect(enumPreview.textContent).to.eq('');
     });
-    cy.get('@select').select(2, { force: true });
+    cy.get('@segments').findByRole('radio', { name: 'Bar' }).click();
     cy.get('@select').should('have.value', 'bar');
-    cy.get('@select').within(() => {
-      cy.get('option:selected').should('have.text', 'Bar');
-    });
+    cy.get('@segments')
+      .findByRole('radio', { name: 'Bar' })
+      .should('have.attr', 'aria-checked', 'true');
     cy.waitForElementContentInIframe('#test-string-enum', 'bar');
 
     // See if an empty value is maintained on reload.
-    cy.get('@select').select(0, { force: true });
+    cy.get('@segments').findByRole('radio', { name: 'None' }).click();
     cy.get('@select').should('have.value', '_none');
     cy.waitForElementContentNotInIframe('#test-string-enum', 'bar');
     cy.loadURLandWaitForCanvasLoaded({ clearAutoSave: false });
     cy.openLayersPanel();
     cy.clickComponentInLayersView('All props');
     cy.findByLabelText('String — single line').should('exist');
-    cy.findByLabelText('String - Enum').should('have.value', '_none');
+    cy.findByLabelText('String - Enum', { selector: 'select' }).should(
+      'have.value',
+      '_none',
+    );
     cy.waitForElementContentInIframe(
       '#test-required-string',
       'Hello, required world!',
@@ -231,32 +234,28 @@ describe('Prop types editing', () => {
     'Enum (select) - integer',
     { retries: { openMode: 0, runMode: 3 } },
     () => {
-      cy.findByLabelText('Integer - Enum')
-        .parent()
-        .find('select')
+      cy.findByLabelText('Integer - Enum', { selector: 'select' })
         .as('select')
         .should('have.value', '1');
+      cy.findByRole('group', { name: 'Integer - Enum' }).as('segments');
       cy.findByText('This is the description of Integer - Enum').should(
         'exist',
       );
       cy.waitForElementContentInIframe('#test-integer-enum', '1');
-      cy.get('@select').within(() => {
-        cy.get('option:selected').should('have.text', '1');
-      });
-      cy.get('@select').select(0, { force: true });
+      cy.get('@segments')
+        .findByRole('radio', { name: '1' })
+        .should('have.attr', 'aria-checked', 'true');
+      cy.get('@segments').findByRole('radio', { name: 'None' }).click();
       cy.get('@select').should('have.value', '_none');
-      cy.get('@select').within(() => {
-        cy.get('option:selected').should('have.text', '- None -');
-      });
       cy.waitForElementContentNotInIframe('#test-integer-enum', '1');
       cy.testInIframe('#test-integer-enum code', (enumPreview) => {
         expect(enumPreview.textContent).to.eq('');
       });
-      cy.get('@select').select(2, { force: true });
+      cy.get('@segments').findByRole('radio', { name: '2' }).click();
       cy.get('@select').should('have.value', '2');
-      cy.get('@select').within(() => {
-        cy.get('option:selected').should('have.text', '2');
-      });
+      cy.get('@segments')
+        .findByRole('radio', { name: '2' })
+        .should('have.attr', 'aria-checked', 'true');
       cy.waitForElementContentInIframe('#test-integer-enum', '2');
     },
   );
@@ -920,19 +919,18 @@ describe('Prop types editing', () => {
     cy.loadURLandWaitForCanvasLoaded();
     cy.openLibraryPanel();
     cy.insertComponent({ name: 'Heading' });
-    cy.findByLabelText('Style').should('have.value', 'primary');
-    cy.findByLabelText('Style').within(() => {
-      cy.get('option:selected').should('have.text', 'Primary');
-    });
-    cy.findByLabelText('Style').select('_none');
-    cy.findByLabelText('Style').should('have.value', '_none');
-    cy.findByLabelText('Style').within(() => {
-      cy.get('option:selected').should('have.text', '- None -');
-    });
-    cy.findByLabelText('Style').should(
-      'not.have.attr',
-      'data-invalid-prop-value',
-    );
+    cy.findByLabelText('Style', { selector: 'select' }).as('select');
+    cy.findByRole('group', { name: 'Style' }).as('segments');
+    cy.get('@select').should('have.value', 'primary');
+    cy.get('@segments')
+      .findByRole('radio', { name: 'Primary' })
+      .should('have.attr', 'aria-checked', 'true');
+    cy.get('@segments').findByRole('radio', { name: 'None' }).click();
+    cy.get('@select').should('have.value', '_none');
+    cy.get('@segments')
+      .findByRole('radio', { name: 'None' })
+      .should('have.attr', 'aria-checked', 'true');
+    cy.get('@select').should('not.have.attr', 'data-invalid-prop-value');
     cy.get('[data-prop-message="true"]').should('not.exist');
   });
 
