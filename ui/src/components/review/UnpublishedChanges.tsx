@@ -158,9 +158,6 @@ const UnpublishedChanges = () => {
   };
 
   const navigateToReview = (selectedChanges: UnpublishedChange[]) => {
-    if (!conflictUxEnabled) {
-      return;
-    }
     const reviewableChanges = selectedChanges.filter(isReviewableChange);
     const firstReviewableChange = reviewableChanges[0];
     if (!firstReviewableChange) {
@@ -170,6 +167,7 @@ const UnpublishedChanges = () => {
       state: {
         selectedPointers: selectedChanges.map((change) => change.pointer),
         reviewPointers: reviewableChanges.map((change) => change.pointer),
+        returnTo: `${location.pathname}${location.search}`,
       },
     });
   };
@@ -275,11 +273,9 @@ const UnpublishedChanges = () => {
       onOpenChangeCallback={onOpenChangeHandler}
       onPublishClick={onPublishClick}
       onDiscardClick={onDiscardClick}
-      onReviewSelectedChanges={conflictUxEnabled ? navigateToReview : undefined}
-      onViewClick={
-        conflictUxEnabled ? (change) => navigateToReview([change]) : undefined
-      }
-      isViewChangeAvailable={conflictUxEnabled ? isReviewableChange : undefined}
+      onReviewSelectedChanges={navigateToReview}
+      onViewClick={(change) => navigateToReview([change])}
+      isViewChangeAvailable={isReviewableChange}
       onResolveConflict={(change) => {
         if (change && conflictUxEnabled) {
           navigate(getConflictRouteForChange(change));

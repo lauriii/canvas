@@ -160,11 +160,13 @@ export const PageVersionComparison = ({
       entityType={entityType}
       publishedVersion={{
         html: stablePublishedLayout?.html || EMPTY_HTML,
+        data: stablePublishedLayout,
         loading: !stablePublishedLayout && isPublishedLoading,
         updated: formatPageVersionUpdated(stablePublishedLayout?.updated),
       }}
       newVersion={{
         html: stableDraftLayout?.html || EMPTY_HTML,
+        data: stableDraftLayout,
         loading: !stableDraftLayout && isDraftLoading,
         changed: true,
         updated: formatPageVersionUpdated(
