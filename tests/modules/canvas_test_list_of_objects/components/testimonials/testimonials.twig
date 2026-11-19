@@ -1,0 +1,17 @@
+<section {{ attributes.addClass('testimonials') }}>
+  <h2>{{ heading }}</h2>
+  <ul>
+    {% for testimonial in testimonials %}
+      <li class="testimonial{{ testimonial.featured ? ' testimonial--featured' }}">
+        <blockquote>{{ testimonial.quote }}</blockquote>
+        <p class="testimonial__author">
+          {{ testimonial.author }}
+          {% if testimonial.role %}<span class="testimonial__role">({{ testimonial.role }})</span>{% endif %}
+        </p>
+        {% if testimonial.rating %}
+          <p class="testimonial__rating" aria-label="{{ testimonial.rating }} out of 5">{% for i in 1..testimonial.rating %}★{% endfor %}</p>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>

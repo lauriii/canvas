@@ -1,0 +1,61 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Testimonials
+description: A list of customer quotes, each with an author, a role, a star rating and an optional highlight.
+props:
+  type: object
+  required:
+    - heading
+    - testimonials
+  properties:
+    heading:
+      type: string
+      title: Heading
+      examples:
+        - What our customers say
+    testimonials:
+      type: array
+      title: Testimonials
+      minItems: 1
+      maxItems: 6
+      items:
+        type: object
+        required:
+          - quote
+          - author
+        properties:
+          quote:
+            type: string
+            title: Quote
+          author:
+            type: string
+            title: Author
+          role:
+            type: string
+            title: Role
+            enum:
+              - customer
+              - partner
+              - employee
+            'meta:enum':
+              customer: Customer
+              partner: Partner
+              employee: Employee
+          rating:
+            type: integer
+            title: Rating
+            minimum: 1
+            maximum: 5
+          featured:
+            type: boolean
+            title: Featured
+      examples:
+        - - quote: Canvas made our launch page in an afternoon.
+            author: Ada Lovelace
+            role: customer
+            rating: 5
+            featured: true
+          - quote: Our editors stopped asking for developer time.
+            author: Grace Hopper
+            role: partner
+            rating: 4
+            featured: false

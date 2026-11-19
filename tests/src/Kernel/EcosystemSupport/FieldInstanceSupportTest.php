@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
+use Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
@@ -400,6 +401,11 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
       }
       // There is no need to map Canvas component trees *into* Canvas component trees.
       if ($def['class'] === ComponentTreeItem::class) {
+        continue;
+      }
+      // This field type only stores component inputs: it is not available
+      // for fields on entities.
+      if ($def['class'] === CanvasObjectItem::class) {
         continue;
       }
       foreach ([TRUE, FALSE] as $required) {

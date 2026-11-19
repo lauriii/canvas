@@ -383,7 +383,9 @@ final class StaticPropSource extends PropSourceBase {
       $item_definition->getPropertyDefinitions(),
       fn (DataDefinitionInterface $prop_definition) => !$prop_definition->isComputed(),
     );
-    match (count($stored_props)) {
+    // TRICKY: field types without a main property always store all properties.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+    match ($item_definition->getMainPropertyName() === NULL ? 0 : count($stored_props)) {
       // If this field type has only a single stored property, then:
       // - it MUST be the field type's main property
       // - the property name SHOULD be omitted from the stored value
@@ -473,7 +475,9 @@ final class StaticPropSource extends PropSourceBase {
       $item_definition->getPropertyDefinitions(),
       fn (DataDefinitionInterface $prop_definition) => !$prop_definition->isComputed(),
     );
-    return match (count($stored_props)) {
+    // TRICKY: field types without a main property always store all properties.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+    return match ($item_definition->getMainPropertyName() === NULL ? 0 : count($stored_props)) {
       1 => $field_item_value[$this->getFieldItemDefinition()->getMainPropertyName()] ?? NULL,
       default => $field_item_value,
     };
@@ -547,10 +551,13 @@ final class StaticPropSource extends PropSourceBase {
       // plus the field path, and re-parenting gives every prop field the same
       // root. Left unnamed they would share one prototype, so a later field
       // gets an earlier field's item type (e.g. an image field getting an
-      // IntegerItem). Keying by field type lets same-typed fields share a
-      // prototype while different types stay apart.
+      // IntegerItem). Keying by field type and storage settings lets fields
+      // with identical definitions share a prototype while others stay apart:
+      // some field types derive their properties from storage settings.
       // @see \Drupal\Core\TypedData\TypedDataManager::getPropertyInstance()
-      $field->setContext($field_definition->getType(), EntityAdapter::createFromEntity($host_entity));
+      // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem::propertyDefinitions()
+      $prototype_name = $field_definition->getType() . '__' . \hash('xxh3', \serialize($field_definition->getFieldStorageDefinition()->getSettings()));
+      $field->setContext($prototype_name, EntityAdapter::createFromEntity($host_entity));
     }
 
     // Initialize widget state with existing items for widgets that rely on it.

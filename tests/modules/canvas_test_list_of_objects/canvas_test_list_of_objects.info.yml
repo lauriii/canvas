@@ -1,0 +1,6 @@
+name: 'Canvas test: list of objects prop'
+type: module
+description: 'Provides an SDC with a `type: array` of `type: object` prop, edited as a repeater.'
+package: Testing
+dependencies:
+  - canvas:canvas

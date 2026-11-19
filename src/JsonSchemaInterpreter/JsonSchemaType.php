@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\JsonSchemaInterpreter;
 
+use Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem;
 use Drupal\canvas\Plugin\Validation\Constraint\StringSemanticsConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -35,7 +36,6 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
  * @todo Question: Does React also use JSON schema for restricting/defining its props? I.e.: identical set of primitives or not?
  * @todo expand test coverage for testing each known type as being REQUIRED too
  * @todo adapters for transforming @FieldType=timestamp -> `type:string,format=time`, @FieldType=datetime -> `type:string,format=time`, a StringSemanticsConstraint::MARKUP string could be adapted to StringSemanticsConstraint::PROSE, UnixTimestampToDateAdapter was a test-only start
- * @todo the `array` type — in particular arrays of tuples/objects, for example an array of "(image uri, alt)" pairs for an image gallery component, see https://stackoverflow.com/questions/40750340/how-to-define-json-schema-for-mapstring-integer
  * @todo `exclusiveMinimum` and `exclusiveMaximum` work differently in JSON schema draft 4 (which SDC uses) than other versions. This is a future BC nightmare.
  * @todo for `string` + `format=duration`, Drupal core has \Drupal\Core\TypedData\Plugin\DataType\DurationIso8601, but nothing uses it!
  *
@@ -507,9 +507,78 @@ enum JsonSchemaType: string {
           ),
           default => NULL,
         },
+        // Arbitrary objects whose properties are all simple scalars. Combined
+        // with `type: array`, this allows lists of objects ("repeaters").
+        // @see docs/shape-matching.md#3.2.4
+        self::isObjectWithScalarProperties($schema) => new StorablePropShape(
+          shape: $shape,
+          fieldTypeProp: new FieldTypeObjectPropsExpression(CanvasObjectItem::PLUGIN_ID, self::objectPropertyExpressions($schema)),
+          fieldWidget: CanvasObjectItem::PLUGIN_ID,
+          fieldStorageSettings: [
+            'properties' => $schema['properties'],
+            'required' => $schema['required'] ?? [],
+          ],
+        ),
         default => NULL,
       },
     };
+  }
+
+  /**
+   * Maps each property of an object with scalar properties to its field prop.
+   *
+   * @param array<string, mixed> $schema
+   *   A schema accepted by ::isObjectWithScalarProperties().
+   *
+   * @return non-empty-array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression>
+   *   The field type prop expressions, keyed by property name.
+   */
+  private static function objectPropertyExpressions(array $schema): array {
+    $expressions = [];
+    foreach (\array_keys($schema['properties']) as $name) {
+      $expressions[(string) $name] = new FieldTypePropExpression(CanvasObjectItem::PLUGIN_ID, (string) $name);
+    }
+    \assert($expressions !== []);
+    return $expressions;
+  }
+
+  /**
+   * Whether a normalized object schema only has simple scalar properties.
+   *
+   * Supported property shapes: plain or enum strings, strings with a `format`
+   * that a single HTML input can represent, integers and numbers (optionally
+   * with `minimum`/`maximum`), and booleans.
+   *
+   * @param JsonSchema $schema
+   *
+   * @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+   * @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget
+   */
+  private static function isObjectWithScalarProperties(array $schema): bool {
+    $allowed_object_keys = ['type', 'properties', 'required', 'additionalProperties'];
+    if (empty($schema['properties']) || !empty(array_diff(\array_keys($schema), $allowed_object_keys))) {
+      return FALSE;
+    }
+    foreach ($schema['properties'] as $property_schema) {
+      $allowed_keys = match ($property_schema['type'] ?? NULL) {
+        'string' => ['type', 'enum', 'format', 'maxLength'],
+        'integer' => ['type', 'enum', 'minimum', 'maximum'],
+        'number' => ['type', 'minimum', 'maximum'],
+        'boolean' => ['type'],
+        default => NULL,
+      };
+      if ($allowed_keys === NULL || !empty(array_diff(\array_keys($property_schema), $allowed_keys))) {
+        return FALSE;
+      }
+      // Relative URIs (`uri-reference`, `iri-reference`) are omitted: those
+      // need URL rewriting for example values.
+      // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
+      $allowed_formats = ['date', 'email', 'idn-email', 'uri', 'iri'];
+      if (\array_key_exists('format', $property_schema) && !\in_array($property_schema['format'], $allowed_formats, TRUE)) {
+        return FALSE;
+      }
+    }
+    return TRUE;
   }
 
   /**
