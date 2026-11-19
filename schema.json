@@ -292,6 +292,19 @@
         }
       }
     },
+    "video-embed": {
+      "title": "video embed",
+      "type":  "object",
+      "required": ["src"],
+      "properties": {
+        "src": {
+          "title": "Video embed URL",
+          "type": "string",
+          "format": "uri",
+          "x-allowed-schemes": ["http", "https"]
+        }
+      }
+    },
     "document": {
       "title": "document",
       "type":  "object",

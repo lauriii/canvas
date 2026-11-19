@@ -374,6 +374,27 @@ class ShapeMatchingHooks {
   /**
    * Implements hook_canvas_storable_prop_shape_alter().
    *
+   * (On behalf of the Media module.)
+   *
+   * Lets the Content Creator paste the URL of a video (for example on YouTube)
+   * for the `video-embed` prop shape. The component receives core's oEmbed
+   * iframe URL for it.
+   *
+   * @see \Drupal\canvas\Plugin\Field\FieldType\VideoEmbedItem
+   */
+  #[Hook('canvas_storable_prop_shape_alter', module: 'media')]
+  public static function mediaStorablePropShapeAlter(CandidateStorablePropShape $storable_prop_shape): void {
+    if ($storable_prop_shape->shape->schema == JsonSchemaObjectRef::VideoEmbed->asPropShapeArray()) {
+      $storable_prop_shape->fieldTypeProp = new FieldTypeObjectPropsExpression('canvas_video_embed', [
+        'src' => new FieldTypePropExpression('canvas_video_embed', 'iframe_url'),
+      ]);
+      $storable_prop_shape->fieldWidget = 'canvas_video_embed_url';
+    }
+  }
+
+  /**
+   * Implements hook_canvas_storable_prop_shape_alter().
+   *
    * (On behalf of the Date Range module.)
    *
    * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()

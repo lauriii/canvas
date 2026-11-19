@@ -301,6 +301,15 @@ final class EntityFieldPropSourceMatcher {
    *     entity
    */
   private function matchEntityPropsForObject(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, bool $is_required_in_json_schema, array $schema, int $cardinality_in_json_schema): array {
+    // Only the `canvas_video_embed` field type computes the oEmbed iframe URL
+    // this shape needs. Other URL fields would match `src`, but provide a URL
+    // that cannot be embedded.
+    // TRICKY: `$schema` is resolved, so the `$ref` key is gone.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\VideoEmbedItem
+    // @todo Match references to Remote video media in a follow-up issue.
+    if ($schema == JsonSchemaObjectRef::VideoEmbed->asPropShape()->resolvedSchema) {
+      return [];
+    }
     // First, naïvely match using the scalars inside the `type: object`.
     $per_object_prop_scalar_matches = self::matchEntityPropsForObjectUsingScalars($entity_data_definition, $levels_to_recurse, $is_required_in_json_schema, $schema, $cardinality_in_json_schema);
     $all_object_props = \array_keys($per_object_prop_scalar_matches);

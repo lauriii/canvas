@@ -344,9 +344,28 @@ export function getPropsValues(
     ) {
       // '' is an empty value, but we require a valid object here, so we
       // fall back to the default value.
-      propsValues[fieldName as keyof PropsValues] = (
-        component as PropSourceComponent
-      ).propSources[fieldName as keyof PropsValues].default_values.resolved;
+      const defaultValues = (component as PropSourceComponent).propSources[
+        fieldName as keyof PropsValues
+      ].default_values;
+      // A widget that edits only a field's `value` property, such as the video
+      // embed URL widget, needs the default source value: the resolved value
+      // (`{src: …}`) is not what its input holds. Other object props, such as
+      // images, fall back to the resolved example.
+      // @see \Drupal\canvas\Plugin\Field\FieldWidget\VideoEmbedUrlWidget
+      const [defaultSourceItem, ...otherItems] = Array.isArray(
+        defaultValues.source,
+      )
+        ? defaultValues.source
+        : [];
+      const isSingleValueSource =
+        otherItems.length === 0 &&
+        defaultSourceItem !== null &&
+        typeof defaultSourceItem === 'object' &&
+        Object.keys(defaultSourceItem).length === 1 &&
+        typeof defaultSourceItem.value === 'string';
+      propsValues[fieldName as keyof PropsValues] = isSingleValueSource
+        ? defaultSourceItem.value
+        : defaultValues.resolved;
     }
   });
 
