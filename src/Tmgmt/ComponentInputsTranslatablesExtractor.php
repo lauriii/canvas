@@ -301,7 +301,7 @@ final class ComponentInputsTranslatablesExtractor {
    */
   private function extractTranslatablesOptionallyIncludingEmpty(TypedConfigInterface|Mapping|Sequence $schema, array $config_data, string $base_key = '', bool $include_empty = TRUE): array {
     $data = [];
-    foreach ($schema as $key => $element) {
+    foreach (self::getElementsInDefinitionOrder($schema) as $key => $element) {
       // @phpstan-ignore-next-line isset.variable
       $element_key = isset($base_key) ? "$base_key.$key" : $key;
       $definition = $element->getDataDefinition();
@@ -361,6 +361,34 @@ final class ComponentInputsTranslatablesExtractor {
       }
     }
     return $data;
+  }
+
+  /**
+   * Gets the elements of a schema element, in config schema order.
+   *
+   * Iterating a Mapping yields its elements in the order of the keys in its
+   * data. For component inputs that is the order the database returns them
+   * in, which varies by database: MySQL's `JSON` and PostgreSQL's `jsonb`
+   * columns do not preserve the order of object keys. Follow the order in
+   * which the mapping defines its keys instead, which for a component
+   * instance's inputs is the order in which the component defines its props.
+   * Keys in the data but not in the definition keep their order, at the end.
+   *
+   * @param \Drupal\Core\Config\Schema\TypedConfigInterface|\Drupal\Core\Config\Schema\Mapping|\Drupal\Core\Config\Schema\Sequence $schema
+   *   The schema element.
+   *
+   * @return array<int|string, \Drupal\Core\TypedData\TypedDataInterface>
+   *   The elements, keyed by key.
+   */
+  private static function getElementsInDefinitionOrder(TypedConfigInterface|Mapping|Sequence $schema): array {
+    $elements = $schema->getElements();
+    if (!$schema instanceof Mapping) {
+      return $elements;
+    }
+    $definition = $schema->getDataDefinition();
+    \assert($definition instanceof \ArrayAccess);
+    $defined_keys = \array_keys($definition['mapping'] ?? []);
+    return \array_replace(\array_intersect_key(\array_flip($defined_keys), $elements), $elements);
   }
 
   private static function isComponentInstanceInputs(TypedConfigInterface $data): bool {

@@ -92,11 +92,17 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
         'component_tree|' . self::UUID_TAGS . '|inputs|tags|1[translation]',
         'component_tree|' . self::UUID_TAGS . '|inputs|tags|2[translation]',
       ],
-      // @todo Consider respecting the defined order of props; the config_translation UI does support that.
+      // Props in the order the component defines them, regardless of the order
+      // of the stored inputs.
       self::UUID_MY_HERO => [
         // SDC props populated by StaticPropSources are translatable.
         'component_tree|' . self::UUID_MY_HERO . '|inputs|heading[translation]',
-        'component_tree|' . self::UUID_MY_HERO . '|inputs|cta2[translation]',
+
+        // Optional prop NOT populated in default is translatable: a translation
+        // may opt to populate it even when the default translation leaves it
+        // empty.
+        // @see \Drupal\canvas\Tmgmt\ComponentInputsConfigProcessor::extractTranslatablesIncludingEmpty()
+        'component_tree|' . self::UUID_MY_HERO . '|inputs|subheading[translation]',
 
         // ⚠️ SDC prop populated by EntityFieldPropSource is NOT translatable:
         // that would have listed `…|inputs|cta1[translation]`, too.
@@ -104,11 +110,7 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
         // ⚠️ SDC prop populated by HostEntityUrlPropSource is NOT translatable:
         // that would have listed `…|inputs|cta1href[translation]`, too.
 
-        // Optional prop NOT populated in default is translatable: a translation
-        // may opt to populate it even when the default translation leaves it
-        // empty.
-        // @see \Drupal\canvas\Tmgmt\ComponentInputsConfigProcessor::extractTranslatablesIncludingEmpty()
-        'component_tree|' . self::UUID_MY_HERO . '|inputs|subheading[translation]',
+        'component_tree|' . self::UUID_MY_HERO . '|inputs|cta2[translation]',
       ],
       self::UUID_MY_CTA => [
         'component_tree|' . self::UUID_MY_CTA . '|inputs|text[translation]',

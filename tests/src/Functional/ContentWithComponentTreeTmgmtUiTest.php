@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Hook\TmgmtHooks;
 use Drupal\canvas\Tmgmt\ComponentTreeFieldProcessor;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputTranslatability;
+use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -177,12 +178,11 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
         'components|0|tags|1[translation]',
         'components|0|tags|2[translation]',
       ],
-      // @todo Consider respecting the defined order of props; the config_translation UI does support that.
+      // Top-level props in the order the component defines them, regardless of
+      // the order in which the database returns the stored inputs.
       self::UUID_MY_HERO => [
         // SDC props populated by StaticPropSources are translatable.
         'components|1|heading[translation]',
-        'components|1|cta1[translation]',
-        'components|1|cta2[translation]',
 
         // Optional prop NOT populated in default is translatable: a translation
         // may opt to populate it even when the default translation leaves it
@@ -190,6 +190,11 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
         // @see \Drupal\canvas\Tmgmt\ComponentInputsConfigProcessor::extractTranslatablesIncludingEmpty()
         'components|1|subheading[translation]',
 
+        'components|1|cta1[translation]',
+        'components|1|cta2[translation]',
+        // A nested prop is listed after all top-level props: TMGMT groups
+        // data items by parent key and renders one group at a time.
+        // @see \Drupal\tmgmt\Form\JobItemForm::reviewFormElement()
         'components|1|cta1href|uri[translation]',
       ],
       self::UUID_MY_CTA => [
@@ -269,6 +274,12 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
       $fr_item = $fr_tree->getComponentTreeItemByUuid($uuid);
       self::assertNotNull($fr_item, "Component $uuid missing from translated tree");
       $fr_inputs = $fr_item->getInputs();
+      self::assertIsArray($fr_inputs);
+      // The order of stored keys is not significant, and it depends on the
+      // database: MySQL's `JSON` and PostgreSQL's `jsonb` columns do not
+      // preserve it.
+      SortArray::sortByKeyRecursive($inputs);
+      SortArray::sortByKeyRecursive($fr_inputs);
       self::assertSame($inputs, $fr_inputs);
     }
   }
@@ -493,12 +504,14 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
     // AC6: the exact-sentinel echo for item 0 is discarded and the whole item
     // is refilled from the default translation; the sibling item keeps its
     // real translation. No NULL leaks into the stored composite value.
+    $deeply_nested = $deep_inputs['deeply_nested_translatable'] ?? [];
+    SortArray::sortByKeyRecursive($deeply_nested);
     self::assertSame(
       [
-        ['foo' => 'Huh?', 'bar' => 'Gitane'],
-        ['foo' => 'Meh', 'bar' => 'Traduit'],
+        ['bar' => 'Gitane', 'foo' => 'Huh?'],
+        ['bar' => 'Traduit', 'foo' => 'Meh'],
       ],
-      $deep_inputs['deeply_nested_translatable'] ?? NULL,
+      $deeply_nested,
       'AC6: A discarded sentinel echo inside a composite input must be refilled from the default translation, next to a really translated sibling.'
     );
   }
@@ -722,12 +735,14 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
 
     // AC6: sentinel echo for item 0 of a composite is discarded and refilled
     // from the default translation; sibling item keeps its real translation.
+    $deeply_nested = $deep_inputs['deeply_nested_translatable'] ?? [];
+    SortArray::sortByKeyRecursive($deeply_nested);
     self::assertSame(
       [
-        ['foo' => 'Huh?', 'bar' => 'Gitane'],
-        ['foo' => 'Meh', 'bar' => 'Traduit'],
+        ['bar' => 'Gitane', 'foo' => 'Huh?'],
+        ['bar' => 'Traduit', 'foo' => 'Meh'],
       ],
-      $deep_inputs['deeply_nested_translatable'] ?? NULL,
+      $deeply_nested,
       'AC6: A discarded sentinel echo inside a composite input must be refilled from the default translation.'
     );
   }
