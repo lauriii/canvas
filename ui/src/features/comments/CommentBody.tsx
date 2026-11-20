@@ -16,11 +16,8 @@ interface CommentBodyProps {
 }
 
 /**
- * Renders a comment body, turning its `@[user:123]` tokens into names.
- *
- * The tokens are resolved against the names the API sent, so a mention shows
- * whatever the user is called now rather than what they were called when the
- * comment was written.
+ * Renders a comment body, turning its `@[user:123]` tokens into the names the
+ * API sent for them.
  */
 const CommentBody = ({ body, mentions, clamped, testId }: CommentBodyProps) => (
   <Text

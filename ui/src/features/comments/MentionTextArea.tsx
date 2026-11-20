@@ -32,9 +32,8 @@ interface MentionTextAreaProps {
 /**
  * A comment field whose `@` opens a list of people who can read the thread.
  *
- * Typing happens against display names rather than the `@[user:123]` tokens
- * that get stored, because the tokens are unreadable in a plain textarea. The
- * caller converts what was typed with `toStoredBody()` before posting.
+ * The field holds display names. The caller converts them to the stored
+ * `@[user:123]` tokens with `toStoredBody()` before posting.
  */
 const MentionTextArea = ({
   value,
@@ -55,8 +54,7 @@ const MentionTextArea = ({
   const [highlighted, setHighlighted] = useState(0);
   const [dropUp, setDropUp] = useState(false);
 
-  // The surface is part of the request because eligibility is per surface: a
-  // user who cannot view this page must not be offered on it.
+  // Who can be mentioned depends on who can view the surface.
   const { surfaceType, surfaceId, hasSurface } = useCommentSurface();
   const { data } = useGetMentionableUsersQuery(
     { surfaceType, surfaceId, query: mention?.query ?? '' },
@@ -69,9 +67,7 @@ const MentionTextArea = ({
     const found = getMentionQuery(element.value, caret);
     setMention(found === null ? null : { ...found, caret });
     setHighlighted(0);
-    // Replying to a thread near the bottom of the panel leaves no room under
-    // the field, and the list would be cut off by the scroll container it sits
-    // in, so it opens upwards instead.
+    // The list opens upwards when there is no room for it under the field.
     if (found !== null) {
       const { bottom } = element.getBoundingClientRect();
       setDropUp(window.innerHeight - bottom < MENTION_LIST_MAX_HEIGHT);
@@ -100,7 +96,7 @@ const MentionTextArea = ({
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // While an input method is composing, Enter and the arrow keys belong to
-    // its candidate list. Acting on them would post a half-composed comment.
+    // its candidate list.
     if (event.nativeEvent.isComposing) {
       return;
     }

@@ -52,9 +52,7 @@
   font-size: var(--font-size-1);
 }
 
-/* The API accepts bodies up to 65536 characters, so an unclamped collapsed
-   preview can be tens of thousands of pixels tall and bury every thread under
-   it. Expanding the thread removes the clamp. */
+/* A collapsed thread shows a preview of its opening comment. */
 .bodyClamped {
   display: -webkit-box;
   overflow: hidden;
@@ -118,8 +116,7 @@
   font-weight: 500;
 }
 
-/* A mention of a user who no longer exists still has to read as a mention:
-   dropping it would hide the fact that somebody was named. */
+/* A mention of a user who no longer exists. */
 .mentionUnknown {
   color: var(--gray-a10);
   font-style: italic;

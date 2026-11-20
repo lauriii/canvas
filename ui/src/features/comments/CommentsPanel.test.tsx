@@ -23,12 +23,11 @@ vi.mock('@/utils/permissions', () => ({
     hasPermissionMock(...args),
 }));
 
-const alice: CommentAuthor = { uid: 2, displayName: 'Alice', avatar: null };
-const bob: CommentAuthor = { uid: 3, displayName: 'Bob', avatar: null };
+const alice: CommentAuthor = { uid: 2, displayName: 'Alice' };
+const bob: CommentAuthor = { uid: 3, displayName: 'Bob' };
 
 const openThread: CommentThread = {
   id: '1',
-  uuid: 'thread-1',
   surfaceType: 'canvas_page',
   surfaceId: '1',
   componentUuid: 'uuid-anchored',
@@ -36,14 +35,12 @@ const openThread: CommentThread = {
   offsetY: null,
   resolved: false,
   created: 1_777_000_000,
-  changed: 1_777_000_100,
   author: alice,
   comments: [
     {
       id: 'c1',
       body: 'The heading is too long.',
       created: 1_777_000_000,
-      changed: 1_777_000_000,
       author: alice,
       mentions: [],
     },
@@ -51,7 +48,6 @@ const openThread: CommentThread = {
       id: 'c2',
       body: 'Shortened it.',
       created: 1_777_000_100,
-      changed: 1_777_000_100,
       author: bob,
       mentions: [],
     },
@@ -60,7 +56,6 @@ const openThread: CommentThread = {
 
 const resolvedThread: CommentThread = {
   id: '2',
-  uuid: 'thread-2',
   surfaceType: 'canvas_page',
   surfaceId: '1',
   componentUuid: null,
@@ -68,14 +63,12 @@ const resolvedThread: CommentThread = {
   offsetY: null,
   resolved: true,
   created: 1_777_000_200,
-  changed: 1_777_000_200,
   author: bob,
   comments: [
     {
       id: 'c3',
       body: 'Fixed the footer.',
       created: 1_777_000_200,
-      changed: 1_777_000_200,
       author: bob,
       mentions: [],
     },
@@ -96,37 +89,20 @@ const stubFetch = (threads: CommentThread[] = [openThread, resolvedThread]) => {
       }
       if (request.method !== 'GET') {
         postedBodies.push(await request.clone().json());
-        return new Response(JSON.stringify({ thread: openThread }), {
-          status: 201,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json({ thread: openThread }, { status: 201 });
       }
       if (request.url.includes('config/component')) {
-        return new Response(
-          JSON.stringify({ 'sdc.test.hero': { name: 'Hero' } }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
+        return Response.json({ 'sdc.test.hero': { name: 'Hero' } });
       }
       if (request.url.includes('mentionable-users')) {
-        return new Response(
-          JSON.stringify({
-            users: [
-              { uid: 2, displayName: 'alice', avatar: null },
-              { uid: 3, displayName: 'bob', avatar: null },
-            ],
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
+        return Response.json({
+          users: [
+            { uid: 2, displayName: 'alice' },
+            { uid: 3, displayName: 'bob' },
+          ],
+        });
       }
-      const includeResolved = request.url.includes('includeResolved=1');
-      return new Response(
-        JSON.stringify({
-          threads: includeResolved
-            ? threads
-            : threads.filter((thread) => !thread.resolved),
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
+      return Response.json({ threads });
     }),
   );
 };
@@ -408,15 +384,9 @@ describe('CommentsPanel', () => {
           return new Response('csrf-token', { status: 200 });
         }
         if (request.method !== 'GET') {
-          return new Response(JSON.stringify({ errors: ['Denied.'] }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json' },
-          });
+          return Response.json({ errors: ['Denied.'] }, { status: 403 });
         }
-        return new Response(JSON.stringify({ threads: [] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json({ threads: [] });
       }),
     );
     const user = userEvent.setup();
@@ -434,10 +404,13 @@ describe('CommentsPanel', () => {
     expect(screen.getByTestId('canvas-comment-composer')).toHaveValue(
       'Rejected',
     );
-    // The thread was listed ahead of the server, and is taken back out.
-    expect(
-      screen.queryByTestId('canvas-comment-thread'),
-    ).not.toBeInTheDocument();
+    // The thread was listed ahead of the server, and is taken back out. The
+    // store tells the panel so on its next batched notification.
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('canvas-comment-thread'),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it('lists a new thread before the server has answered', async () => {
@@ -453,10 +426,7 @@ describe('CommentsPanel', () => {
           // The server never answers.
           return new Promise<Response>(() => {});
         }
-        return new Response(JSON.stringify({ threads: [] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json({ threads: [] });
       }),
     );
     const user = userEvent.setup();
@@ -514,7 +484,6 @@ describe('CommentsPanel', () => {
             id: 'c1',
             body: 'Ask @[user:3] to check this.',
             created: 1_777_000_000,
-            changed: 1_777_000_000,
             author: alice,
             mentions: [{ uid: 3, displayName: 'bob' }],
           },

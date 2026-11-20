@@ -64,13 +64,7 @@ export const findComponentAtPoint = (
 };
 
 /**
- * The letter a pin carries: who is asking, not how many times.
- *
- * A count told the reader almost nothing, because almost every thread has no
- * replies and so read "1" — a number whose only value was that it was not the
- * number the reader wanted. Figma, Google Docs and Miro all put the author on
- * the pin instead, which answers the question someone scanning a page actually
- * has. The reply count stays in the panel and in the pin's accessible name.
+ * The letter a pin carries: the initial of the thread's author.
  *
  * @param displayName - The thread author's name.
  * @returns The initial to draw, or a placeholder for an unnamed author.
@@ -81,12 +75,9 @@ export const getAuthorInitial = (displayName: string): string =>
 /**
  * Places a pin at the point in its component that the comment was left at.
  *
- * The stored offset is a fraction of the component's box, so it is multiplied
- * back out against whatever that box measures in this viewport: the pin lands
- * on the same part of the same component at every width, which an absolute
- * coordinate could not do. A thread with no recorded point, either from before
- * offsets existed or started from the sidebar, falls back to the component's
- * top-left corner.
+ * The stored offset is a fraction of the component's box, so the pin lands on
+ * the same part of the component at every viewport width. A thread with no
+ * recorded point is pinned to the component's top-left corner.
  *
  * @param rect - The component's measured box, in unscaled preview pixels.
  * @param thread - The thread being pinned.
@@ -107,14 +98,9 @@ export const pinPosition = (
 /**
  * Renders one clickable pin per component-anchored comment thread.
  *
- * Pins are drawn for as long as the surface is open, whether or not the panel
- * is: seeing that something has been commented on is the whole point of a pin,
- * and it cannot do that job from behind a closed panel.
- *
- * Surface-level threads (`componentUuid === null`) and threads anchored to a
- * component that is not currently measured have no position on the canvas, so
- * they get no pin. They remain listed in the comments panel, which is the
- * complete, accessible equivalent of this layer.
+ * Pins are drawn whether or not the comments panel is open. A thread on the
+ * surface itself, or on a component that is not currently measured, gets no
+ * pin and is listed in the comments panel only.
  */
 const CommentPinLayer = () => {
   const dispatch = useAppDispatch();
@@ -128,17 +114,11 @@ const CommentPinLayer = () => {
   const [draft, setDraft] = useState<CommentDraft | null>(null);
   // The component a comment placed now would be attached to.
   const [hoveredUuid, setHoveredUuid] = useState<string | null>(null);
-  // Pins used to be reachable only through the panel, which the permission
-  // already gated. Drawn unconditionally they need their own check, or a user
-  // without it would fetch comments and be refused.
   const canViewComments = hasPermission('viewComments');
 
-  // In comment mode the layer swallows canvas clicks and turns the one the
-  // user makes into an anchor, instead of letting it select a component.
   const toPreviewPoint = (event: React.MouseEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
-    // Pins are positioned in unscaled preview pixels multiplied by the
-    // viewport scale, so the click has to be divided back down to match.
+    // Geometry is in unscaled preview pixels.
     return {
       x: (event.clientX - bounds.left) / editorViewPortScale,
       y: (event.clientY - bounds.top) / editorViewPortScale,
@@ -149,13 +129,10 @@ const CommentPinLayer = () => {
     const { x, y } = toPreviewPoint(event);
     const componentUuid = findComponentAtPoint(geometryMap, x, y);
     if (!componentUuid) {
-      // Clicking empty canvas abandons the draft rather than anchoring a
-      // thread to nothing: a surface-level thread is made from the panel.
+      // Clicking empty canvas abandons the draft.
       setDraft(null);
       return;
     }
-    // Record where in the component this landed, so the pin can come back to
-    // the same spot rather than to the component's corner.
     const { rect } = geometryMap.component[componentUuid];
     setDraft({
       componentUuid,
@@ -175,22 +152,11 @@ const CommentPinLayer = () => {
     dispatch(setCommentsPanelOpen(true));
   };
 
-  // Pins are drawn whenever the surface is open, not only while the panel is,
-  // because the pin is how a page says it has been commented on at all. That
-  // is the job Figma and Notion give it, and with pins hidden nothing on the
-  // canvas distinguished a page carrying a conversation from one that is not.
-  //
-  // The filter only follows the panel while the panel is on screen. With it
-  // closed there is no visible control explaining why resolved pins would be
-  // showing, so the canvas falls back to the open threads.
+  // The pins follow the panel's filter only while the panel is on screen.
   const effectiveFilter = panelOpen ? filter : 'open';
   // @todo Poll adaptively (faster while the panel is open, slower otherwise) instead of relying on tag invalidation alone, reusing the intervals in ui/src/features/notifications/constants.ts.
   const { data } = useGetCommentsQuery(
-    {
-      surfaceType,
-      surfaceId,
-      includeResolved: effectiveFilter === 'resolved',
-    },
+    { surfaceType, surfaceId },
     { skip: !hasSurface || !canViewComments },
   );
 
@@ -202,9 +168,7 @@ const CommentPinLayer = () => {
 
   const threads = filterThreads(data.threads, effectiveFilter);
   const ownColor = getAvatarInitialColor(getCommentAuthor().uid);
-  // While a comment is being placed or written, the component it belongs to
-  // is outlined: a pin alone does not say which of several nested components
-  // it will be attached to.
+  // The component a comment being placed or written belongs to is outlined.
   const targetUuid =
     draft?.componentUuid ?? (commentModeActive ? hoveredUuid : null);
   const targetRect = targetUuid
@@ -224,10 +188,9 @@ const CommentPinLayer = () => {
           ? (event) => {
               const { x, y } = toPreviewPoint(event);
               setHoveredUuid(findComponentAtPoint(geometryMap, x, y));
-              // The pin under the pointer moves on every mouse event, so it is
-              // positioned straight on the element rather than through state,
-              // which would render every pin again each time. It gives way to
-              // the ordinary cursor over a pin or the composer.
+              // The pointer pin is positioned on the element, not through
+              // state, so a mouse move does not render every pin again. It is
+              // hidden over a pin or the composer.
               const layer = event.currentTarget;
               layer.style.setProperty(
                 '--pointer-x',
@@ -274,8 +237,6 @@ const CommentPinLayer = () => {
               [styles.active]: thread.id === activeThreadId,
               [styles.resolved]: thread.resolved,
             })}
-            // Each author keeps the color they have in the review changes
-            // panel.
             data-accent-color={getAvatarInitialColor(thread.author.uid)}
             style={pinPosition(geometry.rect, thread, editorViewPortScale)}
             aria-label={getThreadLabel(thread)}
@@ -284,10 +245,7 @@ const CommentPinLayer = () => {
             onClick={(event) => {
               event.stopPropagation();
               dispatch(setActiveThread(thread.id));
-              // The panel remembers its filter while closed, and the pins drawn
-              // then are the open threads whatever it says. Without this, a
-              // panel left on "Resolved" would open without the thread whose
-              // pin was just clicked.
+              // The panel opens on the list this thread is in.
               dispatch(setCommentFilter(thread.resolved ? 'resolved' : 'open'));
               dispatch(setCommentsPanelOpen(true));
             }}
@@ -310,9 +268,7 @@ const CommentPinLayer = () => {
       )}
       {draft && (
         <>
-          {/* The pin the comment will become, where it will be: the composer
-              above it would otherwise be the only sign of where the click
-              landed. */}
+          {/* The pin the comment will become, where it will be. */}
           <span
             className={styles.pin}
             data-accent-color={ownColor}

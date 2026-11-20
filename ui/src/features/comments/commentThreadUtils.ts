@@ -2,22 +2,13 @@ import type { CommentFilter } from '@/features/comments/commentsSlice';
 import type { CommentThread } from '@/services/comments';
 
 /**
- * Counts the replies of a thread, excluding its opening comment.
- *
- * @param thread - The thread.
- * @returns The number of replies.
- */
-const getReplyCount = (thread: CommentThread): number =>
-  Math.max(thread.comments.length - 1, 0);
-
-/**
  * Builds the accessible name of a thread's on-canvas pin and list entry.
  *
  * @param thread - The thread.
  * @returns A label naming the author and the number of replies.
  */
 export const getThreadLabel = (thread: CommentThread): string => {
-  const replies = getReplyCount(thread);
+  const replies = Math.max(thread.comments.length - 1, 0);
   return `Comment thread by ${thread.author.displayName}, ${replies} ${
     replies === 1 ? 'reply' : 'replies'
   }`;

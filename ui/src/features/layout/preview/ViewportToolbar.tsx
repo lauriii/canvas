@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ZoomControl from '@/components/zoom/ZoomControl';
 import {
   selectCommentModeActive,
-  toggleCommentMode,
+  setCommentMode,
 } from '@/features/comments/commentsSlice';
 import useCommentSurface from '@/features/comments/useCommentSurface';
 import ViewportSelector from '@/features/layout/preview/ViewportSelector';
@@ -58,14 +58,11 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   const { hasSurface: hasCommentSurface } = useCommentSurface();
   const canComment = hasPermission('createComments') && hasCommentSurface;
 
-  // `c` is the same shortcut Figma uses for this, and `useHotkeys` already
-  // ignores key presses that land in a form field.
-  useHotkeys(
-    'c',
-    () => dispatch(toggleCommentMode()),
-    { enabled: canComment },
-    [dispatch],
-  );
+  const toggleCommentMode = () => dispatch(setCommentMode(!commentModeActive));
+  useHotkeys('c', toggleCommentMode, { enabled: canComment }, [
+    dispatch,
+    commentModeActive,
+  ]);
 
   const handleScaleToFit = () => {
     if (editorPaneRef.current) {
@@ -135,7 +132,7 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
         >
           <Button
             size="1"
-            onClick={() => dispatch(toggleCommentMode())}
+            onClick={toggleCommentMode}
             color={commentModeActive ? undefined : 'gray'}
             variant={commentModeActive ? 'solid' : 'surface'}
             highContrast

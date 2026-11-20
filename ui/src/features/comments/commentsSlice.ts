@@ -10,9 +10,8 @@ export interface CommentsState {
   /**
    * True while the comments tab of the contextual panel is the active one.
    *
-   * The contextual panel keeps its own tab in local state, but the on-canvas
-   * pin layer has to know whether comments are on screen, so this one tab is
-   * lifted into the store rather than drilled through the layout.
+   * The contextual panel keeps its other tabs in local state. This one is in
+   * the store because the on-canvas pin layer reads it too.
    */
   panelOpen: boolean;
   /** The thread whose replies are expanded, or `null` when none is. */
@@ -27,12 +26,9 @@ export const initialState: CommentsState = {
   filter: 'open',
 };
 
-// The `comments/` action-type prefix is what keeps comments out of the undo
-// timeline: `undoRedoActionIdMiddleware` in `@/app/store` only pushes an undo
-// entry for actions prefixed `layoutModel/` or `pageData/`. This slice is
-// therefore also registered OUTSIDE the `undoable()` wrappers in
-// `combineSlices`. Renaming this slice into one of those prefixes would make
-// undo able to destroy comments.
+// The `comments/` action-type prefix keeps comments out of the undo timeline:
+// `undoRedoActionIdMiddleware` in `@/app/store` only pushes an undo entry for
+// actions prefixed `layoutModel/` or `pageData/`.
 // @see ui/src/features/comments/commentsSlice.test.ts
 export const commentsSlice = createAppSlice({
   name: 'comments',
@@ -40,12 +36,8 @@ export const commentsSlice = createAppSlice({
   reducers: (create) => ({
     setCommentMode: create.reducer((state, action: PayloadAction<boolean>) => {
       state.commentModeActive = action.payload;
-    }),
-    toggleCommentMode: create.reducer((state) => {
-      state.commentModeActive = !state.commentModeActive;
-      // Turning comment mode on opens the panel, so the thread the next click
-      // creates is visible in the list it lands in.
-      if (state.commentModeActive) {
+      // The thread the next click creates is listed in the panel.
+      if (action.payload) {
         state.panelOpen = true;
       }
     }),
@@ -58,12 +50,11 @@ export const commentsSlice = createAppSlice({
         }
       },
     ),
-    setActiveThread: create.reducer((state, action: PayloadAction<string>) => {
-      state.activeThreadId = action.payload;
-    }),
-    clearActiveThread: create.reducer((state) => {
-      state.activeThreadId = null;
-    }),
+    setActiveThread: create.reducer(
+      (state, action: PayloadAction<string | null>) => {
+        state.activeThreadId = action.payload;
+      },
+    ),
     setCommentFilter: create.reducer(
       (state, action: PayloadAction<CommentFilter>) => {
         state.filter = action.payload;
@@ -78,17 +69,13 @@ export const commentsSlice = createAppSlice({
   },
 });
 
-// Action creators are generated for each case reducer function.
 export const {
   setCommentMode,
-  toggleCommentMode,
   setCommentsPanelOpen,
   setActiveThread,
-  clearActiveThread,
   setCommentFilter,
 } = commentsSlice.actions;
 
-// Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
   selectCommentModeActive,
   selectCommentsPanelOpen,

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import clsx from 'clsx';
 import { Box, Button, Flex, SegmentedControl, Text } from '@radix-ui/themes';
 
@@ -6,8 +5,8 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Avatar from '@/components/Avatar';
 import { getAvatarInitialColor } from '@/components/review/utils';
 import CommentBody from '@/features/comments/CommentBody';
+import CommentComposer from '@/features/comments/CommentComposer';
 import {
-  clearActiveThread,
   selectActiveThreadId,
   selectCommentFilter,
   setActiveThread,
@@ -17,8 +16,6 @@ import {
   filterThreads,
   getThreadLabel,
 } from '@/features/comments/commentThreadUtils';
-import MentionTextArea from '@/features/comments/MentionTextArea';
-import { toMentions, toStoredBody } from '@/features/comments/mentionUtils';
 import useCommentSurface from '@/features/comments/useCommentSurface';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
@@ -36,7 +33,7 @@ import {
 import { hasPermission } from '@/utils/permissions';
 
 import type { CommentFilter } from '@/features/comments/commentsSlice';
-import type { CommentThread, GetCommentsArgs } from '@/services/comments';
+import type { CommentThread } from '@/services/comments';
 
 import styles from './CommentsPanel.module.css';
 
@@ -48,56 +45,24 @@ interface ThreadProps {
   thread: CommentThread;
   isActive: boolean;
   onSelect: (thread: CommentThread) => void;
-  listArgs: GetCommentsArgs;
 }
 
-const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
-  const [replyBody, setReplyBody] = useState('');
-  const [replyMentions, setReplyMentions] = useState<Record<string, number>>(
-    {},
-  );
-  const [replyError, setReplyError] = useState(false);
+const Thread = ({ thread, isActive, onSelect }: ThreadProps) => {
   const [replyToThread, { isLoading: isReplying }] = useReplyToThreadMutation();
   const [setThreadResolved, { isLoading: isResolving }] =
     useSetThreadResolvedMutation();
   const [openingComment, ...replies] = thread.comments;
   const replyCount = replies.length;
   const canWrite = hasPermission('createComments');
-  // Shown ahead of the server, so there is no thread to reply to or resolve
-  // yet.
+  // A pending thread cannot be replied to or resolved yet.
   const pending = isPending(thread);
-  // Which component the thread is about, by the name it has in Layers. Empty
-  // when the component is no longer in the layout.
+  // Empty when the component is no longer in the layout.
   const layout = useAppSelector(selectLayout);
   const componentName = useGetComponentName(
     thread.componentUuid
       ? findComponentByUuid(layout, thread.componentUuid)
       : null,
   );
-
-  const submitReply = async () => {
-    const body = replyBody.trim();
-    // Enter submits too, and a held or repeated Enter must not post twice.
-    if (!body || isReplying || pending) {
-      return;
-    }
-    // The reply joins the thread at once, so the field is emptied at once too.
-    setReplyError(false);
-    setReplyBody('');
-    setReplyMentions({});
-    try {
-      await replyToThread({
-        threadId: thread.id,
-        body: toStoredBody(body, replyMentions),
-        mentions: toMentions(replyMentions),
-      }).unwrap();
-    } catch {
-      // The composed text is deliberately kept so it is not lost.
-      setReplyBody(body);
-      setReplyMentions(replyMentions);
-      setReplyError(true);
-    }
-  };
 
   return (
     <Box
@@ -122,7 +87,6 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
           <Flex gap="2" align="start">
             <Avatar
               name={thread.author.displayName}
-              imageUrl={thread.author.avatar ?? undefined}
               color={getAvatarInitialColor(thread.author.uid)}
             />
             <Flex direction="column" gap="1" className={styles.threadText}>
@@ -137,9 +101,7 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
               <CommentBody
                 body={openingComment?.body ?? ''}
                 mentions={openingComment?.mentions ?? []}
-                // Collapsed, the opening comment is a preview: a very long
-                // body would otherwise push every following thread thousands
-                // of pixels down the panel. Expanding shows all of it.
+                // Collapsed, a long opening comment is cut to a preview.
                 clamped={!isActive}
                 testId="canvas-comment-opening-body"
               />
@@ -167,7 +129,6 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
               >
                 <Avatar
                   name={comment.author.displayName}
-                  imageUrl={comment.author.avatar ?? undefined}
                   color={getAvatarInitialColor(comment.author.uid)}
                 />
                 <Flex direction="column" gap="1" className={styles.threadText}>
@@ -187,61 +148,46 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
               </Flex>
             ))}
 
-            {/* Replying and resolving both write, so both need the create
-                permission. A viewer without it reads the thread instead of
-                being offered buttons that can only fail. */}
+            {/* Replying and resolving both write. */}
             {canWrite && (
-              <>
-                <MentionTextArea
-                  value={replyBody}
-                  onChange={setReplyBody}
-                  onMentionPicked={(displayName, uid) =>
-                    setReplyMentions((current) => ({
-                      ...current,
-                      [displayName]: uid,
-                    }))
-                  }
-                  placeholder="Reply…"
-                  ariaLabel="Reply to this comment thread"
-                  testId="canvas-comment-reply-input"
-                  onSubmit={submitReply}
-                />
-                {replyError && (
-                  <Text
-                    size="1"
-                    color="red"
-                    data-testid="canvas-comment-reply-error"
-                  >
-                    Your reply could not be posted.
-                  </Text>
+              <CommentComposer
+                placeholder="Reply…"
+                ariaLabel="Reply to this comment thread"
+                testId="canvas-comment-reply-input"
+                errorMessage="Your reply could not be posted."
+                errorTestId="canvas-comment-reply-error"
+                disabled={isReplying || pending}
+                post={(comment) =>
+                  replyToThread({ threadId: thread.id, ...comment }).unwrap()
+                }
+              >
+                {(submit) => (
+                  <Flex gap="2" mt="2">
+                    <Button
+                      size="1"
+                      data-testid="canvas-comment-reply-submit"
+                      {...submit}
+                    >
+                      Reply
+                    </Button>
+                    <Button
+                      size="1"
+                      variant="soft"
+                      color="gray"
+                      disabled={isResolving || pending}
+                      data-testid="canvas-comment-resolve"
+                      onClick={() =>
+                        setThreadResolved({
+                          threadId: thread.id,
+                          resolved: !thread.resolved,
+                        })
+                      }
+                    >
+                      {thread.resolved ? 'Reopen' : 'Resolve'}
+                    </Button>
+                  </Flex>
                 )}
-                <Flex gap="2" mt="2">
-                  <Button
-                    size="1"
-                    disabled={isReplying || pending || !replyBody.trim()}
-                    data-testid="canvas-comment-reply-submit"
-                    onClick={submitReply}
-                  >
-                    Reply
-                  </Button>
-                  <Button
-                    size="1"
-                    variant="soft"
-                    color="gray"
-                    disabled={isResolving || pending}
-                    data-testid="canvas-comment-resolve"
-                    onClick={() =>
-                      setThreadResolved({
-                        threadId: thread.id,
-                        resolved: !thread.resolved,
-                        listArgs,
-                      })
-                    }
-                  >
-                    {thread.resolved ? 'Reopen' : 'Resolve'}
-                  </Button>
-                </Flex>
-              </>
+              </CommentComposer>
             )}
           </Box>
         )}
@@ -251,11 +197,8 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
 };
 
 /**
- * The comments sidebar.
- *
- * This panel is the primary commenting surface: everything that can be done
- * with an on-canvas pin can also be done here, with the keyboard, including
- * reading, replying to, resolving and reopening threads that have no pin.
+ * The comments sidebar: lists the threads of the surface, including the ones
+ * with no pin on the canvas, and starts, replies to and resolves them.
  */
 export const CommentsPanel = () => {
   const dispatch = useAppDispatch();
@@ -264,11 +207,6 @@ export const CommentsPanel = () => {
   const selectedComponentUuid = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent } = useComponentSelection();
   const { surfaceType, surfaceId, hasSurface } = useCommentSurface();
-  const [newThreadBody, setNewThreadBody] = useState('');
-  const [newThreadMentions, setNewThreadMentions] = useState<
-    Record<string, number>
-  >({});
-  const [createError, setCreateError] = useState(false);
   const [createThread, { isLoading: isCreating }] = useCreateThreadMutation();
   const canWrite = hasPermission('createComments');
   const layout = useAppSelector(selectLayout);
@@ -278,51 +216,17 @@ export const CommentsPanel = () => {
       : null,
   );
 
-  const listArgs = {
-    surfaceType,
-    surfaceId,
-    includeResolved: filter === 'resolved',
-  };
-  const { data, isLoading, isError } = useGetCommentsQuery(listArgs, {
-    skip: !hasSurface,
-  });
-
+  const { data, isLoading, isError } = useGetCommentsQuery(
+    { surfaceType, surfaceId },
+    { skip: !hasSurface },
+  );
   const threads = data ? filterThreads(data.threads, filter) : [];
 
   const handleSelect = (thread: CommentThread) => {
-    if (thread.id === activeThreadId) {
-      dispatch(clearActiveThread());
-      return;
-    }
-    dispatch(setActiveThread(thread.id));
-    if (thread.componentUuid) {
+    const collapsing = thread.id === activeThreadId;
+    dispatch(setActiveThread(collapsing ? null : thread.id));
+    if (!collapsing && thread.componentUuid) {
       setSelectedComponent(thread.componentUuid);
-    }
-  };
-
-  const submitNewThread = async () => {
-    const body = newThreadBody.trim();
-    // Enter submits too, and a held or repeated Enter must not post twice.
-    if (!body || isCreating) {
-      return;
-    }
-    // The thread is listed at once, so the field is emptied at once too.
-    setCreateError(false);
-    setNewThreadBody('');
-    setNewThreadMentions({});
-    try {
-      await createThread({
-        surfaceType,
-        surfaceId,
-        componentUuid: selectedComponentUuid ?? null,
-        body: toStoredBody(body, newThreadMentions),
-        mentions: toMentions(newThreadMentions),
-      }).unwrap();
-    } catch {
-      // The composed text is deliberately kept so it is not lost.
-      setNewThreadBody(body);
-      setNewThreadMentions(newThreadMentions);
-      setCreateError(true);
     }
   };
 
@@ -352,48 +256,43 @@ export const CommentsPanel = () => {
         </SegmentedControl.Item>
       </SegmentedControl.Root>
 
-      {/* Starting a thread writes, so it needs the create permission. Without
-          it the panel is read-only rather than offering a composer whose
-          submit can only ever be rejected by the API. */}
       {canWrite && (
         <Box className={styles.composer}>
-          <MentionTextArea
-            value={newThreadBody}
-            onChange={setNewThreadBody}
-            onMentionPicked={(displayName, uid) =>
-              setNewThreadMentions((current) => ({
-                ...current,
-                [displayName]: uid,
-              }))
-            }
+          <CommentComposer
             placeholder="Add a comment…"
             ariaLabel="Add a comment"
             testId="canvas-comment-composer"
-            onSubmit={submitNewThread}
-          />
-          {createError && (
-            <Text size="1" color="red" data-testid="canvas-comment-error">
-              Your comment could not be posted.
-            </Text>
-          )}
-          <Flex align="center" justify="between" gap="2" mt="2">
-            <Text size="1" color="gray" data-testid="canvas-comment-target">
-              {selectedComponentUuid
-                ? `Will be attached to ${selectedComponentName || 'the selected component'}.`
-                : 'Will be attached to this page.'}
-            </Text>
-            <Button
-              size="1"
-              disabled={!hasSurface || isCreating || !newThreadBody.trim()}
-              data-testid="canvas-comment-submit"
-              onClick={submitNewThread}
-            >
-              Comment
-            </Button>
-          </Flex>
+            errorMessage="Your comment could not be posted."
+            errorTestId="canvas-comment-error"
+            disabled={!hasSurface || isCreating}
+            post={(comment) =>
+              createThread({
+                surfaceType,
+                surfaceId,
+                componentUuid: selectedComponentUuid ?? null,
+                ...comment,
+              }).unwrap()
+            }
+          >
+            {(submit) => (
+              <Flex align="center" justify="between" gap="2" mt="2">
+                <Text size="1" color="gray" data-testid="canvas-comment-target">
+                  {selectedComponentUuid
+                    ? `Will be attached to ${selectedComponentName || 'the selected component'}.`
+                    : 'Will be attached to this page.'}
+                </Text>
+                <Button
+                  size="1"
+                  data-testid="canvas-comment-submit"
+                  {...submit}
+                >
+                  Comment
+                </Button>
+              </Flex>
+            )}
+          </CommentComposer>
         </Box>
       )}
-
       {isLoading && (
         <Text size="1" color="gray" data-testid="canvas-comments-loading">
           Loading comments…
@@ -419,7 +318,6 @@ export const CommentsPanel = () => {
               thread={thread}
               isActive={thread.id === activeThreadId}
               onSelect={handleSelect}
-              listArgs={listArgs}
             />
           ))}
         </ul>

@@ -6,10 +6,8 @@ import type { CommentMention } from '@/services/comments';
 const MENTION_TOKEN = /@\[user:(\d+)\]/g;
 
 /**
- * What the user is currently typing after an `@`, if anything.
- *
- * Only the text before the caret matters, and only when the `@` starts a word:
- * an email address in the middle of a sentence must not open the autocomplete.
+ * What the user is currently typing after an `@` that starts a word, if
+ * anything.
  *
  * @param text - The whole field value.
  * @param caret - The caret position within it.
@@ -20,8 +18,7 @@ export const getMentionQuery = (
   caret: number,
 ): { query: string; start: number } | null => {
   const before = text.slice(0, caret);
-  // Letters and digits of any script: `\w` is ASCII-only, and would close the
-  // list at the first accented or non-Latin character of a name.
+  // Letters and digits of any script; `\w` is ASCII-only.
   const match = before.match(/(^|\s)@([\p{L}\p{M}\p{N}_.-]*)$/u);
   if (!match) {
     return null;
@@ -58,12 +55,8 @@ export const applyMention = (
 /**
  * Converts the names the user sees into the tokens that get stored.
  *
- * Typing is done against display names, because `@[user:123]` in a textarea is
- * unreadable. Only names the user actually picked are converted, so writing
- * "@ Monday" by hand never silently becomes a mention.
- *
- * Longer names are substituted first: without that, a user called "sam" would
- * consume the start of a mention of "samantha".
+ * Only names the user picked are converted. Longer names are substituted
+ * first, so "sam" does not consume the start of "samantha".
  *
  * @param text - What the user typed.
  * @param picked - Display name to user ID, for the mentions they chose.
@@ -77,9 +70,8 @@ export const toStoredBody = (
   return names.reduce((body, name) => {
     // The name is user data, so it is escaped before becoming a pattern.
     const escaped = escapeRegExp(name);
-    // The name must not run on into more of a word. This is a lookahead rather
-    // than `\b`, which is ASCII-only and so never matches after a name ending
-    // in an accented letter, a non-Latin letter or punctuation.
+    // The name must not run on into more of a word. `\b` is ASCII-only, so
+    // this is a lookahead.
     return body.replace(
       new RegExp(`@${escaped}(?![\\p{L}\\p{M}\\p{N}_])`, 'gu'),
       `@[user:${picked[name]}]`,

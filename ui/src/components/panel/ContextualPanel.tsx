@@ -154,16 +154,13 @@ const ContextualPanel: React.FC = () => {
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
   const [hidePanel, setHidePanel] = useState(false);
-  // The tab is only offered where comments can exist: the comment API accepts
-  // a subset of the surfaces this panel is shown for.
+  // The tab is only offered on a surface the comment API accepts.
   const { hasSurface: hasCommentSurface } = useCommentSurface();
   const canViewComments = hasPermission('viewComments') && hasCommentSurface;
   const commentsOpen =
     useAppSelector(selectCommentsPanelOpen) && canViewComments;
-  // Comments is a place you stay, not a reaction to the selection, so while it
-  // is open it wins over the selection-driven tab below. Selecting a component
-  // is the normal first step of commenting on one, and it used to throw you
-  // straight back to Settings.
+  // While open, Comments wins over the selection-driven tab, so selecting a
+  // component to comment on does not switch away from it.
   const currentTab = commentsOpen ? 'comments' : activePanel;
 
   useEffect(() => {
@@ -182,8 +179,7 @@ const ContextualPanel: React.FC = () => {
     }
   }, [dispatch, selectedComponent, isMultiSelect]);
 
-  // Losing the permission mid-session, or navigating to a surface that cannot
-  // be commented on, must not strand the panel on a tab that no longer renders.
+  // The panel must not stay on a tab that is no longer rendered.
   useEffect(() => {
     if (!canViewComments) {
       dispatch(setCommentsPanelOpen(false));
@@ -383,9 +379,8 @@ const ContextualPanel: React.FC = () => {
                   <Tabs.Content
                     value={'pageData'}
                     forceMount={true}
-                    // This tab is force-mounted, so it has to be hidden
-                    // against the tab actually on screen, not against the
-                    // selection-driven one underneath it.
+                    // This tab is force-mounted, so it is hidden against
+                    // the tab on screen.
                     hidden={currentTab !== 'pageData'}
                   >
                     {editorFrameContext === 'entity' && (

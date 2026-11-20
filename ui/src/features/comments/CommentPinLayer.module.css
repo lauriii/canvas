@@ -8,8 +8,7 @@
 }
 
 /* In comment mode the layer takes the clicks the canvas would otherwise use
-   to select components, so one click places a comment instead of changing the
-   selection underneath it. */
+   to select components. */
 .placing {
   /* The pointer is drawn as a pin instead; see `.pointerPin`. */
   cursor: none;
@@ -45,22 +44,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* A pin is a button once placed and a span before that, and the two do not
-     size their boxes alike by default. */
+  /* A pin is a button or a span, which size their boxes differently. */
   box-sizing: content-box;
-  /* One letter, so a fixed square rather than a pill that grew with a count. */
   width: var(--space-5);
   height: var(--space-5);
   cursor: pointer;
-  /* The square bottom-left corner below is the bubble's tail, so that corner
-     is what has to land on the anchor. Centering the bubble on the anchor
-     instead left the tail pointing at nothing, half a pin up and to the
-     left of the component it belongs to. */
+  /* The square bottom-left corner is the bubble's tail, and lands on the
+     anchor. */
   transform: translate(0, -100%);
   pointer-events: all;
-  /* The colors of an avatar in the review changes panel, so a person looks
-     the same in both. The accent is the author's, set per pin. The fill is
-     the opaque step: a pin sits on page content, not on a panel. */
+  /* The colors of an avatar in the review changes panel. The accent is the
+     author's, set per pin. */
   color: var(--accent-11);
   border: 1px solid var(--accent-11);
   border-radius: var(--radius-6) var(--radius-6) var(--radius-6) 0;
@@ -82,8 +76,7 @@
   background: var(--gray-4);
 }
 
-/* The pin that stands in for the cursor while a comment is being placed. It
-   is the same element a placed pin is, so the two cannot drift apart. */
+/* The pin that stands in for the cursor while a comment is being placed. */
 .pointerPin {
   top: var(--pointer-y);
   left: var(--pointer-x);

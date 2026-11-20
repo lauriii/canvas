@@ -1,11 +1,8 @@
 /**
  * How far something must move to sit inside its container, and on screen.
  *
- * The on-canvas composer is anchored at the point that was clicked, so near an
- * edge it can hang outside the preview and end up behind the contextual panel,
- * which takes its submit button out of reach. Horizontal overflow is corrected
- * against the container; vertically it is allowed to sit above the preview,
- * over the canvas surround, and only has to stay on screen.
+ * Horizontal overflow is corrected against the container. Vertically it only
+ * has to stay on screen.
  *
  * @param rect - Where the element currently is.
  * @param bounds - The container it must stay within horizontally.

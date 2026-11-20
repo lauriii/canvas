@@ -192,8 +192,7 @@ const rootReducer = combineSlices(
   queryErrorSlice,
   personalizationSlice,
   commentsApi,
-  // Registered OUTSIDE the `undoable()` wrappers above on purpose: comments
-  // must never take part in undo/redo.
+  // Outside the `undoable()` wrappers above: comments are not undoable.
   // @see ui/src/features/comments/commentsSlice.ts
   commentsSlice,
 );

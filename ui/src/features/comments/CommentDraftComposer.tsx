@@ -1,10 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Button, Flex, Text } from '@radix-ui/themes';
+import { Button, Flex } from '@radix-ui/themes';
 
 import { clampIntoBounds } from '@/features/comments/clampIntoBounds';
-import MentionTextArea from '@/features/comments/MentionTextArea';
-import { toMentions, toStoredBody } from '@/features/comments/mentionUtils';
+import CommentComposer from '@/features/comments/CommentComposer';
 import { useCreateThreadMutation } from '@/services/comments';
+
+import type { TypedComment } from '@/features/comments/CommentComposer';
 
 import styles from './CommentPinLayer.module.css';
 
@@ -18,7 +19,7 @@ export interface CommentDraft {
   top: number;
   left: number;
   /** What was typed, when this is a comment the server refused. */
-  failed?: { body: string; mentions: Record<string, number> };
+  failed?: TypedComment;
 }
 
 interface CommentDraftComposerProps {
@@ -33,9 +34,6 @@ interface CommentDraftComposerProps {
 
 /**
  * The composer that opens where the user clicked, in comment mode.
- *
- * It is deliberately tiny: one field, Enter to post, Escape to abandon. The
- * comments panel remains the full surface for reading, replying and resolving.
  */
 const CommentDraftComposer = ({
   draft,
@@ -47,13 +45,8 @@ const CommentDraftComposer = ({
 }: CommentDraftComposerProps) => {
   const composerRef = useRef<HTMLDivElement>(null);
   const [nudge, setNudge] = useState({ x: 0, y: 0 });
-  const [body, setBody] = useState(draft.failed?.body ?? '');
-  const [mentions, setMentions] = useState<Record<string, number>>(
-    draft.failed?.mentions ?? {},
-  );
 
-  // Being a few pixels off the exact point is worth far less than being
-  // usable, so a composer that would hang outside the preview is pulled back.
+  // A composer that would hang outside the preview is pulled back in.
   useLayoutEffect(() => {
     const element = composerRef.current;
     const bounds = element?.offsetParent?.getBoundingClientRect();
@@ -61,9 +54,8 @@ const CommentDraftComposer = ({
       return;
     }
     const rect = element.getBoundingClientRect();
-    // The measured box still carries the nudge of the previous anchor, so that
-    // is taken back out first. Clamping the already-nudged box would report
-    // that nothing needs correcting and drop a nudge this anchor still needs.
+    // The measured box carries the nudge already applied, so that is taken
+    // back out before clamping.
     setNudge((applied) =>
       clampIntoBounds(
         {
@@ -77,30 +69,6 @@ const CommentDraftComposer = ({
   }, [draft]);
   const [createThread] = useCreateThreadMutation();
 
-  const submit = () => {
-    const trimmed = body.trim();
-    if (!trimmed) {
-      return;
-    }
-    // The thread is pinned and listed the moment it is posted, so the composer
-    // has done its job and closes without waiting for the server. Closing also
-    // unmounts it, which is what keeps a held or repeated Enter from posting
-    // twice.
-    createThread({
-      surfaceType,
-      surfaceId,
-      componentUuid: draft.componentUuid,
-      offsetX: draft.offsetX,
-      offsetY: draft.offsetY,
-      body: toStoredBody(trimmed, mentions),
-      mentions: toMentions(mentions),
-    })
-      .unwrap()
-      // The typed text is deliberately kept so it is not lost.
-      .catch(() => onFailed({ ...draft, failed: { body: trimmed, mentions } }));
-    onPosted();
-  };
-
   return (
     <div
       ref={composerRef}
@@ -110,8 +78,7 @@ const CommentDraftComposer = ({
         left: `${draft.left + nudge.x}px`,
       }}
       data-testid="canvas-comment-draft-composer"
-      // The layer above treats a click on the canvas as "place a pin here",
-      // and this composer sits on that layer.
+      // The layer this sits on treats a click as "place a pin here".
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -120,44 +87,51 @@ const CommentDraftComposer = ({
         }
       }}
     >
-      <MentionTextArea
-        value={body}
-        onChange={setBody}
-        onMentionPicked={(displayName, uid) =>
-          setMentions((current) => ({ ...current, [displayName]: uid }))
-        }
+      <CommentComposer
         placeholder="Add a comment…"
         ariaLabel="Add a comment"
         testId="canvas-comment-draft-input"
-        // The click that opened this composer is the user asking to type, so
-        // take the caret rather than making them click a second time.
+        errorMessage="Your comment could not be posted."
+        errorTestId="canvas-comment-draft-error"
         autoFocus
-        onSubmit={submit}
-      />
-      {draft.failed && (
-        <Text size="1" color="red" data-testid="canvas-comment-draft-error">
-          Your comment could not be posted.
-        </Text>
-      )}
-      <Flex gap="2" mt="2" justify="end">
-        <Button
-          size="1"
-          variant="soft"
-          color="gray"
-          onClick={onCancel}
-          data-testid="canvas-comment-draft-cancel"
-        >
-          Cancel
-        </Button>
-        <Button
-          size="1"
-          disabled={!body.trim()}
-          onClick={submit}
-          data-testid="canvas-comment-draft-submit"
-        >
-          Comment
-        </Button>
-      </Flex>
+        failed={draft.failed}
+        post={(comment, typed) => {
+          const posting = createThread({
+            surfaceType,
+            surfaceId,
+            componentUuid: draft.componentUuid,
+            offsetX: draft.offsetX,
+            offsetY: draft.offsetY,
+            ...comment,
+          }).unwrap();
+          posting.catch(() => onFailed({ ...draft, failed: typed }));
+          // The thread is pinned at once, so the composer closes without
+          // waiting for the server.
+          onPosted();
+          return posting;
+        }}
+      >
+        {(submit) => (
+          <Flex gap="2" mt="2" justify="end">
+            <Button
+              size="1"
+              variant="soft"
+              color="gray"
+              onClick={onCancel}
+              data-testid="canvas-comment-draft-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="1"
+              data-testid="canvas-comment-draft-submit"
+              {...submit}
+            >
+              Comment
+            </Button>
+          </Flex>
+        )}
+      </CommentComposer>
     </div>
   );
 };

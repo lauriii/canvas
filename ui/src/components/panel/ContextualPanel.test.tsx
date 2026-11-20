@@ -24,30 +24,18 @@ vi.mock('@/features/comments/CommentsPanel', () => ({
   default: () => <div data-testid="canvas-comments-panel">Comments panel</div>,
 }));
 
-const stubCommentsFetch = (threadCount: number) => {
+const stubCommentsFetch = (openThreads: number) => {
+  const threads = [
+    { id: 'resolved', resolved: true, comments: [] },
+    ...Array.from({ length: openThreads }, (_unused, index) => ({
+      id: String(index),
+      resolved: false,
+      comments: [],
+    })),
+  ];
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          threads: Array.from({ length: threadCount }, (_unused, index) => ({
-            id: String(index + 1),
-            uuid: `thread-${index + 1}`,
-            surfaceType: 'canvas_page',
-            surfaceId: '1',
-            componentUuid: null,
-            offsetX: null,
-            offsetY: null,
-            resolved: false,
-            created: 1_777_000_000,
-            changed: 1_777_000_000,
-            author: { uid: 2, displayName: 'Alice', avatar: null },
-            comments: [],
-          })),
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    }),
+    vi.fn(async () => Response.json({ threads })),
   );
 };
 
@@ -114,8 +102,7 @@ describe('ContextualPanel', () => {
   });
 
   it('hides the comments tab on a surface that cannot be commented on', () => {
-    // The comment API only accepts a `canvas_page`. Offering the tab for any
-    // other entity could only ever show a request that was refused.
+    // The comment API only accepts a `canvas_page`.
     renderPanel(setUpStore(), '/editor/node/1');
 
     expect(
@@ -124,9 +111,6 @@ describe('ContextualPanel', () => {
   });
 
   it('keeps comments on screen when a component is selected', async () => {
-    // Selecting a component is the first step of commenting on one, and it
-    // used to switch the panel straight to Settings, taking the thread the
-    // user was reading with it.
     const store = setUpStore();
     store.dispatch(setCommentsPanelOpen(true));
     renderPanel(store);
@@ -153,9 +137,8 @@ describe('ContextualPanel', () => {
       screen.queryByTestId('canvas-comments-panel'),
     ).not.toBeInTheDocument();
   });
+
   it('counts the open threads on the tab that opens them', async () => {
-    // With no button in the left rail any more, this count is the only thing
-    // that says a page carries a conversation before you go looking.
     stubCommentsFetch(3);
     renderPanel();
 

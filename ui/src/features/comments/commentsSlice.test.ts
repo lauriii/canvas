@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { makeStore } from '@/app/store';
 import {
-  clearActiveThread,
   commentsSlice,
   initialState,
   selectActiveThreadId,
@@ -11,7 +10,6 @@ import {
   setActiveThread,
   setCommentFilter,
   setCommentMode,
-  toggleCommentMode,
 } from '@/features/comments/commentsSlice';
 import { setPageData } from '@/features/pageData/pageDataSlice';
 
@@ -25,26 +23,18 @@ describe('commentsSlice', () => {
     });
   });
 
-  it('setCommentMode sets comment mode explicitly', () => {
+  it('setCommentMode opens the panel with it, and leaves it open after', () => {
     const on = commentsSlice.reducer(initialState, setCommentMode(true));
-    expect(on.commentModeActive).toBe(true);
+    expect(on).toMatchObject({ commentModeActive: true, panelOpen: true });
     const off = commentsSlice.reducer(on, setCommentMode(false));
-    expect(off.commentModeActive).toBe(false);
+    expect(off).toMatchObject({ commentModeActive: false, panelOpen: true });
   });
 
-  it('toggleCommentMode flips comment mode', () => {
-    const on = commentsSlice.reducer(initialState, toggleCommentMode());
-    expect(on.commentModeActive).toBe(true);
-    expect(
-      commentsSlice.reducer(on, toggleCommentMode()).commentModeActive,
-    ).toBe(false);
-  });
-
-  it('setActiveThread and clearActiveThread manage the active thread', () => {
+  it('setActiveThread sets and clears the active thread', () => {
     const active = commentsSlice.reducer(initialState, setActiveThread('7'));
     expect(active.activeThreadId).toBe('7');
     expect(
-      commentsSlice.reducer(active, clearActiveThread()).activeThreadId,
+      commentsSlice.reducer(active, setActiveThread(null)).activeThreadId,
     ).toBeNull();
   });
 
@@ -84,9 +74,7 @@ describe('comments are outside the undo timeline', () => {
   it('every comments action type uses the "comments/" prefix', () => {
     const actionTypes = [
       setCommentMode(true),
-      toggleCommentMode(),
       setActiveThread('1'),
-      clearActiveThread(),
       setCommentFilter('resolved'),
     ].map((action) => action.type);
     actionTypes.forEach((type) => {
@@ -99,10 +87,9 @@ describe('comments are outside the undo timeline', () => {
     const before = store.getState().ui.undoStack.length;
 
     store.dispatch(setCommentMode(true));
-    store.dispatch(toggleCommentMode());
     store.dispatch(setActiveThread('9'));
     store.dispatch(setCommentFilter('resolved'));
-    store.dispatch(clearActiveThread());
+    store.dispatch(setActiveThread(null));
 
     expect(store.getState().ui.undoStack.length).toBe(before);
     // The state did change, so the assertion above is not vacuous.

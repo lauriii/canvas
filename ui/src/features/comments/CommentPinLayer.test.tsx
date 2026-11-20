@@ -52,7 +52,6 @@ vi.mock('@/utils/permissions', () => ({
 const threads: CommentThread[] = [
   {
     id: '1',
-    uuid: 'thread-1',
     surfaceType: 'canvas_page',
     surfaceId: '1',
     componentUuid: 'uuid-anchored',
@@ -60,38 +59,33 @@ const threads: CommentThread[] = [
     offsetY: null,
     resolved: false,
     created: 1_777_000_000,
-    changed: 1_777_000_000,
-    author: { uid: 2, displayName: 'Alice', avatar: null },
+    author: { uid: 2, displayName: 'Alice' },
     comments: [
       {
         id: 'c1',
         body: 'Opening comment',
         created: 1_777_000_000,
-        changed: 1_777_000_000,
-        author: { uid: 2, displayName: 'Alice', avatar: null },
+        author: { uid: 2, displayName: 'Alice' },
         mentions: [],
       },
       {
         id: 'c2',
         body: 'A reply',
         created: 1_777_000_100,
-        changed: 1_777_000_100,
-        author: { uid: 3, displayName: 'Bob', avatar: null },
+        author: { uid: 3, displayName: 'Bob' },
         mentions: [],
       },
       {
         id: 'c3',
         body: 'Another reply',
         created: 1_777_000_200,
-        changed: 1_777_000_200,
-        author: { uid: 3, displayName: 'Bob', avatar: null },
+        author: { uid: 3, displayName: 'Bob' },
         mentions: [],
       },
     ],
   },
   {
     id: '2',
-    uuid: 'thread-2',
     surfaceType: 'canvas_page',
     surfaceId: '1',
     // Anchored to a component that the preview has not measured.
@@ -100,22 +94,19 @@ const threads: CommentThread[] = [
     offsetY: null,
     resolved: false,
     created: 1_777_000_300,
-    changed: 1_777_000_300,
-    author: { uid: 2, displayName: 'Alice', avatar: null },
+    author: { uid: 2, displayName: 'Alice' },
     comments: [
       {
         id: 'c4',
         body: 'Orphan',
         created: 1_777_000_300,
-        changed: 1_777_000_300,
-        author: { uid: 2, displayName: 'Alice', avatar: null },
+        author: { uid: 2, displayName: 'Alice' },
         mentions: [],
       },
     ],
   },
   {
     id: '3',
-    uuid: 'thread-3',
     surfaceType: 'canvas_page',
     surfaceId: '1',
     // Surface-level thread.
@@ -124,15 +115,13 @@ const threads: CommentThread[] = [
     offsetY: null,
     resolved: false,
     created: 1_777_000_400,
-    changed: 1_777_000_400,
-    author: { uid: 2, displayName: 'Alice', avatar: null },
+    author: { uid: 2, displayName: 'Alice' },
     comments: [
       {
         id: 'c5',
         body: 'About the page',
         created: 1_777_000_400,
-        changed: 1_777_000_400,
-        author: { uid: 2, displayName: 'Alice', avatar: null },
+        author: { uid: 2, displayName: 'Alice' },
         mentions: [],
       },
     ],
@@ -153,15 +142,9 @@ const stubFetch = () => {
       }
       if (request.method !== 'GET') {
         postedBodies.push(await request.clone().json());
-        return new Response(JSON.stringify({ thread: threads[0] }), {
-          status: 201,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json({ thread: threads[0] }, { status: 201 });
       }
-      return new Response(JSON.stringify({ threads }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ threads });
     }),
   );
 };
