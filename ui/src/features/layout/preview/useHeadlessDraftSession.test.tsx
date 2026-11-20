@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
+import { ComponentPreviewUpdateEvent } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
+
+import { canShowLiveProps, showSavedProps } from './headlessLiveProps';
 import { useHeadlessDraftSession } from './useHeadlessDraftSession';
 
 import type { RefObject } from 'react';
@@ -12,6 +16,8 @@ const hostMocks = vi.hoisted(() => ({
   attach: vi.fn(),
   destroy: vi.fn(),
   refresh: vi.fn(),
+  canPatchProps: vi.fn(() => false),
+  patchProps: vi.fn(),
   setViewportHeight: vi.fn(),
 }));
 
@@ -90,6 +96,67 @@ describe('useHeadlessDraftSession', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('posts a typed prop, and what an auto-save resolved, to a frontend that shows them', () => {
+    const iframeRef = {
+      current: document.createElement('iframe'),
+    } as RefObject<HTMLIFrameElement>;
+    const { unmount } = renderHook(() =>
+      useHeadlessDraftSession(iframeRef, settings, 'canvas_page', '1'),
+    );
+    const typed = () => {
+      const event = new ComponentPreviewUpdateEvent('hero', 'heading', 'Typed');
+      document.dispatchEvent(event);
+      return event.getPreviewBackgroundUpdate();
+    };
+
+    // A frontend that does not show live props waits for the auto-save.
+    expect(canShowLiveProps()).toBe(false);
+    expect(typed()).toBe(false);
+    expect(hostMocks.patchProps).not.toHaveBeenCalled();
+
+    hostMocks.canPatchProps.mockReturnValue(true);
+    expect(canShowLiveProps()).toBe(true);
+    expect(typed()).toBe(true);
+    expect(hostMocks.patchProps).toHaveBeenCalledWith(
+      'hero',
+      { heading: 'Typed' },
+      previewEditCount() + 1,
+    );
+
+    // The auto-save returns what only Drupal can resolve. File URLs become
+    // absolute, as the frontend runs on another origin; links stay as is.
+    showSavedProps(
+      'hero',
+      {
+        link: '/about',
+        image: {
+          src: '/files/a.jpg?alternateWidths=/files/styles/wide/a.jpg',
+          alt: 'A',
+        },
+        gallery: [{ src: 'https://cdn.example/b.jpg' }],
+      },
+      4,
+    );
+    const origin = window.location.origin;
+    expect(hostMocks.patchProps).toHaveBeenLastCalledWith(
+      'hero',
+      {
+        link: '/about',
+        image: {
+          src: `${origin}/files/a.jpg?alternateWidths=${encodeURIComponent(origin)}/files/styles/wide/a.jpg`,
+          alt: 'A',
+        },
+        gallery: [{ src: 'https://cdn.example/b.jpg' }],
+      },
+      4,
+    );
+
+    unmount();
+    hostMocks.patchProps.mockClear();
+    showSavedProps('hero', { link: '/about' }, 5);
+    expect(hostMocks.patchProps).not.toHaveBeenCalled();
   });
 
   it('isolates read-only preview sessions by language', () => {

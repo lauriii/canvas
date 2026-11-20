@@ -21,6 +21,7 @@ import {
   selectFieldError,
   selectFormValues,
 } from '@/features/form/formStateSlice';
+import { canShowLiveProps } from '@/features/layout/preview/headlessLiveProps';
 
 import {
   createJsonSchemaValidator,
@@ -88,11 +89,14 @@ export const ComponentFormField = <P extends Record<string, any>>({
     return (newFormState: PropsValues) => {
       const elementType =
         props.attributes?.type || props.attributes?.['data-canvas-type'];
-      // Debounce isn't needed for elements that only have an on/off state.
+      // Debounce isn't needed for elements that only have an on/off state, nor
+      // for a scalar prop that a headless frontend shows as it is typed: the
+      // auto-save is debounced on its own then.
       const shouldDebounce =
-        !isScalarProp ||
-        components?.[selectedComponentType]?.source !== 'Code component' ||
-        !['checkbox', 'radio'].includes(elementType as string);
+        !(isScalarProp && canShowLiveProps()) &&
+        (!isScalarProp ||
+          components?.[selectedComponentType]?.source !== 'Code component' ||
+          !['checkbox', 'radio'].includes(elementType as string));
       if (shouldDebounce) {
         debounceFormStateToLayoutModelStore(
           newFormState,

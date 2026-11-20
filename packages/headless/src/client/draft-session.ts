@@ -37,6 +37,7 @@
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_PROPS_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
@@ -81,6 +82,17 @@ export interface DraftSessionState {
 export type DraftSessionEvent =
   | { type: 'expired' }
   | { type: 'refresh-requested' }
+  | {
+      /**
+       * Prop values the editor holds ahead of the next refresh: typed and
+       * not saved yet, or resolved by an auto-save that is not fetched yet.
+       */
+      type: 'props';
+      componentUuid: string;
+      props: Record<string, unknown>;
+      /** The editor's count of typed edits when the values were current. */
+      edit: number;
+    }
   | { type: 'renew-requested' }
   | { type: 'renew-failed' }
   | {
@@ -111,6 +123,11 @@ export interface DraftSessionOptions {
   editorOrigin: string | null;
   /** The app endpoint that redeems a fresh assertion into the session. */
   renewEndpoint?: string;
+  /**
+   * Whether the consumer renders 'props' events. Reported to the host, which
+   * sends unsaved prop values only to an app that shows them.
+   */
+  liveProps?: boolean;
   /**
    * Refreshes the consumer's server-derived data after a successful renewal
    * or when the host reports a new Canvas auto-save (Next.js:
@@ -149,6 +166,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     embedded,
     editorOrigin,
     renewEndpoint = DEFAULT_RENEW_ENDPOINT,
+    liveProps = false,
     refreshData,
     onEvent,
     hostWindow = typeof window === 'undefined' ? undefined : window.parent,
@@ -203,6 +221,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
       status: expired ? 'expired' : 'active',
       path,
       tokenExpiresAt,
+      ...(liveProps && { liveProps }),
     });
   };
 
@@ -301,6 +320,19 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
           }
           emit({ type: 'refresh-requested' });
           refreshData?.();
+          return;
+        }
+
+        if (event.data.type === HEADLESS_PROPS_MESSAGE) {
+          const { componentUuid, props, edit } = event.data;
+          if (
+            typeof componentUuid === 'string' &&
+            typeof edit === 'number' &&
+            props !== null &&
+            typeof props === 'object'
+          ) {
+            emit({ type: 'props', componentUuid, props, edit });
+          }
           return;
         }
 

@@ -62,6 +62,8 @@ vi.mock('@drupal-canvas/headless-host', () => ({
         attach: vi.fn(),
         destroy: vi.fn(),
         refresh: vi.fn(),
+        canPatchProps: () => false,
+        patchProps: vi.fn(),
         setViewportHeight,
       };
     },

@@ -6,6 +6,7 @@ import {
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
+import { showSavedProps } from '@/features/layout/preview/headlessLiveProps';
 import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import {
   setHtml,
@@ -209,6 +210,13 @@ export const previewApi = createApi({
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
         dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+        // A headless frontend shows what this auto-save resolved at once,
+        // ahead of fetching the page again.
+        showSavedProps(
+          body.componentInstanceUuid,
+          model?.[body.componentInstanceUuid]?.resolved,
+          editsAtRequest,
+        );
       },
     }),
   }),
