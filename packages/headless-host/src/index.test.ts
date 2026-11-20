@@ -13,6 +13,7 @@ import {
   HEADLESS_GEOMETRY_REQUEST_MESSAGE,
   HEADLESS_NAVIGATION_MESSAGE,
   HEADLESS_NAVIGATION_READY_MESSAGE,
+  HEADLESS_PROPS_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
@@ -855,6 +856,61 @@ describe('createHeadlessPreviewHost', () => {
     );
 
     host.destroy();
+  });
+
+  it('posts unsaved props only to an app that renders them', async () => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    const host = createHeadlessPreviewHost({
+      iframe,
+      frontendOrigin: FRONTEND_ORIGIN,
+      draftUrl: 'https://app.example/api/draft',
+      fetchAssertion: vi.fn().mockResolvedValue('signed assertion'),
+    });
+    const { hostSessionId, postMessage } = await establishActiveSession(
+      iframe,
+      host,
+    );
+    postMessage.mockClear();
+
+    // The app's status report did not say that it renders live props.
+    expect(host.canPatchProps()).toBe(false);
+    host.patchProps('hero', { heading: 'Typed' }, 1);
+    expect(postMessage).not.toHaveBeenCalled();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_STATUS_MESSAGE,
+          status: 'active',
+          path: '/page/one',
+          tokenExpiresAt: 123,
+          liveProps: true,
+          hostSessionId,
+        },
+      }),
+    );
+    postMessage.mockClear();
+
+    expect(host.canPatchProps()).toBe(true);
+    host.patchProps('hero', { heading: 'Typed' }, 2);
+    expect(postMessage.mock.calls).toEqual([
+      [
+        {
+          type: HEADLESS_PROPS_MESSAGE,
+          hostSessionId,
+          componentUuid: 'hero',
+          props: { heading: 'Typed' },
+          edit: 2,
+        },
+        FRONTEND_ORIGIN,
+      ],
+    ]);
+
+    host.destroy();
+    expect(host.canPatchProps()).toBe(false);
   });
 
   it('rejects malformed geometry snapshots', async () => {

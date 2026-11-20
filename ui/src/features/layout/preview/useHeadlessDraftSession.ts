@@ -11,6 +11,9 @@ import {
   createHeadlessPreviewHost,
 } from '@drupal-canvas/headless-host';
 
+import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
+import { mainPreviewHosts } from '@/features/layout/preview/headlessLiveProps';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import { fetchCsrfToken, forgetCsrfToken } from '@/utils/csrf';
 import { getBaseUrl } from '@/utils/drupal-globals';
 
@@ -21,6 +24,7 @@ import type {
 } from '@drupal-canvas/headless-host';
 import type { CanvasGeometry } from '@drupal-canvas/preview-geometry';
 import type { HeadlessSettings } from '@drupal-canvas/types';
+import type { ComponentPreviewUpdateEvent } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
 import type { AutoSavesHashRecord } from '@/types/AutoSaves';
 
 export interface HeadlessDraftSession {
@@ -261,6 +265,27 @@ export function useHeadlessDraftSession(
       },
     });
     hostRef.current = host;
+    // Show a scalar prop in the frontend as it is typed. The auto-save that
+    // follows replaces it with what Drupal resolves.
+    // @see showSavedProps
+    const onPropChange = (event: ComponentPreviewUpdateEvent) => {
+      if (host.canPatchProps()) {
+        // The form handler counts this edit once a listener has shown it.
+        host.patchProps(
+          event.componentUuid,
+          { [event.propName]: event.propValue },
+          previewEditCount() + 1,
+        );
+        event.setPreviewBackgroundUpdate(true);
+      }
+    };
+    if (!isComponentPreview) {
+      mainPreviewHosts.add(host);
+      document.addEventListener(
+        COMPONENT_PREVIEW_UPDATE_EVENT,
+        onPropChange as EventListener,
+      );
+    }
     if (viewportHeightRef.current !== undefined) {
       host.setViewportHeight(viewportHeightRef.current);
     }
@@ -292,6 +317,11 @@ export function useHeadlessDraftSession(
       if (hostRef.current === host) {
         hostRef.current = null;
       }
+      mainPreviewHosts.delete(host);
+      document.removeEventListener(
+        COMPONENT_PREVIEW_UPDATE_EVENT,
+        onPropChange as EventListener,
+      );
       host.destroy();
     };
   }, [

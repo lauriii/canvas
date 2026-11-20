@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { createJsonApiClient } from 'drupal-canvas';
 import {
   CanvasContextProvider,
@@ -9,6 +9,12 @@ import { convertLegacyCustomElementsFormat } from '@drupal-canvas/headless';
 import { CanvasComponentTree as JsonRenderCanvasComponentTree } from '@drupal-canvas/json-render-react';
 
 import { useJsonApiRuntimeConfig } from './jsonapi-runtime';
+import {
+  getLiveProps,
+  settleLiveProps,
+  subscribeLiveProps,
+  withLiveProps,
+} from './live-props';
 
 import type { ReactNode } from 'react';
 import type { CanvasComponentTree as CanvasComponentTreeDocument } from '@drupal-canvas/headless';
@@ -65,9 +71,21 @@ export function CanvasComponentTree({
   jsonApi,
   preview = false,
 }: CanvasComponentTreeProps) {
-  const renderTree = useMemo(
+  const serverTree = useMemo(
     () => convertLegacyCustomElementsFormat(tree, components),
     [tree, components],
+  );
+  // Props the editor holds ahead of this server data render at once. Server
+  // data that shows the same values replaces them.
+  const liveProps = useSyncExternalStore(
+    subscribeLiveProps,
+    getLiveProps,
+    getLiveProps,
+  );
+  useEffect(() => settleLiveProps(serverTree), [serverTree]);
+  const renderTree = useMemo(
+    () => withLiveProps(serverTree, liveProps),
+    [serverTree, liveProps],
   );
   const rendered = (
     <JsonRenderCanvasComponentTree

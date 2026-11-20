@@ -46,6 +46,11 @@ const host = createHeadlessPreviewHost({
 await host.activate({ entity_type: 'canvas_page', entity: '5' });
 // After Canvas reports that an auto-save request succeeded:
 host.refresh();
+// Ahead of that refresh, show prop values the editor already holds. Apps that
+// do not render them report so, and `canPatchProps()` is false.
+if (host.canPatchProps()) {
+  host.patchProps(componentUuid, { heading: 'Typed text' }, editCount);
+}
 // Later: host.destroy();
 ```
 

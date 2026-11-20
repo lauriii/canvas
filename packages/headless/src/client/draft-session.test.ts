@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_PROPS_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
@@ -292,6 +293,50 @@ describe('createDraftSession', () => {
       },
       ORIGIN,
     );
+  });
+
+  it('reports that it renders live props, and emits the props the host posts', () => {
+    const { events, postMessage, refreshData, dispatchMessage } = makeHarness({
+      liveProps: true,
+    });
+
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: HEADLESS_STATUS_MESSAGE,
+        liveProps: true,
+      }),
+      ORIGIN,
+    );
+
+    dispatchMessage({
+      data: {
+        type: HEADLESS_PROPS_MESSAGE,
+        componentUuid: 'hero',
+        props: { heading: 'Typed' },
+        edit: 3,
+      },
+    });
+    // Malformed, and from another origin.
+    dispatchMessage({ data: { type: HEADLESS_PROPS_MESSAGE, edit: 4 } });
+    dispatchMessage({
+      data: {
+        type: HEADLESS_PROPS_MESSAGE,
+        componentUuid: 'hero',
+        props: { heading: 'Forged' },
+        edit: 9,
+      },
+      origin: OTHER_ORIGIN,
+    });
+
+    expect(events.filter(({ type }) => type === 'props')).toEqual([
+      {
+        type: 'props',
+        componentUuid: 'hero',
+        props: { heading: 'Typed' },
+        edit: 3,
+      },
+    ]);
+    expect(refreshData).not.toHaveBeenCalled();
   });
 
   it.each([

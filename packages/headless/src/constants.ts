@@ -56,6 +56,17 @@ export const HEADLESS_ASSERTION_MESSAGE = 'canvas-headless:assertion';
 /** Host → app: refresh content after Canvas persisted a new auto-save. */
 export const HEADLESS_REFRESH_MESSAGE = 'canvas-headless:refresh';
 
+/**
+ * Host → app: prop values the editor holds ahead of the app's next refresh.
+ *
+ * Carries `componentUuid`, `props`, and `edit`: the editor's count of typed
+ * edits when the values were current. They are either typed and not saved
+ * yet, or what Drupal resolved for an auto-save that the app has not fetched
+ * yet. The app shows them at once, never lets an older edit replace a newer
+ * one, and drops them when its server data catches up.
+ */
+export const HEADLESS_PROPS_MESSAGE = 'canvas-headless:props';
+
 /** App → host: confirms that a numbered refresh command was received. */
 export const HEADLESS_REFRESH_ACK_MESSAGE = 'canvas-headless:refresh-ack';
 

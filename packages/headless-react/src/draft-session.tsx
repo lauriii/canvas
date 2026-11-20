@@ -11,6 +11,8 @@ import {
   createNavigationBridge,
 } from '@drupal-canvas/headless/client';
 
+import { receiveLiveProps } from './live-props';
+
 import type { ReactNode } from 'react';
 import type {
   DraftSession as DraftSessionMachine,
@@ -166,7 +168,13 @@ export function DraftSession({
       path: pathRef.current,
       editorOrigin,
       renewEndpoint,
+      // <CanvasComponentTree> renders the props the editor posts.
+      liveProps: true,
       onEvent: (event) => {
+        if (event.type === 'props') {
+          receiveLiveProps(event);
+          return;
+        }
         if (event.type === 'refresh-requested') {
           const refresh = refreshDataRef.current;
           if (refresh) {

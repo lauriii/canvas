@@ -16,6 +16,7 @@
  *   host → app   {type: 'canvas-headless:assertion', hostSessionId, assertion}
  *   host → app   {type: 'canvas-headless:refresh', hostSessionId, refreshId}
  *   app  → host  {type: 'canvas-headless:refresh-ack', hostSessionId, refreshId}
+ *   host → app   {type: 'canvas-headless:props', hostSessionId, componentUuid, props, edit}
  *   app  → host  {type: 'canvas-headless:height', hostSessionId, height}
  *   app  → host  {type: 'canvas-headless:height-probe', hostSessionId, id, height}
  *   host → app   {type: 'canvas-headless:height-probe-ready', hostSessionId, id, height}
@@ -69,6 +70,7 @@ import {
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
   HEADLESS_NAVIGATION_MESSAGE,
   HEADLESS_NAVIGATION_READY_MESSAGE,
+  HEADLESS_PROPS_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
@@ -98,6 +100,7 @@ export {
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
   HEADLESS_NAVIGATION_MESSAGE,
   HEADLESS_NAVIGATION_READY_MESSAGE,
+  HEADLESS_PROPS_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
@@ -179,6 +182,23 @@ export interface HeadlessPreviewHost {
   attach: (url: string) => void;
   /** Asks the embedded app to refresh now, or once its session is active. */
   refresh: () => void;
+  /**
+   * Whether the embedded app shows prop values ahead of its refresh: it has
+   * an active session and reported that it renders live props. Otherwise the
+   * caller waits for the auto-save and refresh().
+   */
+  canPatchProps: () => boolean;
+  /**
+   * Shows prop values in the embedded app ahead of its next refresh: values
+   * that are typed and not saved yet, or that an auto-save resolved.
+   * `edit` is the caller's count of typed edits when the values were
+   * current; the app never lets an older edit replace a newer one.
+   */
+  patchProps: (
+    componentUuid: string,
+    props: Record<string, unknown>,
+    edit: number,
+  ) => void;
   /** Updates the base height of the preview's selected device viewport. */
   setViewportHeight: (height: number) => void;
   /** Removes the message listener. The iframe itself is left as is. */
@@ -202,6 +222,7 @@ export function createHeadlessPreviewHost(
   } = options;
   let recoveryAttempted = false;
   let active = false;
+  let liveProps = false;
   let refreshPending = false;
   let refreshInFlight: number | null = null;
   let nextRefreshId = 1;
@@ -229,6 +250,7 @@ export function createHeadlessPreviewHost(
   const loadApp = async (params: Record<string, string>) => {
     const generation = ++loadGeneration;
     active = false;
+    liveProps = false;
     canHandshakeOnLoad = false;
     hostSessionId = null;
     emit({ type: 'geometry', geometry: [], reset: true });
@@ -547,6 +569,7 @@ export function createHeadlessPreviewHost(
           // that never comes back cannot reload in a loop.
           recoveryAttempted = false;
           active = true;
+          liveProps = event.data.liveProps === true;
           emit({
             type: 'active',
             tokenExpiresAt: Number(event.data.tokenExpiresAt),
@@ -628,6 +651,9 @@ export function createHeadlessPreviewHost(
   iframe.addEventListener('load', onIframeLoad);
   window.addEventListener('message', onMessage);
 
+  const canPatchProps = () =>
+    !destroyed && active && liveProps && hostSessionId !== null;
+
   return {
     activate,
     attach,
@@ -637,6 +663,21 @@ export function createHeadlessPreviewHost(
       }
       refreshPending = true;
       flushRefresh();
+    },
+    canPatchProps,
+    patchProps: (componentUuid, props, edit) => {
+      if (canPatchProps()) {
+        iframe.contentWindow?.postMessage(
+          {
+            type: HEADLESS_PROPS_MESSAGE,
+            hostSessionId,
+            componentUuid,
+            props,
+            edit,
+          },
+          frontendOrigin,
+        );
+      }
     },
     setViewportHeight: (height) => {
       if (destroyed || !Number.isFinite(height) || height <= 0) {
