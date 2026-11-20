@@ -197,7 +197,7 @@ final class PropShape {
    * @todo Before making this a public API that allows contrib to define more well-known prop shapes, actually spec it out beyond "/schema.json in extension root and define $defs". It is too undefined to be a reliable public API right now
    */
   private static function getWellKnownPropShapes(): array {
-    static $known_normalized;
+    $known_normalized = &drupal_static(__METHOD__);
     if (isset($known_normalized)) {
       return $known_normalized;
     }
@@ -211,6 +211,14 @@ final class PropShape {
     $installed_themes = self::themeHandler()->listInfo();
     \assert(empty(array_intersect_key($installed_modules, $installed_themes)));
     $installed_extensions = $installed_modules + $installed_themes;
+
+    // Reading and resolving every `/schema.json` is slow, so keep the result
+    // per set of installed extensions.
+    $cid = 'canvas:well_known_prop_shapes:' . hash('xxh64', implode(',', \array_keys($installed_extensions)));
+    $cached = \Drupal::cache('discovery')->get($cid);
+    if ($cached !== FALSE) {
+      return $known_normalized = $cached->data;
+    }
     foreach ($installed_extensions as $extension_name => $extension) {
       \assert(\is_string($extension_name));
       $schema_json_path = $extension->getPath() . '/schema.json';
@@ -247,6 +255,7 @@ final class PropShape {
         implode(',', \array_keys(array_diff_key($known_normalized, array_unique($unique_keys_as_values))))
       ));
     }
+    \Drupal::cache('discovery')->set($cid, $known_normalized);
     return $known_normalized;
   }
 

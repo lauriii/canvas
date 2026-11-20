@@ -25,6 +25,7 @@ use Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShap
 use Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType\MultipleOfItem;
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
@@ -1380,6 +1381,44 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $fresh_repository->resolveInvalidatedPropShapes();
     // The shape remains non-storable when asked again.
     self::assertNull($fresh_repository->getStorablePropShape($non_storable_shape));
+  }
+
+  /**
+   * Well-known prop shapes are cached per set of installed extensions.
+   */
+  public function testWellKnownPropShapesCache(): void {
+    $cache = \Drupal::cache('discovery');
+    $cid = static function (): string {
+      $extensions = \Drupal::moduleHandler()->getModuleList() + \Drupal::service(ThemeHandlerInterface::class)->listInfo();
+      return 'canvas:well_known_prop_shapes:' . hash('xxh64', implode(',', \array_keys($extensions)));
+    };
+    $reset = static fn () => drupal_static_reset(PropShape::class . '::getWellKnownPropShapes');
+    $heading_element = 'json-schema-definitions://canvas.module/heading-element';
+    $custom = ['type' => 'string', 'minLength' => 12345];
+
+    // A cold cache is populated.
+    $cache->deleteAll();
+    $reset();
+    self::assertSame($heading_element, PropShape::standardize(['$ref' => $heading_element])->schema['$ref']);
+    $cached = $cache->get($cid());
+    self::assertNotFalse($cached);
+    self::assertArrayHasKey($heading_element, $cached->data);
+    self::assertArrayNotHasKey('$ref', PropShape::standardize($custom)->schema);
+
+    // A warm cache is used instead of reading schema.json files: let the
+    // cached entry match a shape no schema.json defines.
+    $cache->set($cid(), [$heading_element => PropShape::normalizePropSchema($custom)] + $cached->data);
+    $reset();
+    self::assertSame($heading_element, PropShape::standardize($custom)->schema['$ref'] ?? NULL);
+
+    // Installing an extension changes the cache key.
+    $previous_cid = $cid();
+    $this->enableModules(['help']);
+    self::assertNotSame($previous_cid, $cid());
+    $reset();
+    self::assertArrayNotHasKey('$ref', PropShape::standardize($custom)->schema);
+    // Enabling modules rebuilt the container, and with it the cache bins.
+    self::assertNotFalse(\Drupal::cache('discovery')->get($cid()));
   }
 
 }
