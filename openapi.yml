@@ -468,23 +468,13 @@ paths:
           schema:
             type: string
           example: '1'
-        - name: includeResolved
-          in: query
-          required: false
-          description: >-
-            Include resolved threads. Resolved threads are excluded by default,
-            because most threads end up resolved and never render a pin.
-          schema:
-            type: string
-          example: '1'
       responses:
         '200':
           $ref: '#/components/responses/CommentThreadListResponse'
         '403':
-          # Deliberately no `content`: a request rejected by the route's
-          # `_permission` requirement never reaches the controller, so the body
-          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
-          # strings and cannot satisfy the object-shaped `Error` schema.
+          # No `content`: the route's `_permission` requirement answers with
+          # Drupal's own `{"errors": ["<string>"]}`, which does not match the
+          # object-shaped `Error` schema.
           description: Access denied.
         '404':
           description: The surface does not exist.
@@ -511,11 +501,8 @@ paths:
                   description: The entity ID of the commented surface.
                 componentUuid:
                   type: ['null', string]
-                  # Deliberately not `format: uuid`. The request validator only
-                  # runs outside production and rethrows, which would turn a
-                  # malformed UUID into a 500 in development and leave it
-                  # entirely unvalidated in production. The controller checks
-                  # the format instead, so every environment answers 422.
+                  # No `format: uuid`: the controller checks it, so every
+                  # environment answers 422.
                   # @see \Drupal\canvas\Controller\ApiCommentController::post()
                   description: >-
                     The commented component instance, as a UUID. Null anchors
@@ -523,17 +510,12 @@ paths:
                     UUID is rejected with a 422.
                 offsetX:
                   type: ['null', number]
-                  # Deliberately no `minimum`/`maximum`. The request validator
-                  # only runs outside production and rethrows, so a range
-                  # declared here would be a 500 in development and unchecked
-                  # in production. The controller enforces it, and answers 422
-                  # in every environment.
+                  # No `minimum`/`maximum`: the controller checks the range,
+                  # so every environment answers 422.
                   # @see \Drupal\canvas\Controller\ApiCommentController::post()
                   description: >-
                     Where in the component the comment was left, from 0 at its
-                    left edge to 1 at its right, both inclusive. A fraction
-                    rather than a canvas coordinate, because a preview reflows
-                    and is rendered at several widths at once. Requires
+                    left edge to 1 at its right, both inclusive. Requires
                     `componentUuid`, must be sent together with `offsetY`, and
                     is rejected with a 422 when outside 0 to 1.
                 offsetY:
@@ -550,10 +532,7 @@ paths:
         '400':
           $ref: '#/components/responses/ClientErrorResponse'
         '403':
-          # Deliberately no `content`: a request rejected by the route's
-          # `_permission` requirement never reaches the controller, so the body
-          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
-          # strings and cannot satisfy the object-shaped `Error` schema.
+          # No `content`: see the list endpoint above.
           description: Access denied.
         '404':
           description: The surface does not exist.
@@ -567,9 +546,7 @@ paths:
         - name: surfaceType
           in: query
           required: true
-          description: >-
-            The entity type ID of the surface being commented on. Eligibility
-            is per surface, so it is part of the request.
+          description: The entity type ID of the surface being commented on.
           schema:
             type: string
         - name: surfaceId
@@ -596,14 +573,11 @@ paths:
                 properties:
                   users:
                     type: array
-                    description: >-
-                      Users who hold `view canvas comments` or `create canvas
-                      comments`, so every offered mention can actually read the
-                      thread it lands in.
+                    description: Users who can read comments and view the surface.
                     items:
                       $ref: '#/components/schemas/CommentAuthor'
         '403':
-          # Deliberately no `content`: see the create endpoint above.
+          # No `content`: see the list endpoint above.
           description: Access denied.
   /canvas/api/v0/comments/{commentThreadId}:
     description: Endpoint for changing the state of a single comment thread.
@@ -629,10 +603,7 @@ paths:
         '400':
           $ref: '#/components/responses/ClientErrorResponse'
         '403':
-          # Deliberately no `content`: a request rejected by the route's
-          # `_permission` requirement never reaches the controller, so the body
-          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
-          # strings and cannot satisfy the object-shaped `Error` schema.
+          # No `content`: see the list endpoint above.
           description: Access denied.
         '404':
           description: The comment thread does not exist.
@@ -662,10 +633,7 @@ paths:
         '400':
           $ref: '#/components/responses/ClientErrorResponse'
         '403':
-          # Deliberately no `content`: a request rejected by the route's
-          # `_permission` requirement never reaches the controller, so the body
-          # is Drupal's own `{"errors": ["<string>"]}`, which is an array of
-          # strings and cannot satisfy the object-shaped `Error` schema.
+          # No `content`: see the list endpoint above.
           description: Access denied.
         '404':
           description: The comment thread does not exist.
@@ -6817,7 +6785,6 @@ components:
       required:
         - uid
         - displayName
-        - avatar
       properties:
         uid:
           type: integer
@@ -6825,10 +6792,6 @@ components:
         displayName:
           type: string
           description: The account's display name at read time.
-        avatar:
-          type: [ 'null', string ]
-          format: uri-reference
-          description: URL of the author's avatar, or null when there is none.
     Comment:
       title: Comment
       type: object
@@ -6837,7 +6800,6 @@ components:
         - id
         - body
         - created
-        - changed
         - author
         - mentions
       properties:
@@ -6852,16 +6814,13 @@ components:
         created:
           type: integer
           description: Creation time, in seconds since the Unix epoch.
-        changed:
-          type: integer
-          description: Last change time, in seconds since the Unix epoch.
         author:
           $ref: '#/components/schemas/CommentAuthor'
         mentions:
           type: array
           description: >-
             The users named in `body`, in order of first appearance, resolved
-            at read time so a mention survives a rename.
+            at read time.
           items:
             type: object
             required:
@@ -6881,11 +6840,9 @@ components:
       type: object
       description: >-
         A conversation anchored to a Canvas surface or to one component instance
-        on it. The anchor is a portable address rather than an entity reference,
-        because most Canvas surfaces are config entities and cannot carry fields.
+        on it.
       required:
         - id
-        - uuid
         - surfaceType
         - surfaceId
         - componentUuid
@@ -6893,17 +6850,12 @@ components:
         - offsetY
         - resolved
         - created
-        - changed
         - author
         - comments
       properties:
         id:
           type: string
           description: The comment thread entity ID.
-        uuid:
-          type: string
-          format: uuid
-          description: The comment thread UUID, used for deep links.
         surfaceType:
           type: string
           description: The entity type ID of the commented surface.
@@ -6920,9 +6872,8 @@ components:
           type: ['null', number]
           description: >-
             Where in the anchored component the comment was left, from 0 at its
-            left edge to 1 at its right. Null for a thread started from the
-            sidebar, which has no point to record; its pin sits at the
-            component's top-left corner.
+            left edge to 1 at its right. Null for a thread with no recorded
+            point; its pin sits at the component's top-left corner.
         offsetY:
           type: ['null', number]
           description: >-
@@ -6934,9 +6885,6 @@ components:
         created:
           type: integer
           description: Creation time, in seconds since the Unix epoch.
-        changed:
-          type: integer
-          description: Last change time, in seconds since the Unix epoch.
         author:
           $ref: '#/components/schemas/CommentAuthor'
         comments:

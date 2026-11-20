@@ -7,7 +7,6 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\Entity\Comment;
 use Drupal\canvas\Entity\CommentThread;
 use Drupal\canvas\Entity\Page;
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -24,12 +23,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * HTTP API controller for Canvas comment threads.
  *
- * Every endpoint requires view access to the commented surface, and never
- * update access: commenting is independent of editing.
- *
- * Semantically invalid input never results in a 500: it either reaches an
- * entity constraint, or is reported through the same JSON:API-style error
- * objects that entity constraint violations produce.
+ * Every endpoint requires view access to the commented surface, never update
+ * access. Invalid input is answered with a 422, never a 500.
  *
  * @internal This HTTP API is intended only for the Canvas UI. These
  *   controllers and associated routes may change at any time.
@@ -51,7 +46,6 @@ final class ApiCommentController extends ApiControllerBase {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountProxyInterface $currentUser,
-    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -64,22 +58,16 @@ final class ApiCommentController extends ApiControllerBase {
     }
 
     $storage = $this->entityTypeManager->getStorage(CommentThread::ENTITY_TYPE_ID);
-    // Access is enforced by the route's comment permission plus
-    // the view access check on the surface performed above.
-    $query = $storage->getQuery()
+    // The route permission and the surface check above control access.
+    $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('surface_type', $surface->getEntityTypeId())
       ->condition('surface_id', (string) $surface->id())
       ->sort('created')
-      ->sort('id');
-    if (!self::parseBoolean($request->query->get('includeResolved'))) {
-      $query->condition('resolved', 0);
-    }
-    $threads = [];
-    foreach ($storage->loadMultiple($query->execute()) as $thread) {
-      \assert($thread instanceof CommentThread);
-      $threads[] = $thread;
-    }
+      ->sort('id')
+      ->execute();
+    /** @var \Drupal\canvas\Entity\CommentThread[] $threads */
+    $threads = $storage->loadMultiple($ids);
 
     return new JsonResponse(['threads' => $this->normalizeThreads($threads)]);
   }
@@ -97,12 +85,9 @@ final class ApiCommentController extends ApiControllerBase {
     if ($component_uuid !== NULL && !\is_string($component_uuid)) {
       return self::createInputViolationResponse('componentUuid', 'This value must be a string or null.');
     }
-    // The anchor is validated here rather than by `format: uuid` in
-    // openapi.yml, because the OpenAPI request validator runs only outside
-    // production and rethrows: it would turn a malformed UUID into a 500 in
-    // development while leaving it entirely unchecked in production. An empty
-    // string is rejected too; a thread anchored to the surface itself is
-    // addressed with NULL.
+    // Checked here because the OpenAPI request validator does not run in
+    // production. A thread on the surface itself sends NULL, not an empty
+    // string.
     if (\is_string($component_uuid) && !Uuid::isValid($component_uuid)) {
       return self::createInputViolationResponse('componentUuid', 'This value must be a UUID.');
     }
@@ -112,8 +97,6 @@ final class ApiCommentController extends ApiControllerBase {
       return $offset;
     }
     if ($offset !== NULL && $component_uuid === NULL) {
-      // A fraction is a fraction *of a component's box*, so without one it
-      // measures nothing.
       return self::createInputViolationResponse('offsetX', 'An offset requires a `componentUuid` to be an offset within.');
     }
 
@@ -131,8 +114,7 @@ final class ApiCommentController extends ApiControllerBase {
       'uid' => $this->currentUser->id(),
     ]);
 
-    // The `thread` reference can only be populated once the thread has an ID,
-    // so its violations are irrelevant until then.
+    // The `thread` reference is set once the thread has an ID.
     $comment_violations = $comment->validate()->filterByFields(['thread']);
     $response = static::createJsonResponseFromViolationSets($thread->validate(), $comment_violations);
     if ($response instanceof JsonResponse) {
@@ -183,12 +165,7 @@ final class ApiCommentController extends ApiControllerBase {
       return $surface;
     }
 
-    if ($data['resolved']) {
-      $canvas_comment_thread->resolve((int) $this->currentUser->id(), $this->time->getRequestTime());
-    }
-    else {
-      $canvas_comment_thread->reopen();
-    }
+    $canvas_comment_thread->set('resolved', $data['resolved']);
     $response = static::createJsonResponseFromViolationSets($canvas_comment_thread->validate());
     if ($response instanceof JsonResponse) {
       return $response;
@@ -201,10 +178,7 @@ final class ApiCommentController extends ApiControllerBase {
   /**
    * Lists the users the current user may mention in a comment.
    *
-   * The result is deliberately narrow. Only users who could read the thread
-   * are offered, so the autocomplete cannot be used to enumerate accounts that
-   * the searcher would otherwise never see, and blocked users are excluded
-   * because mentioning them can never reach anybody.
+   * Only active users who can read comments and view the surface are offered.
    */
   public function mentionableUsers(Request $request): JsonResponse {
     $query = $request->query->get('q');
@@ -215,17 +189,12 @@ final class ApiCommentController extends ApiControllerBase {
     }
 
     $storage = $this->entityTypeManager->getStorage('user');
-    // Access checking is deliberately off: `access user profiles` is not a
-    // permission ordinary editors hold, so honoring it would make the
-    // autocomplete permanently empty for exactly the people meant to use it.
-    // The scoping is the comment permission instead, checked per user below,
-    // and the route already requires the caller to hold `create canvas
-    // comments`. What is exposed is therefore the set of people who can read
-    // the thread being written, which is the set worth naming in it.
+    // Editors rarely hold `access user profiles`, so the query is not access
+    // checked. The comment permission, checked per user below, scopes it.
     $user_query = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('status', 1)
-      // The anonymous account can neither hold a permission nor be notified.
+      // Skip the anonymous account.
       ->condition('uid', 0, '>')
       ->sort('name')
       ->range(0, self::MENTION_RESULT_LIMIT);
@@ -233,12 +202,9 @@ final class ApiCommentController extends ApiControllerBase {
       $user_query->condition('name', $query, 'CONTAINS');
     }
 
-    // The result limit is applied by the query, before the per-user checks
-    // below. Without narrowing the candidates to the roles that can read
-    // comments first, the limit would be spent on the first accounts by name,
-    // and on a site where most accounts are not commenters nobody would be
-    // offered at all. An account that holds the permission through an access
-    // policy alone, without any such role, is consequently not offered.
+    // Narrow the query to roles that can read comments, so the result limit
+    // is not spent on accounts the per-user checks below reject. An account
+    // that holds the permission through an access policy alone is not offered.
     $reader_role_ids = [];
     foreach ($this->entityTypeManager->getStorage('user_role')->loadMultiple() as $role) {
       \assert($role instanceof RoleInterface);
@@ -247,8 +213,7 @@ final class ApiCommentController extends ApiControllerBase {
         $reader_role_ids[] = $role->id();
       }
     }
-    // Every account implicitly has the authenticated role, which is not
-    // stored per user and so cannot be queried for.
+    // The authenticated role is not stored per user, so it cannot be queried.
     if (!\in_array(RoleInterface::AUTHENTICATED_ID, $reader_role_ids, TRUE)) {
       if ($reader_role_ids === []) {
         return new JsonResponse(['users' => []]);
@@ -260,10 +225,6 @@ final class ApiCommentController extends ApiControllerBase {
     $mentionable = [];
     foreach ($users as $user) {
       \assert($user instanceof UserInterface);
-      // Both halves are needed for a mention to be meaningful: the permission
-      // to read comments at all, and view access to this particular surface.
-      // Without the second, an editor would be offered somebody who cannot
-      // open the unpublished page the thread is on.
       $can_read_comments = $user->hasPermission(CommentThread::VIEW_PERMISSION) || $user->hasPermission(CommentThread::CREATE_PERMISSION);
       if (!$can_read_comments || !$surface->access('view', $user)) {
         continue;
@@ -271,7 +232,6 @@ final class ApiCommentController extends ApiControllerBase {
       $mentionable[] = [
         'uid' => (int) $user->id(),
         'displayName' => (string) $user->getDisplayName(),
-        'avatar' => NULL,
       ];
     }
 
@@ -303,7 +263,6 @@ final class ApiCommentController extends ApiControllerBase {
     if (!$surface instanceof EntityInterface) {
       throw new NotFoundHttpException(\sprintf('The `%s` surface `%s` does not exist.', $surface_type, $surface_id));
     }
-    // Commenting requires view access to the surface, never update access.
     if (!$surface->access('view', $this->currentUser)) {
       throw new AccessDeniedHttpException(\sprintf('You do not have access to the `%s` surface `%s`.', $surface_type, $surface_id));
     }
@@ -320,9 +279,7 @@ final class ApiCommentController extends ApiControllerBase {
   /**
    * Builds the client-side representation of several comment threads.
    *
-   * The comments, authors and mentioned users of every given thread are loaded
-   * together, so the number of queries does not grow with the number of
-   * threads on a surface.
+   * Comments, authors and mentioned users are loaded together for all threads.
    *
    * @param \Drupal\canvas\Entity\CommentThread[] $threads
    *   The threads to normalize.
@@ -335,8 +292,7 @@ final class ApiCommentController extends ApiControllerBase {
       return [];
     }
     $storage = $this->entityTypeManager->getStorage(Comment::ENTITY_TYPE_ID);
-    // Access is enforced by the route permission and the surface view access
-    // check; individual comments are never hidden within a visible thread.
+    // The route permission and the surface check control access.
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('thread', \array_map(static fn (CommentThread $thread): int|string|null => $thread->id(), $threads), 'IN')
@@ -344,13 +300,8 @@ final class ApiCommentController extends ApiControllerBase {
       ->sort('id')
       ->execute();
 
-    // Mentions are stored as `@[user:123]`, so the display name is resolved at
-    // read time. That is what makes a mention survive a rename: the comment
-    // records who was named, never what they were called at the time.
-    //
-    // The authors are loaded along with the mentioned users. Normalizing an
-    // author reads the owner reference, which would otherwise load each
-    // distinct author on its own.
+    // Mentions are stored as `@[user:123]` and resolved to a name at read
+    // time. Authors are loaded in the same query as the mentioned users.
     $comments_by_thread = [];
     $uids = [];
     foreach ($storage->loadMultiple($ids) as $comment) {
@@ -372,7 +323,6 @@ final class ApiCommentController extends ApiControllerBase {
           'id' => (string) $comment->id(),
           'body' => $comment->getBody(),
           'created' => $comment->getCreatedTime(),
-          'changed' => $comment->getChangedTime(),
           'author' => self::normalizeAuthor($comment),
           'mentions' => self::normalizeMentions($comment->getBody(), $users),
         ];
@@ -380,7 +330,6 @@ final class ApiCommentController extends ApiControllerBase {
       $offset = $thread->getOffset();
       $normalized[] = [
         'id' => (string) $thread->id(),
-        'uuid' => (string) $thread->uuid(),
         'surfaceType' => $thread->getSurfaceType(),
         'surfaceId' => $thread->getSurfaceId(),
         'componentUuid' => $thread->getComponentUuid(),
@@ -388,7 +337,6 @@ final class ApiCommentController extends ApiControllerBase {
         'offsetY' => $offset['y'] ?? NULL,
         'resolved' => $thread->isResolved(),
         'created' => $thread->getCreatedTime(),
-        'changed' => $thread->getChangedTime(),
         'author' => self::normalizeAuthor($thread),
         'comments' => $normalized_comments,
       ];
@@ -415,9 +363,7 @@ final class ApiCommentController extends ApiControllerBase {
   /**
    * Resolves a body's mention tokens to the names to render them with.
    *
-   * A mention of a deleted user keeps its token in the body and is reported
-   * with a NULL name, so the client can render it as an unavailable user
-   * rather than silently dropping the fact that somebody was named.
+   * A mention of a deleted user is reported with a NULL name.
    *
    * @param \Drupal\Core\Entity\EntityInterface[] $mentioned_users
    *   Users already loaded for this thread, keyed by user ID.
@@ -436,24 +382,19 @@ final class ApiCommentController extends ApiControllerBase {
 
   /**
    * Builds the client-side representation of an author.
-   *
-   * @todo Populate `avatar` once \Drupal\canvas\Controller\ApiAutoSaveController::buildAvatarUrl() is extracted into a service that both controllers can use.
    */
   private static function normalizeAuthor(EntityOwnerInterface $entity): array {
     $owner = $entity->getOwner();
     return [
       'uid' => (int) $entity->getOwnerId(),
       'displayName' => $owner instanceof UserInterface ? (string) $owner->getDisplayName() : '',
-      'avatar' => NULL,
     ];
   }
 
   /**
    * Reads the point within the component that a comment was left at.
    *
-   * Both fractions are required together: half a point is not a point. Each
-   * must be within the component's box, because a fraction outside 0 to 1
-   * would put the pin somewhere the thread is not anchored.
+   * Both fractions are required together, and each must be from 0 to 1.
    *
    * @return array|null|\Symfony\Component\HttpFoundation\JsonResponse
    *   The `x` and `y` fractions, NULL when none was sent, or a 422 response.
@@ -491,16 +432,6 @@ final class ApiCommentController extends ApiControllerBase {
    */
   private static function createInputViolationResponse(string $pointer, string $message): JsonResponse {
     return self::createJsonApiStyleErrorResponse($message, $pointer, Response::HTTP_UNPROCESSABLE_ENTITY);
-  }
-
-  /**
-   * Interprets a query parameter as a boolean.
-   */
-  private static function parseBoolean(mixed $value): bool {
-    if (!\is_string($value)) {
-      return FALSE;
-    }
-    return !\in_array(\strtolower($value), ['', '0', 'false'], TRUE);
   }
 
 }

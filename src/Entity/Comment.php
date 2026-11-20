@@ -22,9 +22,8 @@ use Drupal\user\EntityOwnerTrait;
  * This entity type is unrelated to the one provided by Drupal core's `comment`
  * module, and Canvas does not depend on that module.
  *
- * Like the thread it belongs to, the entity type is internal: it is reachable
- * only through the Canvas comment API, which is what enforces view access to
- * the commented surface.
+ * Like the thread it belongs to, the entity type is internal and has no access
+ * handler: the Canvas comment API is the only way in.
  *
  * @see \Drupal\canvas\Entity\CommentThread
  */
@@ -37,7 +36,6 @@ use Drupal\user\EntityOwnerTrait;
     label_count: ["@count comment", "@count comments"],
     handlers: [
       "storage" => SqlContentEntityStorage::class,
-      "access" => CommentAccessControlHandler::class,
     ],
     base_table: "canvas_comment",
     entity_keys: [
@@ -82,9 +80,6 @@ final class Comment extends ContentEntityBase implements EntityOwnerInterface {
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Authored on'))
       ->setDescription(t('The time this comment was created.'));
-    $fields['changed'] = BaseFieldDefinition::create('changed')
-      ->setLabel(t('Changed'))
-      ->setDescription(t('The time this comment was last changed.'));
     return $fields;
   }
 
@@ -100,13 +95,6 @@ final class Comment extends ContentEntityBase implements EntityOwnerInterface {
    */
   public function getCreatedTime(): int {
     return (int) $this->get('created')->value;
-  }
-
-  /**
-   * Gets the time this comment last changed, as a UNIX timestamp.
-   */
-  public function getChangedTime(): int {
-    return (int) $this->get('changed')->value;
   }
 
 }

@@ -13,6 +13,7 @@ use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
@@ -77,8 +78,8 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     $page->save();
     $this->page = $page;
 
-    // This user may comment, and may only *view* the page: it holds no Canvas
-    // Page permission at all. Commenting must never require edit access.
+    // This user may comment and view the page, but holds no Canvas Page
+    // permission.
     $commenter = $this->setUpCurrentUser([], [
       'access content',
       CommentThread::VIEW_PERMISSION,
@@ -106,11 +107,9 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     self::assertSame(self::COMPONENT_UUID, $thread['componentUuid']);
     self::assertFalse($thread['resolved']);
     self::assertIsInt($thread['created']);
-    self::assertIsInt($thread['changed']);
     self::assertSame([
       'uid' => (int) $this->commenter->id(),
       'displayName' => $this->commenter->getDisplayName(),
-      'avatar' => NULL,
     ], $thread['author']);
     self::assertCount(1, $thread['comments']);
     self::assertSame('1', $thread['comments'][0]['id']);
@@ -128,7 +127,6 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
       \array_column($thread['comments'], 'body'),
     );
 
-    // Unresolved threads are listed by default.
     self::assertSame([$thread['id']], $this->listThreadIds());
 
     // Resolve: 200, and the comments survive.
@@ -138,17 +136,15 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     self::assertTrue($resolved['resolved']);
     self::assertCount(2, $resolved['comments']);
 
-    // Resolved threads are excluded by default, and included on request.
-    self::assertSame([], $this->listThreadIds());
-    self::assertSame([$thread['id']], $this->listThreadIds('1'));
+    // The listing includes resolved threads.
+    self::assertSame([$thread['id']], $this->listThreadIds());
 
-    // Reopen: 200, and the thread is listed again.
+    // Reopen: 200.
     $response = $this->patch(self::URL . '/' . $thread['id'], ['resolved' => FALSE]);
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     $reopened = self::decodeResponse($response)['thread'];
     self::assertFalse($reopened['resolved']);
     self::assertCount(2, $reopened['comments']);
-    self::assertSame([$thread['id']], $this->listThreadIds());
   }
 
   /**
@@ -163,70 +159,6 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     ]);
     self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
     self::assertNull(self::decodeResponse($response)['thread']['componentUuid']);
-  }
-
-  /**
-   * Tests that a blank comment body is a 422, never a 500.
-   */
-  public function testBlankBodyIsUnprocessable(): void {
-    foreach (['', '   '] as $blank_body) {
-      $response = $this->post(self::URL, [
-        'surfaceType' => Page::ENTITY_TYPE_ID,
-        'surfaceId' => (string) $this->page->id(),
-        'componentUuid' => self::COMPONENT_UUID,
-        'body' => $blank_body,
-      ]);
-      self::assertNotSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
-      self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-      $errors = self::decodeResponse($response)['errors'];
-      self::assertNotSame([], $errors);
-      self::assertStringStartsWith('body', $errors[0]['source']['pointer']);
-    }
-    // None of the rejected requests created a thread.
-    self::assertSame([], $this->listThreadIds('1'));
-
-    // A blank reply is rejected the same way.
-    $response = $this->post(self::URL, [
-      'surfaceType' => Page::ENTITY_TYPE_ID,
-      'surfaceId' => (string) $this->page->id(),
-      'componentUuid' => self::COMPONENT_UUID,
-      'body' => 'Valid.',
-    ]);
-    $thread_id = self::decodeResponse($response)['thread']['id'];
-    $response = $this->post(self::URL . '/' . $thread_id . '/replies', ['body' => '  ']);
-    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-  }
-
-  /**
-   * Tests that a malformed component UUID is a 422, never a 500.
-   *
-   * `componentUuid` is declared `format: uuid` in openapi.yml, so a malformed
-   * value that reaches the OpenAPI request validator throws instead of being
-   * reported as invalid input.
-   */
-  public function testMalformedComponentUuidIsUnprocessable(): void {
-    $malformed_values = [
-      'not-a-real-uuid',
-      '12345',
-      // A truncated UUID: the right alphabet, the wrong shape.
-      \substr(self::COMPONENT_UUID, 0, 23),
-    ];
-    foreach ($malformed_values as $malformed) {
-      $response = $this->post(self::URL, [
-        'surfaceType' => Page::ENTITY_TYPE_ID,
-        'surfaceId' => (string) $this->page->id(),
-        'componentUuid' => $malformed,
-        'body' => 'Anchored to a malformed UUID.',
-      ]);
-      self::assertNotSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
-      self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-      self::assertSame(
-        'componentUuid',
-        self::decodeResponse($response)['errors'][0]['source']['pointer'],
-      );
-    }
-    // None of the rejected requests created a thread.
-    self::assertSame([], $this->listThreadIds('1'));
   }
 
   /**
@@ -246,8 +178,7 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     self::assertSame(0.25, $thread['offsetX']);
     self::assertSame(0.75, $thread['offsetY']);
 
-    // A thread with no point recorded reports none, rather than a corner
-    // dressed up as one.
+    // A thread with no point recorded reports none.
     $response = $this->post(self::URL, [
       'surfaceType' => Page::ENTITY_TYPE_ID,
       'surfaceId' => (string) $this->page->id(),
@@ -260,117 +191,64 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that an offset outside the component's box is a 422.
+   * Tests that invalid input is a 422, never a 500, and stores nothing.
+   *
+   * @param string $method
+   *   The request method.
+   * @param string $path
+   *   The path below the comment collection. Thread 1 exists.
+   * @param array $body
+   *   The request body. A request that starts a thread is completed with
+   *   valid values.
+   * @param non-empty-string $pointer_prefix
+   *   What the pointer of the reported error starts with.
+   * @param bool $skip_openapi_validation
+   *   Whether to bypass the OpenAPI request validator, which does not run in
+   *   production, to reach the controller's own type guard.
    */
-  public function testUnusableOffsetIsUnprocessable(): void {
-    $cases = [
-      // Outside the box in either direction is not a point on the component.
-      ['offsetX' => 1.5, 'offsetY' => 0.5],
-      ['offsetX' => 0.5, 'offsetY' => -0.2],
-      // Half a point is not a point.
-      ['offsetX' => 0.5],
-      ['offsetY' => 0.5],
-    ];
-    foreach ($cases as $case) {
-      $response = $this->post(self::URL, $case + [
-        'surfaceType' => Page::ENTITY_TYPE_ID,
-        'surfaceId' => (string) $this->page->id(),
-        'componentUuid' => self::COMPONENT_UUID,
-        'body' => 'Anchored nowhere in particular.',
-      ]);
-      self::assertNotSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
-      self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-      self::assertStringStartsWith(
-        'offset',
-        self::decodeResponse($response)['errors'][0]['source']['pointer'],
-      );
-    }
-
-    // A fraction of nothing: there is no box to be a fraction of.
-    $response = $this->post(self::URL, [
+  #[DataProvider('providerInvalidInput')]
+  public function testInvalidInputIsUnprocessable(string $method, string $path, array $body, string $pointer_prefix, bool $skip_openapi_validation): void {
+    $valid = [
       'surfaceType' => Page::ENTITY_TYPE_ID,
       'surfaceId' => (string) $this->page->id(),
-      'componentUuid' => NULL,
-      'offsetX' => 0.5,
-      'offsetY' => 0.5,
-      'body' => 'On the page as a whole, but at a point?',
-    ]);
-    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-
-    // An offset that is not a number at all is caught by the OpenAPI request
-    // validator, which only runs outside production. Bypassing it proves the
-    // controller guards the type itself, which is what production relies on.
-    $response = $this->request(Request::create(
-      self::URL,
-      'POST',
-      server: [
-        'CONTENT_TYPE' => 'application/json',
-        'HTTP_X_NO_OPENAPI_VALIDATION' => '1',
-      ],
-      content: (string) \json_encode([
-        'surfaceType' => Page::ENTITY_TYPE_ID,
-        'surfaceId' => (string) $this->page->id(),
-        'componentUuid' => self::COMPONENT_UUID,
-        'offsetX' => 'middle',
-        'offsetY' => 0.5,
-        'body' => 'Anchored nowhere in particular.',
-      ], JSON_THROW_ON_ERROR),
-    ));
-    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-
-    self::assertSame([], $this->listThreadIds('1'));
-  }
-
-  /**
-   * Tests that an unsupported surface type is a 422, never a 500.
-   */
-  public function testUnsupportedSurfaceTypeIsUnprocessable(): void {
-    $response = $this->post(self::URL, [
-      'surfaceType' => 'node',
-      'surfaceId' => '1',
-      'componentUuid' => NULL,
-      'body' => 'Nodes are not a Canvas surface.',
-    ]);
-    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-    self::assertSame(
-      'surfaceType',
-      self::decodeResponse($response)['errors'][0]['source']['pointer'],
-    );
-
-    $response = $this->request(Request::create(self::URL . '?surfaceType=nonsense&surfaceId=1', 'GET'));
-    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-  }
-
-  /**
-   * Tests that a non-boolean `resolved` is a 422, never a 500.
-   */
-  public function testNonBooleanResolvedIsUnprocessable(): void {
-    $response = $this->post(self::URL, [
-      'surfaceType' => Page::ENTITY_TYPE_ID,
-      'surfaceId' => (string) $this->page->id(),
-      'componentUuid' => NULL,
+      'componentUuid' => self::COMPONENT_UUID,
       'body' => 'Valid.',
-    ]);
-    $thread_id = self::decodeResponse($response)['thread']['id'];
+    ];
+    self::assertSame('1', self::decodeResponse($this->post(self::URL, $valid))['thread']['id']);
 
-    // `openapi.yml` types `resolved` as a boolean, so the OpenAPI request
-    // validator rejects this body before the controller sees it. Disable that
-    // validator to reach the controller's own defensive guard.
+    $server = ['CONTENT_TYPE' => 'application/json'];
+    if ($skip_openapi_validation) {
+      $server['HTTP_X_NO_OPENAPI_VALIDATION'] = '1';
+    }
     $response = $this->request(Request::create(
-      self::URL . '/' . $thread_id,
-      'PATCH',
-      server: [
-        'CONTENT_TYPE' => 'application/json',
-        'HTTP_X_NO_OPENAPI_VALIDATION' => '1',
-      ],
-      content: (string) \json_encode(['resolved' => 'yes'], JSON_THROW_ON_ERROR),
+      self::URL . $path,
+      $method,
+      server: $server,
+      content: $method === 'GET' ? NULL : (string) \json_encode($path === '' ? $body + $valid : $body, JSON_THROW_ON_ERROR),
     ));
-    self::assertNotSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
     self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-    self::assertSame(
-      'resolved',
-      self::decodeResponse($response)['errors'][0]['source']['pointer'],
-    );
+    self::assertStringStartsWith($pointer_prefix, self::decodeResponse($response)['errors'][0]['source']['pointer']);
+    self::assertSame(['1'], $this->listThreadIds());
+  }
+
+  public static function providerInvalidInput(): array {
+    return [
+      'empty body' => ['POST', '', ['body' => ''], 'body', FALSE],
+      'whitespace body' => ['POST', '', ['body' => '   '], 'body', FALSE],
+      'whitespace reply' => ['POST', '/1/replies', ['body' => '  '], 'body', FALSE],
+      'component UUID: not a UUID' => ['POST', '', ['componentUuid' => 'not-a-real-uuid'], 'componentUuid', FALSE],
+      'component UUID: number' => ['POST', '', ['componentUuid' => '12345'], 'componentUuid', FALSE],
+      'component UUID: truncated' => ['POST', '', ['componentUuid' => \substr(self::COMPONENT_UUID, 0, 23)], 'componentUuid', FALSE],
+      'offset right of the component' => ['POST', '', ['offsetX' => 1.5, 'offsetY' => 0.5], 'offset', FALSE],
+      'offset above the component' => ['POST', '', ['offsetX' => 0.5, 'offsetY' => -0.2], 'offset', FALSE],
+      'offset without Y' => ['POST', '', ['offsetX' => 0.5], 'offset', FALSE],
+      'offset without X' => ['POST', '', ['offsetY' => 0.5], 'offset', FALSE],
+      'offset without a component' => ['POST', '', ['componentUuid' => NULL, 'offsetX' => 0.5, 'offsetY' => 0.5], 'offset', FALSE],
+      'offset that is not a number' => ['POST', '', ['offsetX' => 'middle', 'offsetY' => 0.5], 'offset', TRUE],
+      'unsupported surface type' => ['POST', '', ['surfaceType' => 'node', 'componentUuid' => NULL], 'surfaceType', FALSE],
+      'unsupported surface type, listing' => ['GET', '?surfaceType=nonsense&surfaceId=1', [], 'surfaceType', FALSE],
+      'non-boolean resolved' => ['PATCH', '/1', ['resolved' => 'yes'], 'resolved', TRUE],
+    ];
   }
 
   /**
@@ -424,18 +302,15 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
    * Tests that the mention autocomplete offers only comment readers.
    */
   public function testMentionableUsersAreScopedToCommentReaders(): void {
-    // Every candidate needs `access content` too: eligibility is the comment
-    // permission *and* view access to the surface, and without the former a
-    // published page is not viewable either.
+    // Every candidate needs `access content` too, to view the published page.
     $reader = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'mentionable-reader');
     $writer = $this->createUser(['access content', CommentThread::CREATE_PERMISSION], 'mentionable-writer');
     $editor_without_comments = $this->createUser(['access content', Page::EDIT_PERMISSION], 'mentionable-editor');
     $blocked = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'mentionable-blocked');
     self::assertInstanceOf(UserInterface::class, $blocked);
     $blocked->block()->save();
-    // More accounts than one page of results, none of them commenters, and all
-    // of them sorting ahead of the reader. The result limit must be spent on
-    // people who can be mentioned, not on whoever comes first by name.
+    // More accounts than the result limit, none of them commenters, and all
+    // sorting ahead of the reader.
     for ($i = 0; $i < 25; $i++) {
       $this->createUser([], \sprintf('aaa-bystander-%02d', $i));
     }
@@ -444,18 +319,13 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     $names = \array_column(self::decodeResponse($response)['users'], 'displayName');
 
-    // Someone who can read comments can be named in one.
     self::assertContains($reader->getAccountName(), $names);
     // Creating comments includes reading them.
     self::assertContains($writer->getAccountName(), $names);
-    // Someone who can edit the page but not read comments cannot: they would
-    // be named in a conversation they have no way to open.
     self::assertNotContains($editor_without_comments->getAccountName(), $names);
-    // A blocked account can never be reached, so offering it is misleading.
     self::assertNotContains($blocked->getAccountName(), $names);
     // The anonymous user is never mentionable.
     self::assertNotContains('', $names);
-    self::assertSame([], \array_filter($names, static fn (string $name): bool => $name === ''));
   }
 
   /**
@@ -491,8 +361,7 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
       ['uid' => 9999, 'displayName' => NULL],
     ], $mentions);
 
-    // Renaming the user changes what the same stored comment renders as: the
-    // body records who was named, never what they were called at the time.
+    // The stored comment follows a rename.
     $mentioned->setUsername('renamed')->save();
     $response = $this->request(Request::create(\sprintf(
       '%s?surfaceType=%s&surfaceId=%s',
@@ -508,8 +377,7 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
    * Tests that the autocomplete honors view access to the surface itself.
    */
   public function testMentionableUsersRespectSurfaceAccess(): void {
-    // Both hold the comment permission. Only one of them can view content, so
-    // only one of them can open the page the thread would live on.
+    // Both hold the comment permission. Only one of them can view the page.
     $can_view_page = $this->createUser(['access content', CommentThread::VIEW_PERMISSION], 'reader-with-page-access');
     $cannot_view_page = $this->createUser([CommentThread::VIEW_PERMISSION], 'reader-without-page-access');
     self::assertInstanceOf(UserInterface::class, $can_view_page);
@@ -523,8 +391,6 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
     );
 
     self::assertContains($can_view_page->getAccountName(), $names);
-    // Naming somebody in a conversation on a page they cannot open would be an
-    // empty gesture, so the comment permission alone is not enough.
     self::assertNotContains($cannot_view_page->getAccountName(), $names);
   }
 
@@ -544,13 +410,12 @@ final class ApiCommentControllerTest extends CanvasKernelTestBase {
   /**
    * Lists the thread IDs on the test page.
    */
-  private function listThreadIds(string $include_resolved = '0'): array {
+  private function listThreadIds(): array {
     $url = \sprintf(
-      '%s?surfaceType=%s&surfaceId=%s&includeResolved=%s',
+      '%s?surfaceType=%s&surfaceId=%s',
       self::URL,
       Page::ENTITY_TYPE_ID,
       $this->page->id(),
-      $include_resolved,
     );
     $response = $this->request(Request::create($url, 'GET'));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());

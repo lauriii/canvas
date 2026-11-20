@@ -10,13 +10,8 @@ use Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema;
 /**
  * Defines the storage schema handler for comment threads.
  *
- * A base field is indexed only if its field type declares an index in
- * ::schema(), which `string` does not. The anchor fields are strings, so the
- * only way to index them is to add the indexes to the generated entity schema
- * here. Every comment thread lookup filters on the anchor.
- *
- * `canvas_comment.thread` needs no equivalent: it is an `entity_reference`,
- * and that field type does declare an index on its `target_id` column.
+ * Indexes the anchor fields, which every thread lookup filters on. They are
+ * `string` fields, and that field type declares no index of its own.
  *
  * @see \Drupal\canvas\Entity\CommentThread
  */

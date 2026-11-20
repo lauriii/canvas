@@ -20,8 +20,7 @@ Threaded comments anchored to a component instance on a Canvas page.
   resolved state) and `canvas_comment` (each message).
 - An HTTP API to list threads for a surface, create a thread, reply, resolve,
   and reopen.
-- Three permissions: `view canvas comments`, `create canvas comments`,
-  `moderate canvas comments`.
+- Two permissions: `view canvas comments` and `create canvas comments`.
 - On-canvas pins drawn in the editor's overlay layer, and a threads sidebar
   panel with an open/resolved filter, a composer, replies, and
   resolve/reopen.
@@ -112,8 +111,8 @@ measured box, never canvas coordinates. Multiplied back out against whatever
 that box measures in the current viewport, they put the pin on the same part of
 the same component at every width, so a comment left on the bottom-right of a
 hero stays on the bottom-right when the hero reflows to a phone. A thread with
-no recorded point — one started from the sidebar, or created before offsets
-existed — pins to the component's top-left corner.
+no recorded point (one started from the sidebar, or created before offsets
+existed) pins to the component's top-left corner.
 
 ### Pins reuse the existing overlay stack
 
@@ -158,13 +157,12 @@ and so can never trip the 409 conflict machinery.
 
 ### Permissions
 
-Three permissions, deliberately independent of surface edit access in both
+Two permissions, deliberately independent of surface edit access in both
 directions:
 
 ```yaml
-view canvas comments:      # see threads and the sidebar
-create canvas comments:    # start threads, reply, resolve, reopen; includes view
-moderate canvas comments:  # delete others' comments
+view canvas comments:    # see threads and the sidebar
+create canvas comments:  # start threads, reply, resolve, reopen; includes view
 ```
 
 `create canvas comments` includes `view canvas comments`: replying to a thread
@@ -172,16 +170,18 @@ or resolving it returns the whole thread, so a role that can write comments can
 always read them.
 
 Comment API access is authorized by a comment permission **plus view access
-to the surface**, never edit access. Editing your own comment is allowed;
-editing someone else's is never allowed, for anyone, including moderators. A
-moderator can delete; nobody can put words in your mouth.
+to the surface**, never edit access.
 
-The surface check lives in the comment API, not in entity access, which knows
-only the three permissions. Both entity types are therefore marked `internal`,
-so JSON:API and REST do not expose them and the comment API stays the only way
-to read a thread.
+Both checks live in the comment API. The entity types have no access handler
+of their own, so entity access denies everything, and both are marked
+`internal`, so JSON:API and REST do not expose them. The comment API stays the
+only way to read or write a thread.
 
-This split costs three lines of YAML now and is expensive to retrofit. Today,
+No endpoint edits or deletes a comment yet. A moderation permission comes with
+those endpoints, along with the rule that nobody may rewrite somebody else's
+comment.
+
+This split costs two lines of YAML now and is expensive to retrofit. Today,
 giving someone feedback rights on a page builder means giving them edit
 rights. A comment-only role is the fix, and it is deliberately *not* v1
 scope, because it is not really a commenting feature: it needs editor entry
@@ -196,16 +196,15 @@ All routes require authentication and a comment permission.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/canvas/api/v0/comments?surfaceType=&surfaceId=&includeResolved=` | List a surface's threads |
+| `GET` | `/canvas/api/v0/comments?surfaceType=&surfaceId=` | List a surface's threads |
 | `POST` | `/canvas/api/v0/comments` | Create a thread |
 | `POST` | `/canvas/api/v0/comments/{commentThreadId}/replies` | Reply |
 | `PATCH` | `/canvas/api/v0/comments/{commentThreadId}` | Resolve or reopen |
 
-Resolved threads are excluded from the listing by default. Most threads end up
-resolved, so this is the single largest saving on a busy surface. They are
-therefore absent from the canvas too while the sidebar's "Open" filter is
-active; switching to "Resolved" fetches them and draws their pins in a
-distinct resolved style.
+The listing returns every thread on the surface, open and resolved, and the
+editor filters them. Resolved threads are absent from the canvas while the
+sidebar's "Open" filter is active; switching to "Resolved" draws their pins in
+a distinct resolved style.
 
 Pins themselves are drawn for as long as the surface is open in the editor,
 whether or not the sidebar is. Seeing that something has been commented on is

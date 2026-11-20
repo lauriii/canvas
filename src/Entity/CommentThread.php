@@ -16,20 +16,16 @@ use Drupal\user\EntityOwnerTrait;
 /**
  * Defines the comment thread entity class.
  *
- * A comment thread anchors a conversation to one component instance on an
- * editable Canvas surface, and carries the resolved state of that
- * conversation. The messages themselves are `canvas_comment` entities.
+ * A comment thread anchors a conversation to a Canvas surface, or to one
+ * component instance on it, and carries its resolved state. The messages are
+ * `canvas_comment` entities.
  *
- * Threads live outside the draft/publish/undo lifecycle of the surface they
- * are anchored to: three of Canvas' four editable surfaces are config
- * entities, which cannot carry fields. The anchor is therefore portable: the
- * `(surface_type, surface_id, component_uuid)` triple, not an entity
- * reference. `surface_id` is a string because config entity IDs are strings.
+ * The anchor is the `(surface_type, surface_id, component_uuid)` triple, not
+ * an entity reference, because most Canvas surfaces are config entities.
  *
- * The entity type is internal, which keeps it out of JSON:API and REST. Entity
- * access knows only the comment permissions; view access to the commented
- * surface is enforced by the Canvas comment API, so that API has to be the
- * only way in.
+ * The entity type is internal and has no access handler: the Canvas comment
+ * API is the only way in, and it checks the comment permissions and view
+ * access to the surface.
  *
  * @see \Drupal\canvas\Controller\ApiCommentController
  *
@@ -45,7 +41,6 @@ use Drupal\user\EntityOwnerTrait;
     handlers: [
       "storage" => SqlContentEntityStorage::class,
       "storage_schema" => CommentThreadStorageSchema::class,
-      "access" => CommentThreadAccessControlHandler::class,
     ],
     base_table: "canvas_comment_thread",
     entity_keys: [
@@ -62,7 +57,6 @@ final class CommentThread extends ContentEntityBase implements EntityOwnerInterf
   public const string ENTITY_TYPE_ID = 'canvas_comment_thread';
   public const string VIEW_PERMISSION = 'view canvas comments';
   public const string CREATE_PERMISSION = 'create canvas comments';
-  public const string MODERATE_PERMISSION = 'moderate canvas comments';
 
   /**
    * {@inheritdoc}
@@ -85,12 +79,8 @@ final class CommentThread extends ContentEntityBase implements EntityOwnerInterf
       ->setLabel(t('Component instance UUID'))
       ->setDescription(t('The UUID of the commented component instance. Empty for a surface-level thread.'))
       ->setSetting('max_length', 128);
-    // Where inside the component the comment was left, as a fraction of its
-    // measured box rather than a canvas coordinate. A preview reflows and is
-    // rendered at several viewport widths at once, so an absolute point would
-    // land somewhere different in each of them; a fraction lands on the same
-    // part of the same component in all of them. Empty when the thread was
-    // started from the sidebar, which has no point to record.
+    // The offsets are fractions of the component's box, so the point is the
+    // same at every viewport width. Both are empty for a thread with no point.
     $fields['offset_x'] = BaseFieldDefinition::create('float')
       ->setLabel(t('Horizontal offset'))
       ->setDescription(t('Where in the component the comment was left, from 0 at its left edge to 1 at its right.'));
@@ -101,19 +91,9 @@ final class CommentThread extends ContentEntityBase implements EntityOwnerInterf
       ->setLabel(t('Resolved'))
       ->setDescription(t('Whether this thread has been resolved.'))
       ->setDefaultValue(FALSE);
-    $fields['resolved_by'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(t('Resolved by'))
-      ->setDescription(t('The user that resolved this thread.'))
-      ->setSetting('target_type', 'user');
-    $fields['resolved_at'] = BaseFieldDefinition::create('timestamp')
-      ->setLabel(t('Resolved on'))
-      ->setDescription(t('The time this thread was resolved.'));
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Authored on'))
       ->setDescription(t('The time this thread was created.'));
-    $fields['changed'] = BaseFieldDefinition::create('changed')
-      ->setLabel(t('Changed'))
-      ->setDescription(t('The time this thread was last changed.'));
     return $fields;
   }
 
@@ -165,37 +145,10 @@ final class CommentThread extends ContentEntityBase implements EntityOwnerInterf
   }
 
   /**
-   * Marks this thread as resolved.
-   */
-  public function resolve(int $uid, int $timestamp): static {
-    $this->set('resolved', TRUE);
-    $this->set('resolved_by', $uid);
-    $this->set('resolved_at', $timestamp);
-    return $this;
-  }
-
-  /**
-   * Marks this thread as unresolved, clearing who resolved it and when.
-   */
-  public function reopen(): static {
-    $this->set('resolved', FALSE);
-    $this->set('resolved_by', NULL);
-    $this->set('resolved_at', NULL);
-    return $this;
-  }
-
-  /**
    * Gets the time this thread was created, as a UNIX timestamp.
    */
   public function getCreatedTime(): int {
     return (int) $this->get('created')->value;
-  }
-
-  /**
-   * Gets the time this thread last changed, as a UNIX timestamp.
-   */
-  public function getChangedTime(): int {
-    return (int) $this->get('changed')->value;
   }
 
 }

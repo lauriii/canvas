@@ -66,10 +66,3 @@ view canvas comments:
 create canvas comments:
   title: 'Create Canvas comments'
   description: 'Start comment threads, reply to them, and resolve or reopen them. Includes viewing comments.'
-
-# @see \Drupal\canvas\Entity\CommentThread::MODERATE_PERMISSION
-moderate canvas comments:
-  title: 'Moderate Canvas comments'
-  description: 'Delete comment threads and other users'' comments. Editing other users'' comments is never allowed.'
-  # Restricted as this grants control over other users' contributions.
-  restrict access: true
