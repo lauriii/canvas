@@ -14,6 +14,10 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DomCrawler\Crawler;
+use Twig\Environment;
+use Twig\Loader\ArrayLoader;
+use Twig\Loader\ChainLoader;
+use Twig\Source;
 
 /**
  * Tests CanvasTwigExtension.
@@ -125,6 +129,71 @@ final class CanvasTwigExtensionTest extends CanvasKernelTestBase {
       self::assertDoesNotMatchRegularExpression('/^<!-- canvas-slot-start-(.*)\/the_body -->/', $bodyHtml);
       self::assertDoesNotMatchRegularExpression('/canvas-slot-end-(.*)\/the_body -->$/', $bodyHtml);
     }
+  }
+
+  /**
+   * Tests that only templates Canvas renders components with are wrapped.
+   *
+   * Canvas passes `canvas_uuid`, `canvas_slot_ids` and `canvas_is_preview`
+   * only to single-directory component templates and to the inline templates
+   * it generates for slots, so no other template should compile the wrapper's
+   * context checks.
+   *
+   * @legacy-covers \Drupal\canvas\Twig\CanvasPropVisitor
+   * @see https://www.drupal.org/i/3569796
+   */
+  public function testWrapperNodesAreScopedToComponentTemplates(): void {
+    $twig = $this->container->get('twig');
+    self::assertInstanceOf(Environment::class, $twig);
+    $code = '<div>{{ heading }}</div>';
+    // Register the test template names with a loader, because compiling a
+    // source requires its name to be resolvable to a cache key.
+    $loader = $twig->getLoader();
+    $twig->setLoader(new ChainLoader([
+      new ArrayLoader([
+        'canvas-test-plain.html.twig' => $code,
+        '__string_template__canvas_test' => $code,
+      ]),
+      $loader,
+    ]));
+
+    // A template Canvas does not render components with must not be burdened
+    // with the wrapper code.
+    self::assertStringNotContainsString(
+      'canvas_is_preview',
+      $twig->compileSource(new Source($code, 'canvas-test-plain.html.twig')),
+    );
+
+    // Single-directory component templates receive props from Canvas.
+    self::assertStringContainsString(
+      'canvas_is_preview',
+      $twig->compileSource($loader->getSourceContext('canvas_test_sdc:props-slots')),
+    );
+
+    // Inline templates are how Canvas renders slots and JavaScript components.
+    self::assertStringContainsString(
+      'canvas_is_preview',
+      $twig->compileSource(new Source($code, '__string_template__canvas_test')),
+    );
+
+    // Known consequence of the scoping: Twig compiles each template on its own,
+    // so a template that a component template pulls in with `{% include %}`,
+    // `{% extends %}` or `{% use %}` gets no boundary markers, even though the
+    // context does reach it at runtime.
+    $build = [
+      '#type' => 'inline_template',
+      '#template' => "{% include 'canvas-test-plain.html.twig' %}",
+      '#context' => [
+        'heading' => 'Hello',
+        'canvas_uuid' => 'test-uuid',
+        'canvas_slot_ids' => [],
+        'canvas_is_preview' => TRUE,
+      ],
+    ];
+    $rendered = (string) $this->container->get(RendererInterface::class)->renderInIsolation($build);
+    self::assertSame('<div>Hello</div>', \trim($rendered));
+
+    $twig->setLoader($loader);
   }
 
   public static function providerComponents(): iterable {
