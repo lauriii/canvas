@@ -6,6 +6,10 @@ import AppWrapper from '@tests/vitest/components/AppWrapper';
 import { makeStore } from '@/app/store';
 import CommentsPanel from '@/features/comments/CommentsPanel';
 import { setConfiguration } from '@/features/configuration/configurationSlice';
+import {
+  NodeType,
+  setInitialLayoutModel,
+} from '@/features/layout/layoutModelSlice';
 import { setSelection } from '@/features/ui/uiSlice';
 
 import type { CommentAuthor, CommentThread } from '@/services/comments';
@@ -96,6 +100,12 @@ const stubFetch = (threads: CommentThread[] = [openThread, resolvedThread]) => {
           status: 201,
           headers: { 'Content-Type': 'application/json' },
         });
+      }
+      if (request.url.includes('config/component')) {
+        return new Response(
+          JSON.stringify({ 'sdc.test.hero': { name: 'Hero' } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
       }
       if (request.url.includes('mentionable-users')) {
         return new Response(
@@ -226,6 +236,44 @@ describe('CommentsPanel', () => {
     await user.click(await screen.findByTestId('canvas-comment-thread-toggle'));
 
     expect(store.getState().ui.selection.items).toEqual(['uuid-anchored']);
+  });
+
+  it('names the component a thread is about, and the one a new thread will be', async () => {
+    const store = setUpStore();
+    store.dispatch(
+      setInitialLayoutModel({
+        layout: [
+          {
+            nodeType: NodeType.Region,
+            id: 'content',
+            name: 'Content',
+            components: [
+              {
+                nodeType: NodeType.Component,
+                uuid: 'uuid-anchored',
+                type: 'sdc.test.hero@abc123',
+                slots: [],
+              },
+            ],
+          },
+        ],
+        model: {},
+        updatePreview: false,
+      }),
+    );
+    store.dispatch(
+      setSelection({ items: ['uuid-anchored'], consecutive: true }),
+    );
+    renderPanel(store);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('canvas-comment-replies')).toHaveTextContent(
+        '1 reply • on Hero',
+      );
+    });
+    expect(screen.getByTestId('canvas-comment-target')).toHaveTextContent(
+      'Will be attached to Hero.',
+    );
   });
 
   it('creates a surface-level thread when no component is selected', async () => {

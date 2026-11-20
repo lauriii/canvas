@@ -20,9 +20,12 @@ import {
 import MentionTextArea from '@/features/comments/MentionTextArea';
 import { toMentions, toStoredBody } from '@/features/comments/mentionUtils';
 import useCommentSurface from '@/features/comments/useCommentSurface';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import { formatTimestamp } from '@/features/notifications/formatTimestamp';
 import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
+import useGetComponentName from '@/hooks/useGetComponentName';
 import {
   isPending,
   useCreateThreadMutation,
@@ -63,6 +66,14 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
   // Shown ahead of the server, so there is no thread to reply to or resolve
   // yet.
   const pending = isPending(thread);
+  // Which component the thread is about, by the name it has in Layers. Empty
+  // when the component is no longer in the layout.
+  const layout = useAppSelector(selectLayout);
+  const componentName = useGetComponentName(
+    thread.componentUuid
+      ? findComponentByUuid(layout, thread.componentUuid)
+      : null,
+  );
 
   const submitReply = async () => {
     const body = replyBody.trim();
@@ -134,7 +145,9 @@ const Thread = ({ thread, isActive, onSelect, listArgs }: ThreadProps) => {
               />
               <Text size="1" color="gray" data-testid="canvas-comment-replies">
                 {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
-                {thread.componentUuid ? ' • on a component' : ' • on this page'}
+                {thread.componentUuid
+                  ? ` • on ${componentName || 'a component'}`
+                  : ' • on this page'}
               </Text>
             </Flex>
           </Flex>
@@ -258,6 +271,12 @@ export const CommentsPanel = () => {
   const [createError, setCreateError] = useState(false);
   const [createThread, { isLoading: isCreating }] = useCreateThreadMutation();
   const canWrite = hasPermission('createComments');
+  const layout = useAppSelector(selectLayout);
+  const selectedComponentName = useGetComponentName(
+    selectedComponentUuid
+      ? findComponentByUuid(layout, selectedComponentUuid)
+      : null,
+  );
 
   const listArgs = {
     surfaceType,
@@ -360,7 +379,7 @@ export const CommentsPanel = () => {
           <Flex align="center" justify="between" gap="2" mt="2">
             <Text size="1" color="gray" data-testid="canvas-comment-target">
               {selectedComponentUuid
-                ? 'Will be attached to the selected component.'
+                ? `Will be attached to ${selectedComponentName || 'the selected component'}.`
                 : 'Will be attached to this page.'}
             </Text>
             <Button
