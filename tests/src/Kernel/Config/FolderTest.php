@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
+use Drupal\canvas\Entity\Page;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -132,6 +133,41 @@ class FolderTest extends CanvasKernelTestBase {
     \assert($default_folder_id instanceof Folder);
     Component::load('sdc.canvas_test_sdc.attributes')?->delete();
     $this->assertNotContains('sdc.canvas_test_sdc.attributes', Folder::load($default_folder_id->id())?->get('items'));
+  }
+
+  /**
+   * A Folder of pages lists page UUIDs, and forgets a deleted page.
+   */
+  public function testPageFolder(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->installEntitySchema('media');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $page = Page::create(['title' => 'A page']);
+    $page->save();
+    $unknown_uuid = $this->container->get('uuid')->generate();
+
+    $folder = Folder::create([
+      'name' => 'Campaigns',
+      'configEntityTypeId' => Page::ENTITY_TYPE_ID,
+      'items' => ['not-a-uuid'],
+    ]);
+    $violations = $folder->getTypedData()->validate();
+    $this->assertCount(1, $violations);
+    $this->assertSame("The 'not-a-uuid' folder item must be a UUID.", (string) $violations->get(0)->getMessage());
+
+    // A UUID that matches no page is valid: config is deployed between
+    // environments that do not hold the same pages.
+    $folder->set('items', [$page->uuid(), $unknown_uuid]);
+    self::assertEntityIsValid($folder);
+    $folder->save();
+    $this->assertSame(
+      ["canvas_page:canvas_page:{$page->uuid()}", "canvas_page:canvas_page:$unknown_uuid"],
+      $folder->getDependencies()['content'],
+    );
+
+    $page->delete();
+    $this->assertSame([$unknown_uuid], Folder::load($folder->id())?->get('items'));
   }
 
   /**

@@ -28,14 +28,14 @@ const UncategorizedDropZone: React.FC<UncategorizedDropZoneProps> = ({
     id: `uncategorized-${itemType}`,
     data: {
       destination: 'uncategorized',
-      accepts: ['library', 'code'],
+      accepts: ['library', 'code', 'pages'],
     },
     disabled: !administerFolders || previewDragging,
   });
 
   const isValidDrag =
     active?.data?.current &&
-    ['library', 'code'].includes(active.data.current.origin) &&
+    ['library', 'code', 'pages'].includes(active.data.current.origin) &&
     active.data.current.type !== 'folder';
 
   return (

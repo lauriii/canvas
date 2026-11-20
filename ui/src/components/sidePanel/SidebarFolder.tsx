@@ -90,7 +90,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
     id,
     data: {
       destination: 'folder',
-      accepts: ['library', 'code', 'folder'],
+      accepts: ['library', 'code', 'folder', 'pages'],
       weight,
     },
     // previewDragging is true when user drags from the editor frame - we disable dropping into folders in that case.

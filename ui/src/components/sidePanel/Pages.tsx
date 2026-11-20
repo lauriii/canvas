@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 
@@ -10,10 +10,15 @@ import {
   selectHomepageStagedConfigExists,
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
+import { useDropOnFolderHandler } from '@/hooks/useDropOnFolderHandler';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
+import { usePermissionCheck } from '@/hooks/usePermissionCheck';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
-import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import {
+  componentAndLayoutApi,
+  useGetFoldersQuery,
+} from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
   useDeleteContentMutation,
@@ -23,6 +28,7 @@ import {
 } from '@/services/content';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
+import type { Folder } from '@/types/Component';
 import type { ContentStub } from '@/types/Content';
 
 const canvasSettings = getCanvasSettings();
@@ -46,6 +52,43 @@ const Pages = () => {
     hasMore,
     handleLoadMore,
   } = usePaginatedContentList('canvas_page', searchTerm);
+
+  const { data: folders } = useGetFoldersQuery();
+  const canManageFolders = usePermissionCheck({ hasPermission: 'folders' });
+  const { moveItemToFolder } = useDropOnFolderHandler();
+  const pageFolders = useMemo(
+    () =>
+      (Object.values(folders?.folders ?? {}) as (Folder & { type: string })[])
+        .filter(({ type }) => type === 'canvas_page')
+        .sort(
+          (a, b) =>
+            (a.weight ?? 0) - (b.weight ?? 0) || a.name.localeCompare(b.name),
+        ),
+    [folders],
+  );
+
+  // A folder can hold pages beyond the batch loaded so far.
+  // ponytail: this loads the whole list while any folder item is missing. Add
+  // a UUID filter to the content list endpoint if sites with many pages feel
+  // it.
+  useEffect(() => {
+    if (!hasMore || isPageItemsLoading || searchTerm) {
+      return;
+    }
+    const loaded = new Set(pageItems?.map(({ uuid }) => uuid));
+    if (
+      pageFolders.some(({ items }) => items.some((uuid) => !loaded.has(uuid)))
+    ) {
+      handleLoadMore();
+    }
+  }, [
+    hasMore,
+    isPageItemsLoading,
+    searchTerm,
+    pageItems,
+    pageFolders,
+    handleLoadMore,
+  ]);
 
   const [
     createContent,
@@ -85,6 +128,12 @@ const Pages = () => {
       entityType: 'canvas_page',
       entityId: pageToDeleteId,
     });
+    // The server takes a deleted page out of its folder.
+    dispatch(
+      componentAndLayoutApi.util.invalidateTags([
+        { type: 'Folders', id: 'LIST' },
+      ]),
+    );
 
     // If the current page is the one being deleted, redirect using smart logic
     if (entityType === 'canvas_page' && entityId === pageToDeleteId) {
@@ -209,6 +258,21 @@ const Pages = () => {
       homepagePath={homepagePath}
       selectedPageId={selectedPageId}
       canCreatePages={canCreatePages}
+      // A search shows a flat list of the matching pages.
+      pageFolders={
+        searchTerm
+          ? undefined
+          : {
+              folders: pageFolders,
+              folderOfPage: folders?.componentIndexedFolders ?? {},
+              canManage: canManageFolders,
+              onMove: (page, folderId) => {
+                if (page.uuid) {
+                  moveItemToFolder(page.uuid, folderId);
+                }
+              },
+            }
+      }
       onNewPage={handleNewPage}
       onDeletePage={handleDeletePage}
       onDuplicatePage={handleDuplication}

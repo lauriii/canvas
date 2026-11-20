@@ -1432,7 +1432,7 @@ canvas.folder.*:
       type: string
       label: 'Folder type'
       constraints:
-        # Accept only config entity types that implement FolderItemInterface.
+        # Accept only entity types that implement FolderItemInterface.
         PluginExists:
           manager: entity_type.manager
           interface: Drupal\canvas\Entity\FolderItemInterface
@@ -1446,8 +1446,8 @@ canvas.folder.*:
         type: string
         label: 'Folder items IDs'
         constraints:
-          ConfigExists:
-            prefix: 'canvas.[%parent.%parent.configEntityTypeId].'
+          FolderItemExists:
+            configEntityTypeId: '%parent.%parent.configEntityTypeId'
           OneFolderPerItemLimitConstraint:
             id: '%parent.%parent.uuid'
             configEntityTypeId: '%parent.%parent.configEntityTypeId'

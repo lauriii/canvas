@@ -114,7 +114,8 @@ export type FolderInList = {
 
 export type FoldersInList = FolderInList[];
 
-export type FolderType = 'component' | 'pattern' | 'js_component' | 'color';
+export type FolderType =
+  'component' | 'pattern' | 'js_component' | 'color' | 'canvas_page';
 
 /**
  * Type predicate to check if a component is a PropSourceComponent.

@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import FolderIcon from '@assets/icons/folder.svg?react';
+import { useDraggable } from '@dnd-kit/core';
 import {
   ChevronDownIcon,
   ClockIcon,
@@ -22,12 +24,30 @@ import {
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import ErrorCard from '@/components/error/ErrorCard';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
+import FolderList from '@/components/list/FolderList';
+import UncategorizedDropZone from '@/components/list/UncategorizedDropZone';
+import { ListIndentContext } from '@/components/sidePanel/ListIndentContext';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
+import FolderNameInput from '@/features/brandKit/components/FolderNameInput';
 import { getModuleOperations } from '@/utils/contentOperations';
 
 import type { FormEvent } from 'react';
+import type { Folder, FolderInList } from '@/types/Component';
 import type { ContentStub } from '@/types/Content';
+
+/** The folders the Pages panel groups its pages by. */
+export interface PageFolders {
+  /** In display order. */
+  folders: Folder[];
+  /** Page UUID to folder ID. */
+  folderOfPage: Record<string, string>;
+  /** Whether the user may create and change folders, and move pages. */
+  canManage: boolean;
+  onMove: (page: ContentStub, folderId: string | null) => void;
+}
+
+const PageFoldersContext = createContext<PageFolders | null>(null);
 
 const hasPermission = (
   permission:
@@ -64,6 +84,7 @@ const createPageMenuContent = (
   onPublish?: (page: ContentStub) => void,
   onDelete?: (page: ContentStub) => void,
   homepagePath?: string,
+  pageFolders?: PageFolders | null,
 ) => {
   const hasDuplicate = hasPermission('duplicate', item);
   const hasHomepage =
@@ -72,6 +93,9 @@ const createPageMenuContent = (
   const hasPublish = hasPermission('publish', item);
   const hasDelete = hasPermission('delete', item);
   const moduleOperations = getModuleOperations(item);
+  const currentFolderId = item.uuid && pageFolders?.folderOfPage[item.uuid];
+  const hasMove =
+    !!pageFolders?.canManage && !!item.uuid && pageFolders.folders.length > 0;
 
   // If no permissions, don't render dropdown
   if (
@@ -80,6 +104,7 @@ const createPageMenuContent = (
     !hasUnpublish &&
     !hasPublish &&
     !hasDelete &&
+    !hasMove &&
     !moduleOperations.length
   ) {
     return null;
@@ -148,12 +173,45 @@ const createPageMenuContent = (
           ))}
         </>
       )}
+      {hasMove && (
+        <>
+          {(hasDuplicate ||
+            hasHomepage ||
+            hasUnpublish ||
+            hasPublish ||
+            moduleOperations.length > 0) && <UnifiedMenu.Separator />}
+          <UnifiedMenu.Sub>
+            <UnifiedMenu.SubTrigger>Move to folder</UnifiedMenu.SubTrigger>
+            <UnifiedMenu.SubContent>
+              {pageFolders.folders.map((folder) => (
+                <UnifiedMenu.Item
+                  key={folder.id}
+                  disabled={folder.id === currentFolderId}
+                  onClick={(event) => event.stopPropagation()}
+                  onSelect={() => pageFolders.onMove(item, folder.id)}
+                >
+                  {folder.name}
+                </UnifiedMenu.Item>
+              ))}
+              <UnifiedMenu.Separator />
+              <UnifiedMenu.Item
+                disabled={!currentFolderId}
+                onClick={(event) => event.stopPropagation()}
+                onSelect={() => pageFolders.onMove(item, null)}
+              >
+                No folder
+              </UnifiedMenu.Item>
+            </UnifiedMenu.SubContent>
+          </UnifiedMenu.Sub>
+        </>
+      )}
       {hasDelete && (
         <>
           {(hasDuplicate ||
             hasHomepage ||
             hasUnpublish ||
             hasPublish ||
+            hasMove ||
             moduleOperations.length > 0) && <UnifiedMenu.Separator />}
           <AlertDialog.Root>
             <AlertDialog.Trigger>
@@ -222,6 +280,16 @@ export const PageListItem = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const title = `${item.autoSaveLabel || item.title} ${item.autoSavePath || item.path}`;
+  // Null outside the Pages panel, where rows are not in folders.
+  const pageFolders = useContext(PageFoldersContext);
+  const canMove = !!pageFolders?.canManage && !!item.uuid;
+  // Only the pointer listeners are used. The page menu's "Move to folder" is
+  // the way to move a page without a pointer.
+  const { listeners, setNodeRef } = useDraggable({
+    id: item.uuid ?? `page-${item.id}`,
+    data: { origin: 'pages', name: item.autoSaveLabel || item.title },
+    disabled: !canMove,
+  });
   const dropdownMenuContent = createPageMenuContent(
     item,
     onDuplicate,
@@ -230,6 +298,7 @@ export const PageListItem = ({
     onPublish,
     onDelete,
     homepagePath,
+    pageFolders,
   );
 
   // Determine unpublished status:
@@ -244,7 +313,7 @@ export const PageListItem = ({
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        <div>
+        <div ref={setNodeRef} {...(canMove ? listeners : undefined)}>
           <SidebarNode
             title={title}
             variant={isHomepage ? 'homepage' : 'page'}
@@ -305,6 +374,7 @@ const ContentGroup = ({
   onUnpublish,
   onPublish,
   onDelete,
+  inFolder,
 }: {
   items: ContentStub[];
   homepagePath?: string;
@@ -315,9 +385,11 @@ const ContentGroup = ({
   onUnpublish?: (page: ContentStub) => void;
   onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
+  /** Rows of one folder: no empty state, and not the list's test ID. */
+  inFolder?: boolean;
 }) => {
   if (items.length === 0) {
-    return (
+    return inFolder ? null : (
       <EmptyStateCallout
         data-testid="canvas-page-list"
         title="No pages found"
@@ -327,7 +399,11 @@ const ContentGroup = ({
   }
 
   return (
-    <Flex data-testid="canvas-page-list" direction="column" gap="1">
+    <Flex
+      data-testid={inFolder ? undefined : 'canvas-page-list'}
+      direction="column"
+      gap="1"
+    >
       {items.map((item) => {
         const isSelected =
           selectedPageId !== undefined &&
@@ -363,6 +439,8 @@ interface PageListProps {
   selectedPageId?: string | number;
   // Permissions
   canCreatePages?: boolean;
+  /** Set to group the pages by folder. Left out while searching. */
+  pageFolders?: PageFolders;
   // Pagination
   hasMore?: boolean;
   onLoadMore?: () => void;
@@ -384,6 +462,7 @@ const PageList = ({
   homepagePath,
   selectedPageId,
   canCreatePages = false,
+  pageFolders,
   hasMore = false,
   onLoadMore,
   onNewPage,
@@ -403,6 +482,26 @@ const PageList = ({
       }
     };
   }, [onSearch]);
+
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  // Keeps the "New" menu from taking focus back from the folder name input.
+  const suppressAutoFocusRef = useRef(false);
+  const groupProps = {
+    homepagePath,
+    selectedPageId,
+    onSelect: onSelectPage,
+    onDuplicate: onDuplicatePage,
+    onSetHomepage,
+    onUnpublish: onUnpublishPage,
+    onPublish: onPublishPage,
+    onDelete: onDeletePage,
+  };
+  const folderIdOf = (page: ContentStub) =>
+    page.uuid ? pageFolders?.folderOfPage[page.uuid] : undefined;
+  const knownFolderIds = new Set(pageFolders?.folders.map(({ id }) => id));
+  const pagesWithoutFolder = pageItems.filter(
+    (page) => !knownFolderIds.has(folderIdOf(page) ?? ''),
+  );
 
   return (
     <div data-testid="canvas-page-list-panel">
@@ -434,7 +533,7 @@ const PageList = ({
             </TextField.Slot>
           </TextField.Root>
         </form>
-        {canCreatePages && (
+        {(canCreatePages || pageFolders?.canManage) && (
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               <Button
@@ -447,18 +546,46 @@ const PageList = ({
                 <ChevronDownIcon />
               </Button>
             </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              <DropdownMenu.Item
-                onClick={onNewPage}
-                data-testid="canvas-page-list-new-page-button"
-              >
-                <FileTextIcon />
-                New page
-              </DropdownMenu.Item>
+            <DropdownMenu.Content
+              onCloseAutoFocus={(event) => {
+                if (suppressAutoFocusRef.current) {
+                  event.preventDefault();
+                  suppressAutoFocusRef.current = false;
+                }
+              }}
+            >
+              {canCreatePages && (
+                <DropdownMenu.Item
+                  onClick={onNewPage}
+                  data-testid="canvas-page-list-new-page-button"
+                >
+                  <FileTextIcon />
+                  New page
+                </DropdownMenu.Item>
+              )}
+              {pageFolders?.canManage && (
+                <DropdownMenu.Item
+                  onClick={() => {
+                    suppressAutoFocusRef.current = true;
+                    setIsCreatingFolder(true);
+                  }}
+                  data-testid="canvas-page-list-new-folder-button"
+                >
+                  <FolderIcon />
+                  Folder
+                </DropdownMenu.Item>
+              )}
             </DropdownMenu.Content>
           </DropdownMenu.Root>
         )}
       </Flex>
+      {isCreatingFolder && (
+        <FolderNameInput
+          type="canvas_page"
+          onSuccess={() => setIsCreatingFolder(false)}
+          onCancel={() => setIsCreatingFolder(false)}
+        />
+      )}
       <Skeleton
         height="1.2rem"
         loading={isPageItemsLoading}
@@ -466,18 +593,47 @@ const PageList = ({
         my="3"
       >
         <Box>
-          {!pageItemsError && (
-            <ContentGroup
-              items={pageItems}
-              homepagePath={homepagePath}
-              selectedPageId={selectedPageId}
-              onSelect={onSelectPage}
-              onDuplicate={onDuplicatePage}
-              onSetHomepage={onSetHomepage}
-              onUnpublish={onUnpublishPage}
-              onPublish={onPublishPage}
-              onDelete={onDeletePage}
-            />
+          {!pageItemsError && !pageFolders && (
+            <ContentGroup items={pageItems} {...groupProps} />
+          )}
+          {!pageItemsError && pageFolders && (
+            <PageFoldersContext.Provider value={pageFolders}>
+              {pageFolders.folders.map((folder) => {
+                const pages = pageItems.filter(
+                  (page) => folderIdOf(page) === folder.id,
+                );
+                return (
+                  <FolderList
+                    key={folder.id}
+                    folder={{
+                      ...folder,
+                      items: Object.fromEntries(
+                        pages.map((page) => [page.uuid, page]),
+                      ) as unknown as FolderInList['items'],
+                    }}
+                    deleteWarning="Cannot delete folder containing pages"
+                  >
+                    <ListIndentContext.Provider value={1}>
+                      <ContentGroup items={pages} inFolder {...groupProps} />
+                    </ListIndentContext.Provider>
+                  </FolderList>
+                );
+              })}
+              <UncategorizedDropZone
+                itemType="canvas_page"
+                hasItems={pagesWithoutFolder.length > 0}
+              >
+                <ContentGroup
+                  items={pagesWithoutFolder}
+                  // "No pages found" would be wrong under folders with pages.
+                  inFolder={
+                    pageFolders.folders.length > 0 &&
+                    pagesWithoutFolder.length === 0
+                  }
+                  {...groupProps}
+                />
+              </UncategorizedDropZone>
+            </PageFoldersContext.Provider>
           )}
           {pageItemsError && (
             <ErrorCard

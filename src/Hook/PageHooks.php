@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\Page;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
@@ -149,6 +150,20 @@ final class PageHooks {
       return AccessResult::neutral()->addCacheableDependency($system_config);
     }
     return AccessResult::neutral();
+  }
+
+  /**
+   * Implements hook_canvas_page_delete().
+   *
+   * Removes the deleted page from the Folder that lists it.
+   *
+   * @see \Drupal\canvas\Entity\Folder::calculateDependencies()
+   */
+  #[Hook('canvas_page_delete')]
+  public static function removeFromFolder(Page $page): void {
+    Folder::loadByItemAndConfigEntityTypeId((string) $page->uuid(), Page::ENTITY_TYPE_ID)
+      ?->removeItem((string) $page->uuid())
+        ->save();
   }
 
   /**

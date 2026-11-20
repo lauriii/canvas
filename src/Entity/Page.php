@@ -93,7 +93,7 @@ use Drupal\views\EntityViewsData;
     ],
   )
 ]
-final class Page extends EditorialContentEntityBase implements EntityOwnerInterface, ComponentTreeEntityInterface {
+final class Page extends EditorialContentEntityBase implements EntityOwnerInterface, ComponentTreeEntityInterface, FolderItemInterface {
 
   use EntityOwnerTrait;
   public const string ENTITY_TYPE_ID = 'canvas_page';

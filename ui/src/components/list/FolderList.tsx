@@ -7,6 +7,7 @@ import { extractErrorMessageFromApiResponse } from '@/features/error-handling/er
 import { validateFolderNameClientSide } from '@/features/validation/validation';
 import {
   useDeleteFolderMutation,
+  useGetFoldersQuery,
   useUpdateFolderMutation,
 } from '@/services/componentAndLayout';
 
@@ -61,6 +62,8 @@ const FolderList = ({
       reset: resetDelete,
     },
   ] = useDeleteFolderMutation();
+  const { data: foldersData } = useGetFoldersQuery();
+  const storedItems = foldersData?.folders[folder.id]?.items;
   const inputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false);
 
@@ -128,9 +131,11 @@ const FolderList = ({
 
     isSubmittingRef.current = true;
 
-    const items = Array.isArray(folder.items)
-      ? folder.items
-      : Object.keys(folder.items);
+    // The stored items, not the displayed ones: a search, a filter or paging
+    // can hide items that must stay in the folder.
+    const items =
+      storedItems ??
+      (Array.isArray(folder.items) ? folder.items : Object.keys(folder.items));
 
     try {
       await updateFolder({
@@ -145,6 +150,7 @@ const FolderList = ({
     folderName,
     folder.name,
     folder.items,
+    storedItems,
     folder.id,
     folder.weight,
     validationError,
@@ -191,7 +197,7 @@ const FolderList = ({
     }
   }, [isRenaming]);
 
-  const hasItems = getItemsLength() > 0;
+  const hasItems = (storedItems?.length ?? getItemsLength()) > 0;
 
   const handleDelete = useCallback(async () => {
     // Don't delete folder if it has items or is already being deleted.

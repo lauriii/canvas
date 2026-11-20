@@ -72,7 +72,7 @@ const DragEventsHandler: React.FC = () => {
 
   const getOrigin = (
     event: any,
-  ): 'library' | 'overlay' | 'layers' | 'code' | 'unknown' => {
+  ): 'library' | 'overlay' | 'layers' | 'code' | 'pages' | 'unknown' => {
     if (event.active?.data?.current?.origin) {
       return event.active.data.current.origin;
     } else {
@@ -199,9 +199,10 @@ const DragEventsHandler: React.FC = () => {
       ['folder', 'uncategorized'].includes(
         over.data?.current?.destination || '',
       ) &&
-      ['library', 'code', 'folder'].includes(origin)
+      ['library', 'code', 'folder', 'pages'].includes(origin)
     ) {
-      // Handle drop into folder from library or folder reordering.
+      // Handle drop into folder from library or the Pages panel, or folder
+      // reordering.
       handleFolderDrop(event);
     } else if (
       origin === 'overlay' ||

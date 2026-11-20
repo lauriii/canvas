@@ -48,8 +48,8 @@ to one of us! 😊 🙏
 - `component tree`: see [`Canvas Data Model` doc](data-model.md)
 - `content type template`: the default `component tree` for a particular `content type`, which typically includes assigning the smallest units of `structured data` to particular `component input`s, and uses `configuration entity dependencies` to ensure the necessary `component`s are present
 - `Brand kit config entity`: stores brand assets (e.g., fonts and design tokens) that can be accessed in CSS.
-- `Folders`: a way to organize components, patterns and code components into individual "Folders" on the client-side of Canvas
-- `Folder config entity`: stores a list of `items` of particular `configEntityTypeId`, currently limited to `component`, `pattern` and `js_component`
+- `Folders`: a way to organize components, patterns, code components, colors and pages into individual "Folders" on the client-side of Canvas
+- `Folder config entity`: stores a list of `items` of particular `configEntityTypeId`, currently limited to `component`, `pattern`, `js_component`, `color` and `canvas_page`
 - `PageRegion config entity`: stores a `component tree` for every `theme region` in a given Drupal theme
 - `Pattern config entity`: stores a `component tree` that allows Ambitious Site Builders to save common component composition patterns for Content Creators to reuse
 - `structured data`: see [`Canvas Data Model` doc](data-model.md)
@@ -341,6 +341,15 @@ A `Folder` config entity allows organizing certain Canvas config entities in `Fo
 config entity type, must have a unique name (per config entity type), and can list >=0 entities of that config entity
 type. Each such config config entity can only exist  in a single `Folder`.
 `Folder` config entities use the (configuration system-provided) UUID as their identifier.
+
+A `Folder` can also target `canvas_page`, the one content entity type that implements `FolderItemInterface`. Its `items`
+are page UUIDs, each recorded as a content dependency. An item must be a valid UUID, and does not have to match an
+existing page. Deleting a page removes it from its `Folder`. A `Folder` only organizes pages in the Canvas UI: it does
+not change a page's URL, access or rendering, and moving a page is not a change to the page.
+
+⚠️ Page `Folder`s are config that editors create on the live site. Importing config from another environment replaces
+them. A site that organizes pages in production should exclude `canvas.folder.*` entities whose `configEntityTypeId` is
+`canvas_page` from config deployment. See [ADR 0026](adr/0026-page-folders-reuse-the-folder-config-entity.md).
 
 ⚠️ Still to be built:
 - A UI to create `Folder`s: https://www.drupal.org/project/canvas/issues/3540577

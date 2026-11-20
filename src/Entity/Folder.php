@@ -9,6 +9,7 @@ use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessCo
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -139,8 +140,17 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
     // Declare an explicit config dependency so that core's dependency removal
     // machinery calls ::onDependencyRemoval() when any item is deleted.
     $prefix = 'canvas.' . $this->configEntityTypeId;
+    // The items of a content entity type are UUIDs. Core does not call
+    // ::onDependencyRemoval() when content is deleted.
+    // @see \Drupal\canvas\Hook\PageHooks::removeFromFolder()
+    $is_content = $this->entityTypeManager()->getDefinition($this->configEntityTypeId, FALSE) instanceof ContentEntityTypeInterface;
     foreach ($this->items as $item_id) {
-      $this->addDependency('config', $prefix . '.' . $item_id);
+      if ($is_content) {
+        $this->addDependency('content', "$this->configEntityTypeId:$this->configEntityTypeId:$item_id");
+      }
+      else {
+        $this->addDependency('config', $prefix . '.' . $item_id);
+      }
     }
     return $this;
   }
