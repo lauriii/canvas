@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import ReactDOM from 'react-dom';
 
 import { useAppSelector } from '@/app/hooks';
+import CommentPinLayer from '@/features/comments/CommentPinLayer';
 import {
   selectContentRegion,
   selectIsPerContentMode,
@@ -123,6 +124,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       ) : (
         <RegionOverlay region={contentRegion} />
       )}
+      <CommentPinLayer />
     </div>,
     portalRoot,
   );

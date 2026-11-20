@@ -1,0 +1,89 @@
+.pinLayer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+/* In comment mode the layer takes the clicks the canvas would otherwise use
+   to select components. */
+.placing {
+  /* The pointer is drawn as a pin instead; see `.pointerPin`. */
+  cursor: none;
+  pointer-events: all;
+}
+
+/* The component a comment is being attached to. */
+.target {
+  position: absolute;
+  pointer-events: none;
+  border-radius: var(--radius-1);
+  outline: 2px solid var(--accent-9);
+  outline-offset: -2px;
+  background: var(--accent-a2);
+}
+
+.draftComposer {
+  position: absolute;
+  z-index: 1;
+  width: 15rem;
+  padding: var(--space-2);
+  cursor: auto;
+  transform: translate(0, calc(-100% - var(--space-5)));
+  pointer-events: all;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+  box-shadow: var(--shadow-5);
+}
+
+.pin {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* A pin is a button or a span, which size their boxes differently. */
+  box-sizing: content-box;
+  width: var(--space-5);
+  height: var(--space-5);
+  cursor: pointer;
+  /* The square bottom-left corner is the bubble's tail, and lands on the
+     anchor. */
+  transform: translate(0, -100%);
+  pointer-events: all;
+  /* The colors of an avatar in the review changes panel. The accent is the
+     author's, set per pin. */
+  color: var(--accent-11);
+  border: 1px solid var(--accent-11);
+  border-radius: var(--radius-6) var(--radius-6) var(--radius-6) 0;
+  background: var(--accent-3);
+  box-shadow: var(--shadow-4);
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.pin.active {
+  outline: 2px solid var(--accent-a11);
+  outline-offset: 1px;
+}
+
+.pin.resolved {
+  color: var(--gray-12);
+  border-color: var(--gray-a7);
+  background: var(--gray-4);
+}
+
+/* The pin that stands in for the cursor while a comment is being placed. */
+.pointerPin {
+  top: var(--pointer-y);
+  left: var(--pointer-x);
+  display: none;
+  pointer-events: none;
+}
+
+.pinLayer[data-pointer-pin] .pointerPin {
+  display: flex;
+}

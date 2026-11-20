@@ -5,6 +5,7 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 
 import { publishReviewSlice } from '@/components/review/PublishReview.slice';
 import codeEditorSlice from '@/features/code-editor/codeEditorSlice';
+import { commentsSlice } from '@/features/comments/commentsSlice';
 import { configurationSlice } from '@/features/configuration/configurationSlice';
 import { queryErrorSlice } from '@/features/error-handling/queryErrorSlice';
 import { extensionsSlice } from '@/features/extensions/extensionsSlice';
@@ -39,6 +40,7 @@ import {
 } from '@/features/ui/uiSlice';
 import { assetLibraryApi } from '@/services/assetLibrary';
 import { brandKitApi } from '@/services/brandKit';
+import { commentsApi } from '@/services/comments';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { componentInstanceFormApi } from '@/services/componentInstanceForm';
 import { contentApi } from '@/services/content';
@@ -189,6 +191,10 @@ const rootReducer = combineSlices(
   previewSlice,
   queryErrorSlice,
   personalizationSlice,
+  commentsApi,
+  // Outside the `undoable()` wrappers above: comments are not undoable.
+  // @see ui/src/features/comments/commentsSlice.ts
+  commentsSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
@@ -281,6 +287,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         contentApi.middleware,
         contentEntityReferenceApi.middleware,
         slotFieldsApi.middleware,
+        commentsApi.middleware,
         rtkQueryErrorHandler, // Add the error handling middleware
       );
     },

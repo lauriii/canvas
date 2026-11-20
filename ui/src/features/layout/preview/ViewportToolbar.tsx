@@ -1,9 +1,16 @@
 import clsx from 'clsx';
+import { useHotkeys } from 'react-hotkeys-hook';
 import ScaleToFitIcon from '@assets/icons/justify-stretch.svg?react';
+import { ChatBubbleIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ZoomControl from '@/components/zoom/ZoomControl';
+import {
+  selectCommentModeActive,
+  setCommentMode,
+} from '@/features/comments/commentsSlice';
+import useCommentSurface from '@/features/comments/useCommentSurface';
 import ViewportSelector from '@/features/layout/preview/ViewportSelector';
 import {
   scaleValues,
@@ -11,6 +18,7 @@ import {
   setEditorFrameViewPort,
 } from '@/features/ui/uiSlice';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
+import { hasPermission } from '@/utils/permissions';
 
 import type React from 'react';
 import type { RefObject } from 'react';
@@ -45,6 +53,16 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
   const { editorPaneRef, scalingContainerRef } = props;
   const dispatch = useAppDispatch();
   const currentWidth = useAppSelector(selectViewportWidth);
+  const commentModeActive = useAppSelector(selectCommentModeActive);
+  // Comment mode is only offered on a surface the comment API accepts.
+  const { hasSurface: hasCommentSurface } = useCommentSurface();
+  const canComment = hasPermission('createComments') && hasCommentSurface;
+
+  const toggleCommentMode = () => dispatch(setCommentMode(!commentModeActive));
+  useHotkeys('c', toggleCommentMode, { enabled: canComment }, [
+    dispatch,
+    commentModeActive,
+  ]);
 
   const handleScaleToFit = () => {
     if (editorPaneRef.current) {
@@ -103,6 +121,29 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
         </Button>
       </Tooltip>
       <ZoomControl buttonClass={styles.toolbarButton} />
+      {canComment && (
+        <Tooltip
+          side="bottom"
+          content={
+            commentModeActive
+              ? 'Leave comment mode (C)'
+              : 'Comment on a component (C)'
+          }
+        >
+          <Button
+            size="1"
+            onClick={toggleCommentMode}
+            color={commentModeActive ? undefined : 'gray'}
+            variant={commentModeActive ? 'solid' : 'surface'}
+            highContrast
+            className={styles.toolbarButton}
+            aria-pressed={commentModeActive}
+            data-testid="canvas-comment-mode-toggle"
+          >
+            <ChatBubbleIcon />
+          </Button>
+        </Tooltip>
+      )}
     </Flex>
   );
 };

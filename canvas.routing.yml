@@ -58,6 +58,69 @@ canvas.api.code_component.validate:
     canvas_external_api: true
   methods: [POST]
 
+canvas.api.comments.list:
+  path: '/canvas/api/v0/comments'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Either permission: creating comments includes reading them.
+    _permission: 'view canvas comments+create canvas comments'
+  methods: [GET]
+  options:
+    _format: 'json'
+
+canvas.api.comments.mentionable-users:
+  path: '/canvas/api/v0/comments/mentionable-users'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::mentionableUsers'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Only somebody who may write a comment may see who can be named in one.
+    _permission: 'create canvas comments'
+  methods: [GET]
+  options:
+    _format: 'json'
+
+canvas.api.comments.patch:
+  path: '/canvas/api/v0/comments/{canvas_comment_thread}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::patch'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'create canvas comments'
+  methods: [PATCH]
+  options:
+    parameters:
+      canvas_comment_thread:
+        type: 'entity:canvas_comment_thread'
+    _format: 'json'
+
+canvas.api.comments.post:
+  path: '/canvas/api/v0/comments'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::post'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'create canvas comments'
+  methods: [POST]
+  options:
+    _format: 'json'
+
+canvas.api.comments.reply:
+  path: '/canvas/api/v0/comments/{canvas_comment_thread}/replies'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCommentController::reply'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'create canvas comments'
+  methods: [POST]
+  options:
+    parameters:
+      canvas_comment_thread:
+        type: 'entity:canvas_comment_thread'
+    _format: 'json'
+
 canvas.api.config.auto-save.get:
   path: '/canvas/api/v0/config/auto-save/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:

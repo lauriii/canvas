@@ -7,6 +7,8 @@ use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Color;
+use Drupal\canvas\Entity\Comment;
+use Drupal\canvas\Entity\CommentThread;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
@@ -876,4 +878,18 @@ function canvas_post_update_0032_install_empty_slot_marker(): void {
   // config/install is only processed at module install time, but exposed
   // slots need the marker component to represent empty overrides.
   Marker::ensureComponent(Marker::EMPTY_SLOT_LOCAL_ID);
+}
+
+/**
+ * Installs the comment thread and comment entity types.
+ */
+function canvas_post_update_0033_install_comment_entity_types(): void {
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
+  \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
+  $change_list = $entity_definition_update_manager->getChangeList();
+  foreach ([CommentThread::ENTITY_TYPE_ID, Comment::ENTITY_TYPE_ID] as $entity_type_id) {
+    if (($change_list[$entity_type_id]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
+      $entity_definition_update_manager->installEntityType(\Drupal::entityTypeManager()->getDefinition($entity_type_id));
+    }
+  }
 }
