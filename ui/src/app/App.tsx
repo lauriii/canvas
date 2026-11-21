@@ -21,6 +21,7 @@ import useExtensions from '@/features/extensions/useExtensions';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
 import { findPreviewDropZoneId } from '@/features/layout/previewOverlay/previewDropTarget';
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
+import Presence from '@/features/presence/Presence';
 import useNavigationListener from '@/hooks/useNavigationListener';
 import useRouteSync from '@/hooks/useRouteSync';
 import { getCanvasSettings } from '@/utils/drupal-globals';
@@ -160,6 +161,7 @@ const App: React.FC = () => {
               </ErrorBoundary>
             </Flex>
             <Topbar />
+            <Presence />
             <DragEventsHandler />
             {import.meta.env.DEV && <DevTools />}
             <SavingOverlay />
