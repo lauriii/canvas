@@ -21,6 +21,7 @@ export interface DeleteContentRequest {
 export interface CreateContentResponse {
   entity_id: string;
   entity_type: string;
+  uuid?: string;
 }
 
 export interface CreateContentRequest {

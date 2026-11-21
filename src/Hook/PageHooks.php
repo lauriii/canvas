@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasNotificationHandler;
+use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\Page;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
@@ -20,6 +23,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\path_alias\AliasRepositoryInterface;
 use Drupal\pathauto\PathautoItem;
 use Drupal\pathauto\PathautoState;
 
@@ -36,6 +40,9 @@ final class PageHooks {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly AutoSaveManager $autoSaveManager,
+    private readonly AliasRepositoryInterface $aliasRepository,
+    private readonly CanvasNotificationHandler $notificationHandler,
   ) {
   }
 
@@ -149,6 +156,180 @@ final class PageHooks {
       return AccessResult::neutral()->addCacheableDependency($system_config);
     }
     return AccessResult::neutral();
+  }
+
+  /**
+   * Implements hook_canvas_page_delete().
+   *
+   * Removes the deleted page from the Folder that lists it.
+   *
+   * @see \Drupal\canvas\Entity\Folder::calculateDependencies()
+   */
+  #[Hook('canvas_page_delete')]
+  public static function removeFromFolder(Page $page): void {
+    Folder::loadByItemAndConfigEntityTypeId((string) $page->uuid(), Page::ENTITY_TYPE_ID)
+      ?->removeItem((string) $page->uuid())
+        ->save();
+  }
+
+  /**
+   * Implements hook_ENTITY_TYPE_insert() and hook_ENTITY_TYPE_update().
+   *
+   * Keeps the alias of each page in a folder under the URL path of the folder.
+   * The new alias is an unpublished change of the page: the live URL changes
+   * when the page is published. A notification lists the live URLs that will
+   * change.
+   *
+   * @see docs/adr/0027-page-folders-can-set-the-url-path-of-their-pages.md
+   */
+  #[Hook('folder_insert')]
+  #[Hook('folder_update')]
+  public function rewritePageAliases(Folder $folder): void {
+    // A config import brings a folder, not the wish to change URLs.
+    if ($folder->get('configEntityTypeId') !== Page::ENTITY_TYPE_ID || $folder->isSyncing()) {
+      return;
+    }
+    $original = $folder->getOriginal();
+    $old_path = $original instanceof Folder ? $original->getPath() : NULL;
+    $old_items = $original instanceof Folder ? $original->get('items') : [];
+    $path = $folder->getPath();
+    $items = $folder->get('items');
+
+    // Page UUID to the folder path its alias has, and the one it gets.
+    $moves = [];
+    foreach ($items as $uuid) {
+      $moves[$uuid] = [\in_array($uuid, $old_items, TRUE) ? $old_path : NULL, $path];
+    }
+    foreach (\array_diff($old_items, $items) as $uuid) {
+      $moves[$uuid] = [$old_path, NULL];
+    }
+    $moves = \array_filter($moves, static fn (array $move): bool => $move[0] !== $move[1]);
+    if ($moves === []) {
+      return;
+    }
+
+    // ponytail: one auto-save write per page inside the folder save, and only
+    // the default translation. Queue it if folders hold thousands of pages.
+    $pages = $this->entityTypeManager->getStorage(Page::ENTITY_TYPE_ID)->loadByProperties(['uuid' => \array_keys($moves)]);
+    // The live URLs that change, and those that no longer do, keyed by page
+    // UUID.
+    $url_changes = [];
+    $urls_kept = [];
+    foreach ($pages as $page) {
+      \assert($page instanceof Page);
+      $auto_save = $this->autoSaveManager->getAutoSaveEntity($page);
+      // A copy: the stored page must not change in this request.
+      $draft = $auto_save->isEmpty() ? clone $page : $auto_save->entity;
+      \assert($draft instanceof Page);
+      $alias = (string) $draft->get('path')->alias;
+      $moved = self::moveAlias($alias, (string) $draft->label(), ...$moves[$page->uuid()]);
+      if ($moved === $alias) {
+        continue;
+      }
+      // ponytail: checks stored aliases only. An alias waiting in another
+      // page's unpublished changes is not seen, as for aliases typed by hand.
+      $internal_path = '/' . $page->toUrl()->getInternalPath();
+      $unique = $moved;
+      for ($i = 2; ($taken = $this->aliasRepository->lookupByAlias($unique, $page->language()->getId())) && $taken['path'] !== $internal_path; $i++) {
+        $unique = "$moved-$i";
+      }
+      $draft->get('path')->alias = $unique;
+      $this->autoSaveManager->saveEntity($draft);
+      $live_alias = (string) $page->get('path')->alias;
+      if (!$page->isPublished()) {
+        continue;
+      }
+      $change = [
+        'title' => (string) $draft->label(),
+        'from' => $live_alias === '' ? $internal_path : $live_alias,
+        'to' => $unique,
+      ];
+      if ($live_alias === $unique) {
+        $urls_kept[(string) $page->uuid()] = $change;
+      }
+      else {
+        $url_changes[(string) $page->uuid()] = $change;
+      }
+    }
+
+    // A notification replaces an earlier warning with the same key. Moving a
+    // page between two folders saves both folders, and moving it back takes
+    // the warning away.
+    $key = static fn (array $urls): string => \count($urls) === 1
+      ? 'canvas-page-url:' . \array_key_first($urls)
+      : 'canvas-folder-path:' . $folder->uuid();
+    if (\count($url_changes) === 1) {
+      $change = reset($url_changes);
+      $this->notificationHandler->create([
+        'type' => 'warning',
+        'key' => $key($url_changes),
+        'title' => \sprintf('%s will get a new URL', $change['title']),
+        'message' => \sprintf('It moves from %s to %s when you publish it.', $change['from'], $change['to']),
+      ]);
+    }
+    elseif ($url_changes !== []) {
+      $this->notificationHandler->create([
+        'type' => 'warning',
+        'key' => $key($url_changes),
+        'title' => \sprintf('%d pages in %s will get new URLs', \count($url_changes), $folder->label()),
+        'message' => $path === NULL
+          ? 'They lose the URL path of the folder when you publish them.'
+          : \sprintf('They move under %s when you publish them.', $path),
+      ]);
+    }
+    if (\count($urls_kept) === 1) {
+      $change = reset($urls_kept);
+      $this->notificationHandler->create([
+        'type' => 'success',
+        'key' => $key($urls_kept),
+        'title' => \sprintf('%s keeps its URL', $change['title']),
+        'message' => \sprintf('It stays at %s.', $change['to']),
+      ]);
+    }
+    elseif ($urls_kept !== []) {
+      $this->notificationHandler->create([
+        'type' => 'success',
+        'key' => $key($urls_kept),
+        'title' => \sprintf('%d pages in %s keep their URLs', \count($urls_kept), $folder->label()),
+        'message' => 'Their URLs no longer change.',
+      ]);
+    }
+  }
+
+  /**
+   * Moves an alias from the URL path of one folder to that of another.
+   *
+   * @param string $alias
+   *   The alias, or an empty string for a page that has none.
+   * @param string $title
+   *   The page title: a page that has no alias gets a slug of it.
+   * @param string|null $from
+   *   The folder path the alias has now, if any.
+   * @param string|null $to
+   *   The folder path the alias gets, if any.
+   */
+  public static function moveAlias(string $alias, string $title, ?string $from, ?string $to): string {
+    if ($to !== NULL && ($alias === $to || str_starts_with($alias, "$to/"))) {
+      // Already there. This is also the landing page of the folder.
+      return $alias;
+    }
+    $own = $alias;
+    if ($from !== NULL && ($alias === $from || str_starts_with($alias, "$from/"))) {
+      $own = substr($alias, \strlen($from));
+    }
+    if ($alias === '' && $to !== NULL) {
+      // The same steps as getPathAlias() in the path widget, so that the
+      // widget recognizes the alias as generated and keeps following the
+      // title.
+      // @see ui/src/components/form/components/drupal/DrupalPathWidget.tsx
+      $slug = (string) preg_replace(['/\s+/', '/[^\w-]+/', '/_+/', '/--+/'], ['-', '', '-', '-'], mb_strtolower($title));
+      $slug = trim($slug, '-');
+      $own = '/' . ($slug === '' ? 'page' : $slug);
+    }
+    // A landing page that leaves its folder has no part of its own: it keeps
+    // its alias.
+    $moved = ($to ?? '') . $own;
+    return $moved === '' ? $alias : $moved;
   }
 
   /**

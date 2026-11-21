@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import FolderIcon from '@assets/icons/folder.svg?react';
+import { useDraggable } from '@dnd-kit/core';
 import {
   ChevronDownIcon,
   ClockIcon,
@@ -15,6 +17,7 @@ import {
   DropdownMenu,
   Flex,
   Skeleton,
+  Text,
   TextField,
   Tooltip,
 } from '@radix-ui/themes';
@@ -22,12 +25,128 @@ import {
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import ErrorCard from '@/components/error/ErrorCard';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
+import FolderList, {
+  folderfyComponents,
+  folderNameInputStyle,
+  sortFolderList,
+  useMoveToFolderMenu,
+} from '@/components/list/FolderList';
+import UncategorizedDropZone from '@/components/list/UncategorizedDropZone';
+import { useNewFolder } from '@/components/list/useNewFolder';
+import { ListIndentContext } from '@/components/sidePanel/ListIndentContext';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
+import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import { usePermissionCheck } from '@/hooks/usePermissionCheck';
+import { useUpdateFolderMutation } from '@/services/componentAndLayout';
 import { getModuleOperations } from '@/utils/contentOperations';
 
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
+import type { FolderData } from '@/components/list/FolderList';
+import type { Folder } from '@/types/Component';
 import type { ContentStub } from '@/types/Content';
+
+// The same pattern as the `path` of canvas.folder.* in canvas.schema.yml.
+const FOLDER_PATH_PATTERN = /^(\/[a-z0-9_-]+)+$/;
+
+/**
+ * Edits the URL path of a folder of pages in the row of the folder, as a
+ * rename does: Enter saves, Escape or leaving the input cancels.
+ *
+ * @see docs/adr/0027-page-folders-can-set-the-url-path-of-their-pages.md
+ */
+const FolderPathInput = ({
+  folder,
+  onDone,
+}: {
+  folder: Folder;
+  onDone: () => void;
+}) => {
+  // A folder without a path starts with one made of its name, selected, so
+  // that Enter accepts it and typing replaces it.
+  const [path, setPath] = useState(
+    folder.path ??
+      `/${folder.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')}`,
+  );
+  const [updateFolder, { isLoading, error }] = useUpdateFolderMutation();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isInvalid = path !== '' && !FOLDER_PATH_PATTERN.test(path);
+
+  // After the render, as the rename input does: the closing folder menu takes
+  // focus back from anything focused earlier.
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const save = async () => {
+    if (isInvalid || isLoading) {
+      return;
+    }
+    if (path === (folder.path ?? '')) {
+      onDone();
+      return;
+    }
+    try {
+      await updateFolder({
+        id: folder.id,
+        changes: {
+          name: folder.name,
+          weight: folder.weight,
+          items: folder.items,
+          path: path || null,
+        },
+      }).unwrap();
+      onDone();
+    } catch {
+      // `error` is shown below the input.
+      inputRef.current?.focus();
+    }
+  };
+
+  return (
+    <Flex direction="column" gap="1" width="100%">
+      <Flex align="center" gap="2">
+        <Text size="1" weight="medium" truncate style={{ flexShrink: 1 }}>
+          {folder.name}
+        </Text>
+        <TextField.Root
+          ref={inputRef}
+          aria-label={`URL path of ${folder.name}`}
+          data-testid="canvas-folder-path-input"
+          autoComplete="off"
+          placeholder="/url-path"
+          value={path}
+          onChange={(event) => setPath(event.target.value)}
+          onBlur={() => !isLoading && onDone()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              void save();
+            } else if (event.key === 'Escape') {
+              onDone();
+            }
+          }}
+          disabled={isLoading}
+          aria-invalid={isInvalid || !!error}
+          size="1"
+          variant="soft"
+          style={{ ...folderNameInputStyle, flex: 1, minWidth: '6rem' }}
+        />
+      </Flex>
+      {(isInvalid || error) && (
+        <Text size="1" color="red" weight="medium">
+          {isInvalid
+            ? 'Start with a slash, and use only lowercase letters, digits, hyphens, and underscores.'
+            : extractErrorMessageFromApiResponse(error)}
+        </Text>
+      )}
+    </Flex>
+  );
+};
 
 const hasPermission = (
   permission:
@@ -64,6 +183,7 @@ const createPageMenuContent = (
   onPublish?: (page: ContentStub) => void,
   onDelete?: (page: ContentStub) => void,
   homepagePath?: string,
+  moveToFolderMenu?: ReactNode,
 ) => {
   const hasDuplicate = hasPermission('duplicate', item);
   const hasHomepage =
@@ -72,6 +192,7 @@ const createPageMenuContent = (
   const hasPublish = hasPermission('publish', item);
   const hasDelete = hasPermission('delete', item);
   const moduleOperations = getModuleOperations(item);
+  const hasMove = !!moveToFolderMenu;
 
   // If no permissions, don't render dropdown
   if (
@@ -80,6 +201,7 @@ const createPageMenuContent = (
     !hasUnpublish &&
     !hasPublish &&
     !hasDelete &&
+    !hasMove &&
     !moduleOperations.length
   ) {
     return null;
@@ -148,12 +270,23 @@ const createPageMenuContent = (
           ))}
         </>
       )}
+      {hasMove && (
+        <>
+          {(hasDuplicate ||
+            hasHomepage ||
+            hasUnpublish ||
+            hasPublish ||
+            moduleOperations.length > 0) && <UnifiedMenu.Separator />}
+          {moveToFolderMenu}
+        </>
+      )}
       {hasDelete && (
         <>
           {(hasDuplicate ||
             hasHomepage ||
             hasUnpublish ||
             hasPublish ||
+            hasMove ||
             moduleOperations.length > 0) && <UnifiedMenu.Separator />}
           <AlertDialog.Root>
             <AlertDialog.Trigger>
@@ -208,11 +341,14 @@ export const PageListItem = ({
   onUnpublish,
   onPublish,
   onDelete,
+  movable,
 }: {
   item: ContentStub;
   isSelected: boolean;
   isHomepage: boolean;
   homepagePath?: string;
+  /** Whether the row is in a list that groups pages by folder. */
+  movable?: boolean;
   onSelect?: (value: ContentStub) => void;
   onDuplicate?: (page: ContentStub) => void;
   onSetHomepage?: (page: ContentStub) => void;
@@ -222,6 +358,18 @@ export const PageListItem = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const title = `${item.autoSaveLabel || item.title} ${item.autoSavePath || item.path}`;
+  const moveToFolderMenu = useMoveToFolderMenu(
+    'canvas_page',
+    movable ? item.uuid : undefined,
+  );
+  const canMove = !!moveToFolderMenu;
+  // Only the pointer listeners are used. The page menu's "Move to folder" is
+  // the way to move a page without a pointer.
+  const { listeners, setNodeRef } = useDraggable({
+    id: item.uuid ?? `page-${item.id}`,
+    data: { origin: 'pages', name: item.autoSaveLabel || item.title },
+    disabled: !canMove,
+  });
   const dropdownMenuContent = createPageMenuContent(
     item,
     onDuplicate,
@@ -230,6 +378,7 @@ export const PageListItem = ({
     onPublish,
     onDelete,
     homepagePath,
+    moveToFolderMenu,
   );
 
   // Determine unpublished status:
@@ -244,7 +393,7 @@ export const PageListItem = ({
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        <div>
+        <div ref={setNodeRef} {...(canMove ? listeners : undefined)}>
           <SidebarNode
             title={title}
             variant={isHomepage ? 'homepage' : 'page'}
@@ -305,6 +454,8 @@ const ContentGroup = ({
   onUnpublish,
   onPublish,
   onDelete,
+  movable,
+  inFolder,
 }: {
   items: ContentStub[];
   homepagePath?: string;
@@ -315,9 +466,12 @@ const ContentGroup = ({
   onUnpublish?: (page: ContentStub) => void;
   onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
+  movable?: boolean;
+  /** Rows of one folder: no empty state, and not the list's test ID. */
+  inFolder?: boolean;
 }) => {
   if (items.length === 0) {
-    return (
+    return inFolder ? null : (
       <EmptyStateCallout
         data-testid="canvas-page-list"
         title="No pages found"
@@ -327,7 +481,11 @@ const ContentGroup = ({
   }
 
   return (
-    <Flex data-testid="canvas-page-list" direction="column" gap="1">
+    <Flex
+      data-testid={inFolder ? undefined : 'canvas-page-list'}
+      direction="column"
+      gap="1"
+    >
       {items.map((item) => {
         const isSelected =
           selectedPageId !== undefined &&
@@ -347,6 +505,7 @@ const ContentGroup = ({
             onUnpublish={onUnpublish}
             onPublish={onPublish}
             onDelete={onDelete}
+            movable={movable}
           />
         );
       })}
@@ -363,11 +522,14 @@ interface PageListProps {
   selectedPageId?: string | number;
   // Permissions
   canCreatePages?: boolean;
+  /** Set to group the pages by folder. Left out while searching. */
+  folders?: FolderData;
   // Pagination
   hasMore?: boolean;
   onLoadMore?: () => void;
   // Event handlers
-  onNewPage?: () => void;
+  /** With a folder ID, the new page is created in that folder. */
+  onNewPage?: (folderId?: string) => void;
   onDeletePage?: (item: ContentStub) => void;
   onDuplicatePage?: (item: ContentStub) => void;
   onSelectPage?: (item: ContentStub) => void;
@@ -384,6 +546,7 @@ const PageList = ({
   homepagePath,
   selectedPageId,
   canCreatePages = false,
+  folders,
   hasMore = false,
   onLoadMore,
   onNewPage,
@@ -403,6 +566,36 @@ const PageList = ({
       }
     };
   }, [onSearch]);
+
+  const newFolder = useNewFolder('canvas_page');
+  const canManageFolders =
+    usePermissionCheck({ hasPermission: 'folders' }) && !!folders;
+  const groupProps = {
+    homepagePath,
+    selectedPageId,
+    onSelect: onSelectPage,
+    onDuplicate: onDuplicatePage,
+    onSetHomepage,
+    onUnpublish: onUnpublishPage,
+    onPublish: onPublishPage,
+    onDelete: onDeletePage,
+    movable: !!folders,
+  };
+  // Keyed by UUID, as folders list pages. A key that is not a number keeps
+  // the order of the list.
+  const { folderComponents, topLevelComponents } = folderfyComponents(
+    Object.fromEntries(
+      pageItems.map((page) => [page.uuid ?? `id:${page.id}`, page]),
+    ),
+    folders,
+    false,
+    false,
+    'canvas_page',
+  );
+  const folderEntries = sortFolderList(folderComponents);
+  // The folder whose URL path is being set.
+  const [pathFolderId, setPathFolderId] = useState<string | null>(null);
+  const pagesWithoutFolder = Object.values(topLevelComponents) as ContentStub[];
 
   return (
     <div data-testid="canvas-page-list-panel">
@@ -434,10 +627,11 @@ const PageList = ({
             </TextField.Slot>
           </TextField.Root>
         </form>
-        {canCreatePages && (
+        {(canCreatePages || canManageFolders) && (
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               <Button
+                ref={newFolder.triggerRef}
                 variant="soft"
                 data-testid="canvas-page-list-new-button"
                 size="1"
@@ -447,18 +641,30 @@ const PageList = ({
                 <ChevronDownIcon />
               </Button>
             </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              <DropdownMenu.Item
-                onClick={onNewPage}
-                data-testid="canvas-page-list-new-page-button"
-              >
-                <FileTextIcon />
-                New page
-              </DropdownMenu.Item>
+            <DropdownMenu.Content onCloseAutoFocus={newFolder.onCloseAutoFocus}>
+              {canCreatePages && (
+                <DropdownMenu.Item
+                  onClick={() => onNewPage?.()}
+                  data-testid="canvas-page-list-new-page-button"
+                >
+                  <FileTextIcon />
+                  New page
+                </DropdownMenu.Item>
+              )}
+              {canManageFolders && (
+                <DropdownMenu.Item
+                  onClick={newFolder.start}
+                  data-testid="canvas-page-list-new-folder-button"
+                >
+                  <FolderIcon />
+                  Folder
+                </DropdownMenu.Item>
+              )}
             </DropdownMenu.Content>
           </DropdownMenu.Root>
         )}
       </Flex>
+      {newFolder.input}
       <Skeleton
         height="1.2rem"
         loading={isPageItemsLoading}
@@ -466,18 +672,75 @@ const PageList = ({
         my="3"
       >
         <Box>
-          {!pageItemsError && (
-            <ContentGroup
-              items={pageItems}
-              homepagePath={homepagePath}
-              selectedPageId={selectedPageId}
-              onSelect={onSelectPage}
-              onDuplicate={onDuplicatePage}
-              onSetHomepage={onSetHomepage}
-              onUnpublish={onUnpublishPage}
-              onPublish={onPublishPage}
-              onDelete={onDeletePage}
-            />
+          {!pageItemsError && !folders && (
+            <ContentGroup items={pageItems} {...groupProps} />
+          )}
+          {!pageItemsError && folders && (
+            <>
+              {folderEntries.map((folder) => (
+                <FolderList
+                  key={folder.id}
+                  folder={folder}
+                  deleteWarning="Cannot delete folder containing pages"
+                  nameDetail={folders.folders[folder.id]?.path ?? undefined}
+                  onNameDetailDoubleClick={
+                    canManageFolders
+                      ? () => setPathFolderId(folder.id)
+                      : undefined
+                  }
+                  editSlot={
+                    folder.id === pathFolderId && (
+                      <FolderPathInput
+                        folder={folders.folders[folder.id] as Folder}
+                        onDone={() => setPathFolderId(null)}
+                      />
+                    )
+                  }
+                  extraMenuItems={
+                    <>
+                      {canCreatePages && (
+                        <UnifiedMenu.Item
+                          onClick={() => onNewPage?.(folder.id)}
+                        >
+                          New page
+                        </UnifiedMenu.Item>
+                      )}
+                      {canManageFolders && (
+                        <UnifiedMenu.Item
+                          data-testid="canvas-folder-path-button"
+                          onClick={() => setPathFolderId(folder.id)}
+                        >
+                          {folders.folders[folder.id]?.path
+                            ? 'Edit URL path'
+                            : 'Set URL path'}
+                        </UnifiedMenu.Item>
+                      )}
+                    </>
+                  }
+                >
+                  <ListIndentContext.Provider value={1}>
+                    <ContentGroup
+                      items={Object.values(folder.items) as ContentStub[]}
+                      inFolder
+                      {...groupProps}
+                    />
+                  </ListIndentContext.Provider>
+                </FolderList>
+              ))}
+              <UncategorizedDropZone
+                itemType="canvas_page"
+                hasItems={pagesWithoutFolder.length > 0}
+              >
+                <ContentGroup
+                  items={pagesWithoutFolder}
+                  // "No pages found" would be wrong under folders with pages.
+                  inFolder={
+                    folderEntries.length > 0 && pagesWithoutFolder.length === 0
+                  }
+                  {...groupProps}
+                />
+              </UncategorizedDropZone>
+            </>
           )}
           {pageItemsError && (
             <ErrorCard

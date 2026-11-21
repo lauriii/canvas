@@ -19,6 +19,10 @@ import nodeStyles from '@/components/sidePanel/SidebarNode.module.css';
 
 interface SidebarFolderProps {
   name: string;
+  // Optional muted text after the name (e.g., the URL path of a page folder)
+  nameDetail?: string;
+  // Called when the muted text is double-clicked, in place of onNameDoubleClick
+  onNameDetailDoubleClick?: () => void;
   // Optional custom rendering for the name (e.g., TextField for inline editing)
   nameSlot?: React.ReactNode;
   // Optional slot for error messages if any
@@ -43,6 +47,8 @@ interface SidebarFolderProps {
 
 const SidebarFolder: React.FC<SidebarFolderProps> = ({
   name,
+  nameDetail,
+  onNameDetailDoubleClick,
   nameSlot,
   errorSlot,
   count,
@@ -90,7 +96,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
     id,
     data: {
       destination: 'folder',
-      accepts: ['library', 'code', 'folder'],
+      accepts: ['library', 'code', 'folder', 'pages'],
       weight,
     },
     // previewDragging is true when user drags from the editor frame - we disable dropping into folders in that case.
@@ -159,9 +165,27 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
         {nameSlot ? (
           nameSlot
         ) : (
-          <Text size="1" weight="medium">
-            {name}
-          </Text>
+          <>
+            <Text size="1" weight="medium">
+              {name}
+            </Text>
+            {nameDetail && (
+              <Text
+                size="1"
+                color="gray"
+                ml="2"
+                onDoubleClick={
+                  onNameDetailDoubleClick &&
+                  ((event) => {
+                    event.stopPropagation();
+                    onNameDetailDoubleClick();
+                  })
+                }
+              >
+                {nameDetail}
+              </Text>
+            )}
+          </>
         )}
       </Flex>
 

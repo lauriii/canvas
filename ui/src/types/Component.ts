@@ -95,6 +95,8 @@ export type Folder = {
   name: string;
   items: string[];
   weight?: number;
+  // Folders of pages only: the URL path that the alias of each page starts with.
+  path?: string | null;
 };
 
 export interface Folders {
@@ -114,7 +116,8 @@ export type FolderInList = {
 
 export type FoldersInList = FolderInList[];
 
-export type FolderType = 'component' | 'pattern' | 'js_component' | 'color';
+export type FolderType =
+  'component' | 'pattern' | 'js_component' | 'color' | 'canvas_page';
 
 /**
  * Type predicate to check if a component is a PropSourceComponent.

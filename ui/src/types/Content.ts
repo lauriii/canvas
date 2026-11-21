@@ -3,6 +3,8 @@ export interface ContentStub {
   path: string;
   internalPath: string;
   id: number | string;
+  // Pages have one. A folder of pages lists pages by UUID.
+  uuid?: string;
   status: boolean;
   isNew?: boolean;
   hasUnsavedStatusChange?: boolean;

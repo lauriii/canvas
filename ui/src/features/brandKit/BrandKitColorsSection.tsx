@@ -22,10 +22,10 @@ import FolderList, {
   sortFolderList,
 } from '@/components/list/FolderList';
 import UncategorizedDropZone from '@/components/list/UncategorizedDropZone';
+import { useNewFolder } from '@/components/list/useNewFolder';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import ColorFormPopover from '@/features/brandKit/components/ColorFormPopover';
 import ColorRow from '@/features/brandKit/components/ColorRow';
-import FolderNameInput from '@/features/brandKit/components/FolderNameInput';
 import { useBrandKitColors } from '@/features/brandKit/hooks/useBrandKitColors';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import { useGetFoldersQuery } from '@/services/componentAndLayout';
@@ -49,14 +49,15 @@ const BrandKitColorsSection = () => {
   } = useGetFoldersQuery();
 
   // Folder creation state
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const newFolder = useNewFolder('color');
 
-  // Suppresses the menus' onCloseAutoFocus focus-return in two cases:
-  //   1. A popover is being opened (focus-return would fire interact-outside
-  //      and close it, or blur the field the user is already editing)
-  //   2. The folder name input is being shown (it should receive focus instead)
+  // Suppresses the menus' onCloseAutoFocus focus-return when a popover is
+  // being opened (focus-return would fire interact-outside and close it, or
+  // blur the field the user is already editing). The folder name input takes
+  // focus by itself.
   const suppressAutoFocusRef = useRef(false);
   const handleMenuCloseAutoFocus = (e: Event) => {
+    newFolder.onCloseAutoFocus(e);
     if (suppressAutoFocusRef.current) {
       e.preventDefault();
       suppressAutoFocusRef.current = false;
@@ -70,7 +71,7 @@ const BrandKitColorsSection = () => {
   );
 
   // Anchor ref for the add-color popover — attached to the "New" button
-  const newButtonRef = useRef<Measurable>(null);
+  const newButtonRef = newFolder.triggerRef as React.RefObject<Measurable>;
 
   // Convert colors array to map for folderfyComponents
   const colorsById = Object.fromEntries(colors.map((c) => [c.id, c]));
@@ -127,11 +128,6 @@ const BrandKitColorsSection = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [topLevelComponents, filterBySearch]);
 
-  const handleAddFolderClick = () => {
-    suppressAutoFocusRef.current = true;
-    setIsCreatingFolder(true);
-  };
-
   const isLoading = isLoadingColors || isLoadingFolders;
   const hasFolders = filteredFolderEntries.length > 0;
   const hasTopLevel = filteredTopLevel.length > 0;
@@ -174,7 +170,7 @@ const BrandKitColorsSection = () => {
         <DropdownMenu.Root>
           <DropdownMenu.Trigger>
             <Button
-              ref={newButtonRef as React.RefObject<HTMLButtonElement>}
+              ref={newFolder.triggerRef}
               variant="soft"
               size="1"
               data-testid="canvas-brand-kit-colors-new-button"
@@ -197,7 +193,7 @@ const BrandKitColorsSection = () => {
               Color
             </DropdownMenu.Item>
             <DropdownMenu.Item
-              onClick={handleAddFolderClick}
+              onClick={newFolder.start}
               data-testid="canvas-brand-kit-colors-new-folder-button"
             >
               <FolderIcon />
@@ -207,13 +203,7 @@ const BrandKitColorsSection = () => {
         </DropdownMenu.Root>
       </Flex>
 
-      {isCreatingFolder && (
-        <FolderNameInput
-          type="color"
-          onSuccess={() => setIsCreatingFolder(false)}
-          onCancel={() => setIsCreatingFolder(false)}
-        />
-      )}
+      {newFolder.input}
 
       {(errorMessage || foldersError) && (
         <Text color="red" size="2">

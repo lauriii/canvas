@@ -13,6 +13,114 @@ export function useDropOnFolderHandler() {
   const { data: folders } = useGetFoldersQuery();
   const [updateFolder] = useUpdateFolderMutation();
 
+  /**
+   * Moves an item into a folder, or out of every folder.
+   *
+   * @param componentId - The item: a config entity ID, or a page UUID.
+   * @param newFolderId - The folder to move it to, or null for no folder.
+   */
+  const moveItemToFolder = async (
+    componentId: string,
+    newFolderId: string | null,
+  ) => {
+    if (!folders) {
+      throw new Error(
+        'Folders data is not available, please wait and try again.',
+      );
+    }
+    const priorFolderId = folders.componentIndexedFolders?.[componentId];
+    const priorFolder = folders.folders[priorFolderId];
+    const newFolder = newFolderId ? folders.folders[newFolderId] : null;
+
+    if (
+      (priorFolderId ?? null) === newFolderId ||
+      (newFolderId && !newFolder)
+    ) {
+      // The item is already there, or the target is the row of a folder that
+      // is not saved yet.
+      return;
+    }
+
+    const patchResult = dispatch(
+      componentAndLayoutApi.util.updateQueryData(
+        'getFolders',
+        undefined,
+        (draft) => {
+          if (priorFolder) {
+            const pid = priorFolder.id;
+            const current = draft.folders[pid];
+            if (current) {
+              current.items = (current.items || []).filter(
+                (item: string) => item !== componentId,
+              );
+            }
+          }
+          if (newFolder) {
+            const nid = newFolder.id;
+            const current = draft.folders[nid];
+            if (current) {
+              const nextItems = [...(current.items || [])];
+              if (!nextItems.includes(componentId)) {
+                nextItems.push(componentId);
+              }
+              current.items = nextItems;
+            }
+          }
+          draft.componentIndexedFolders = rebuildComponentIndexedFolders(
+            draft.folders,
+          );
+        },
+      ),
+    );
+
+    if (priorFolder) {
+      const items = priorFolder.items || [];
+      try {
+        await updateFolder({
+          id: priorFolder.id,
+          changes: {
+            name: priorFolder.name,
+            items: items.filter((item: string) => item !== componentId),
+            weight: priorFolder.weight,
+          },
+          skipFoldersOptimistic: true,
+        }).unwrap();
+      } catch (error) {
+        patchResult.undo();
+        console.error('Failed to remove item from folder:', error);
+        throw new Error('Failed to remove item from folder. Please try again.');
+      }
+    }
+
+    if (newFolder) {
+      const items = [...newFolder.items, componentId];
+      try {
+        await updateFolder({
+          id: newFolder.id,
+          changes: {
+            name: newFolder.name,
+            items,
+            weight: newFolder.weight,
+          },
+          skipFoldersOptimistic: true,
+        }).unwrap();
+      } catch (error) {
+        patchResult.undo();
+        console.error('Failed to add item to folder:', error);
+        throw new Error('Failed to add item to folder. Please try again.');
+      }
+    }
+
+    if (priorFolder || newFolder) {
+      dispatch(
+        componentAndLayoutApi.util.invalidateTags([
+          { type: 'Folders', id: 'LIST' },
+          { type: 'Layout' },
+        ]),
+      );
+    }
+  };
+
   const handleFolderDrop = async (e: DragEndEvent) => {
     const { active, over } = e;
     const destination = over?.data?.current?.destination;
@@ -122,96 +230,11 @@ export function useDropOnFolderHandler() {
     }
 
     // Handle component/code being dropped into folder or uncategorized.
-    const componentId = String(active.id);
-    const priorFolderId = folders.componentIndexedFolders?.[componentId];
-    const priorFolder = folders.folders[priorFolderId];
-    const newFolderId = destination === 'folder' ? String(over?.id) : null;
-    const newFolder = newFolderId ? folders.folders[newFolderId] : null;
-
-    if (priorFolderId === newFolderId) {
-      // Item was dropped back into the same folder.
-      return;
-    }
-
-    const patchResult = dispatch(
-      componentAndLayoutApi.util.updateQueryData(
-        'getFolders',
-        undefined,
-        (draft) => {
-          if (priorFolder) {
-            const pid = priorFolder.id;
-            const current = draft.folders[pid];
-            if (current) {
-              current.items = (current.items || []).filter(
-                (item: string) => item !== componentId,
-              );
-            }
-          }
-          if (newFolder) {
-            const nid = newFolder.id;
-            const current = draft.folders[nid];
-            if (current) {
-              const nextItems = [...(current.items || [])];
-              if (!nextItems.includes(componentId)) {
-                nextItems.push(componentId);
-              }
-              current.items = nextItems;
-            }
-          }
-          draft.componentIndexedFolders = rebuildComponentIndexedFolders(
-            draft.folders,
-          );
-        },
-      ),
+    return moveItemToFolder(
+      String(active.id),
+      destination === 'folder' ? String(over?.id) : null,
     );
-
-    if (priorFolder) {
-      const items = priorFolder.items || [];
-      try {
-        await updateFolder({
-          id: priorFolder.id,
-          changes: {
-            name: priorFolder.name,
-            items: items.filter((item: string) => item !== componentId),
-            weight: priorFolder.weight,
-          },
-          skipFoldersOptimistic: true,
-        }).unwrap();
-      } catch (error) {
-        patchResult.undo();
-        console.error('Failed to remove item from folder:', error);
-        throw new Error('Failed to remove item from folder. Please try again.');
-      }
-    }
-
-    if (newFolder) {
-      const items = [...newFolder.items, componentId];
-      try {
-        await updateFolder({
-          id: newFolder.id,
-          changes: {
-            name: newFolder.name,
-            items,
-            weight: newFolder.weight,
-          },
-          skipFoldersOptimistic: true,
-        }).unwrap();
-      } catch (error) {
-        patchResult.undo();
-        console.error('Failed to add item to folder:', error);
-        throw new Error('Failed to add item to folder. Please try again.');
-      }
-    }
-
-    if (priorFolder || newFolder) {
-      dispatch(
-        componentAndLayoutApi.util.invalidateTags([
-          { type: 'Folders', id: 'LIST' },
-          { type: 'Layout' },
-        ]),
-      );
-    }
   };
 
-  return { handleFolderDrop };
+  return { handleFolderDrop, moveItemToFolder };
 }

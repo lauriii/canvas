@@ -5,8 +5,11 @@ import { Flex, Text, TextField } from '@radix-ui/themes';
 import SidebarFolder from '@/components/sidePanel/SidebarFolder';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import { validateFolderNameClientSide } from '@/features/validation/validation';
+import { useDropOnFolderHandler } from '@/hooks/useDropOnFolderHandler';
+import { usePermissionCheck } from '@/hooks/usePermissionCheck';
 import {
   useDeleteFolderMutation,
+  useGetFoldersQuery,
   useUpdateFolderMutation,
 } from '@/services/componentAndLayout';
 
@@ -21,7 +24,9 @@ import type {
   ComponentsList,
   FolderInList,
   FoldersInList,
+  FolderType,
 } from '@/types/Component';
+import type { ContentStub } from '@/types/Content';
 import type { PatternsList } from '@/types/Pattern';
 
 interface FolderData {
@@ -32,6 +37,16 @@ interface FolderData {
   >;
 }
 
+// The name of a folder as an input in its row: a new folder, or a rename.
+export const folderNameInputStyle = {
+  width: '100%',
+  maxWidth: '200px',
+  minHeight: 0,
+  height: 'auto',
+  padding: 0,
+  lineHeight: 'var(--line-height-1)',
+};
+
 // Displays a list of components or patterns in a folder structure.
 const FolderList = ({
   folder,
@@ -39,12 +54,24 @@ const FolderList = ({
   extraMenuItems,
   onMenuCloseAutoFocus,
   deleteWarning,
+  nameDetail,
+  onNameDetailDoubleClick,
+  editSlot,
 }: {
   folder: FolderInList;
   children: ReactNode;
   extraMenuItems?: ReactNode;
   onMenuCloseAutoFocus?: (event: Event) => void;
   deleteWarning?: string;
+  /** Muted text after the name. */
+  nameDetail?: string;
+  /** Double-clicking the muted text edits it, as the name is renamed. */
+  onNameDetailDoubleClick?: () => void;
+  /**
+   * An inline editor that takes the place of the name, as the rename input
+   * does. While it is set, the folder has no menu.
+   */
+  editSlot?: ReactNode;
 }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [folderName, setFolderName] = useState(folder.name);
@@ -61,6 +88,8 @@ const FolderList = ({
       reset: resetDelete,
     },
   ] = useDeleteFolderMutation();
+  const { data: foldersData } = useGetFoldersQuery();
+  const storedItems = foldersData?.folders[folder.id]?.items;
   const inputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false);
 
@@ -128,9 +157,11 @@ const FolderList = ({
 
     isSubmittingRef.current = true;
 
-    const items = Array.isArray(folder.items)
-      ? folder.items
-      : Object.keys(folder.items);
+    // The stored items, not the displayed ones: a search, a filter or paging
+    // can hide items that must stay in the folder.
+    const items =
+      storedItems ??
+      (Array.isArray(folder.items) ? folder.items : Object.keys(folder.items));
 
     try {
       await updateFolder({
@@ -145,6 +176,7 @@ const FolderList = ({
     folderName,
     folder.name,
     folder.items,
+    storedItems,
     folder.id,
     folder.weight,
     validationError,
@@ -191,7 +223,7 @@ const FolderList = ({
     }
   }, [isRenaming]);
 
-  const hasItems = getItemsLength() > 0;
+  const hasItems = (storedItems?.length ?? getItemsLength()) > 0;
 
   const handleDelete = useCallback(async () => {
     // Don't delete folder if it has items or is already being deleted.
@@ -236,7 +268,7 @@ const FolderList = ({
   );
 
   // Create the nameSlot for inline editing when renaming
-  const nameSlot = isRenaming ? (
+  const renameSlot = isRenaming ? (
     <TextField.Root
       ref={inputRef}
       value={folderName}
@@ -247,14 +279,7 @@ const FolderList = ({
       aria-invalid={!!(validationError || isError)}
       size="1"
       variant="soft"
-      style={{
-        width: '100%',
-        maxWidth: '200px',
-        minHeight: 0,
-        height: 'auto',
-        padding: 0,
-        lineHeight: 'var(--line-height-1)',
-      }}
+      style={folderNameInputStyle}
       data-testid="canvas-folder-rename-input"
     />
   ) : undefined;
@@ -293,14 +318,16 @@ const FolderList = ({
     <SidebarFolder
       id={folder.id}
       name={folderName}
-      nameSlot={nameSlot}
+      nameDetail={nameDetail}
+      onNameDetailDoubleClick={onNameDetailDoubleClick}
+      nameSlot={renameSlot ?? editSlot}
       errorSlot={errorSlot}
       count={getItemsLength()}
-      menuItems={isRenaming ? undefined : menuItems}
+      menuItems={isRenaming || editSlot ? undefined : menuItems}
       onMenuCloseAutoFocus={onMenuCloseAutoFocus}
       isOpen={isFolderOpen}
       onOpenChange={setIsFolderOpen}
-      onNameDoubleClick={handleNameDoubleClick}
+      onNameDoubleClick={editSlot ? undefined : handleNameDoubleClick}
       weight={folder.weight}
     >
       {children}
@@ -322,6 +349,7 @@ export const folderfyComponents = (
     | PatternsList
     | Record<string, CodeComponentSerialized>
     | Record<string, BrandKitColor>
+    | Record<string, ContentStub>
     | undefined,
   folders: FolderData | undefined,
   isLoading: boolean,
@@ -385,6 +413,79 @@ export const sortFolderList = (
         },
       ) as FoldersInList)
     : [];
+};
+
+const MoveToFolderItems = ({
+  folders,
+  itemId,
+  currentFolderId,
+}: {
+  folders: FoldersInList;
+  itemId: string;
+  currentFolderId?: string;
+}) => {
+  const { moveItemToFolder } = useDropOnFolderHandler();
+  return (
+    <>
+      {folders.map((folder) => (
+        <UnifiedMenu.Item
+          key={folder.id}
+          disabled={folder.id === currentFolderId}
+          // The row of the item can have a click handler of its own.
+          onClick={(event) => event.stopPropagation()}
+          onSelect={() => moveItemToFolder(itemId, folder.id)}
+        >
+          {folder.name}
+        </UnifiedMenu.Item>
+      ))}
+      <UnifiedMenu.Separator />
+      <UnifiedMenu.Item
+        disabled={!currentFolderId}
+        onClick={(event) => event.stopPropagation()}
+        onSelect={() => moveItemToFolder(itemId, null)}
+      >
+        No folder
+      </UnifiedMenu.Item>
+    </>
+  );
+};
+
+/**
+ * A "Move to folder" submenu for the menu of an item of any folder type. It is
+ * the way to move an item without a pointer.
+ *
+ * @param type - The folder type of the item.
+ * @param itemId - The ID that folders list the item by. Leave it out for an
+ *   item that cannot be moved.
+ * @returns The submenu, or null when there is nothing to offer: no item, no
+ *   folders of this type, or no permission.
+ */
+export const useMoveToFolderMenu = (
+  type: FolderType,
+  itemId?: string,
+): ReactNode => {
+  const { data } = useGetFoldersQuery();
+  const canManage = usePermissionCheck({ hasPermission: 'folders' });
+  if (!itemId || !canManage) {
+    return null;
+  }
+  const folders = sortFolderList(
+    folderfyComponents({}, data, false, false, type).folderComponents,
+  );
+  return folders.length === 0 ? null : (
+    <UnifiedMenu.Sub>
+      <UnifiedMenu.SubTrigger>Move to folder</UnifiedMenu.SubTrigger>
+      <UnifiedMenu.SubContent>
+        {/* Mounted when the submenu opens, so that a long list does not hold
+            a folder mutation per row. */}
+        <MoveToFolderItems
+          folders={folders}
+          itemId={itemId}
+          currentFolderId={data?.componentIndexedFolders[itemId]}
+        />
+      </UnifiedMenu.SubContent>
+    </UnifiedMenu.Sub>
+  );
 };
 
 export type { FolderData };

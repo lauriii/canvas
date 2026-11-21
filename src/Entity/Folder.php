@@ -9,6 +9,7 @@ use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessCo
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -32,6 +33,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'configEntityTypeId',
     'weight',
     'items',
+    'path',
   ],
   constraints: [
     'ImmutableProperties' => [
@@ -57,6 +59,15 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
   protected int $weight = 0;
   protected array $items = [];
 
+  /**
+   * The URL path that the alias of every page in this folder starts with.
+   *
+   * Only folders of pages use it. NULL for a folder that only organizes.
+   *
+   * @see docs/adr/0027-page-folders-can-set-the-url-path-of-their-pages.md
+   */
+  protected ?string $path = NULL;
+
   public function id(): ?string {
     return $this->uuid();
   }
@@ -69,6 +80,7 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
         'type' => $this->configEntityTypeId,
         'weight' => $this->weight,
         'items' => $this->items,
+        'path' => $this->path,
       ],
       preview: NULL,
     )->addCacheableDependency($this);
@@ -85,8 +97,13 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
     unset($data['id']);
     unset($data['type']);
     foreach ($data as $key => $value) {
-      $this->set($key, $value);
+      // An emptied path field means no path.
+      $this->set($key, $key === 'path' && $value === '' ? NULL : $value);
     }
+  }
+
+  public function getPath(): ?string {
+    return $this->path;
   }
 
   public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
@@ -139,8 +156,17 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
     // Declare an explicit config dependency so that core's dependency removal
     // machinery calls ::onDependencyRemoval() when any item is deleted.
     $prefix = 'canvas.' . $this->configEntityTypeId;
+    // The items of a content entity type are UUIDs. Core does not call
+    // ::onDependencyRemoval() when content is deleted.
+    // @see \Drupal\canvas\Hook\PageHooks::removeFromFolder()
+    $is_content = $this->entityTypeManager()->getDefinition($this->configEntityTypeId, FALSE) instanceof ContentEntityTypeInterface;
     foreach ($this->items as $item_id) {
-      $this->addDependency('config', $prefix . '.' . $item_id);
+      if ($is_content) {
+        $this->addDependency('content', "$this->configEntityTypeId:$this->configEntityTypeId:$item_id");
+      }
+      else {
+        $this->addDependency('config', $prefix . '.' . $item_id);
+      }
     }
     return $this;
   }
