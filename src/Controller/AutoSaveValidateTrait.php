@@ -6,6 +6,8 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\user\Entity\User;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
@@ -77,8 +79,33 @@ trait AutoSaveValidateTrait {
     }
 
     if ($expected_auto_saves !== $autoSaves) {
-      throw new ConflictHttpException('You do not have the latest changes, please refresh your browser.');
+      throw new ConflictHttpException($this->getAutoSaveConflictMessage($entitiesToValidate, $expected_auto_saves, $autoSaves));
     }
+  }
+
+  /**
+   * Builds the conflict message, naming who made the newer change if known.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface[] $entities
+   *   The entities that were validated.
+   * @param array<string, mixed> $expected
+   *   The server-side auto-save data, keyed by auto-save key.
+   * @param array<string, mixed> $actual
+   *   The client-sent auto-save data, keyed by auto-save key.
+   */
+  private function getAutoSaveConflictMessage(array $entities, array $expected, array $actual): string {
+    foreach ($entities as $entity) {
+      $key = AutoSaveManager::getAutoSaveKey($entity);
+      if (($expected[$key] ?? NULL) === ($actual[$key] ?? NULL)) {
+        continue;
+      }
+      $author = $this->autoSaveManager->getAutoSaveAuthor($entity);
+      $user = $author !== NULL ? User::load($author['owner']) : NULL;
+      if ($user !== NULL) {
+        return (string) new TranslatableMarkup('@name changed this after you loaded it. Refresh your browser to get the latest changes.', ['@name' => $user->getDisplayName()]);
+      }
+    }
+    return 'You do not have the latest changes, please refresh your browser.';
   }
 
   /**

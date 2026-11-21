@@ -70,7 +70,7 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
 
   if (latestError) {
     if (latestError.status === '409') {
-      return <ConflictWarning />;
+      return <ConflictWarning message={latestError.message} />;
     }
     // Per-content editing: the entity became non-editable in Canvas (its
     // template stopped exposing slots) while it was open. Degrade gracefully

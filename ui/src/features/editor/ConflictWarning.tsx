@@ -3,7 +3,11 @@ import { Button, Callout, Flex } from '@radix-ui/themes';
 
 import type React from 'react';
 
-const ConflictWarning: React.FC<{ children?: React.ReactNode }> = () => {
+/**
+ * @param message
+ *   The server's conflict message, which names who made the newer change.
+ */
+const ConflictWarning: React.FC<{ message?: string }> = ({ message }) => {
   const handleRefreshClick = () => {
     window.location.reload();
   };
@@ -15,9 +19,8 @@ const ConflictWarning: React.FC<{ children?: React.ReactNode }> = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            Your latest change was not saved because the content was modified
-            elsewhere since you loaded the page. Please refresh your browser to
-            receive the latest changes and continue.
+            {message ||
+              'Your latest change was not saved because the content was modified elsewhere since you loaded the page. Please refresh your browser to receive the latest changes and continue.'}
           </Callout.Text>
           <Button mt="2" onClick={handleRefreshClick}>
             Refresh

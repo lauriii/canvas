@@ -52,7 +52,7 @@ trait AutoSaveRequestTestTrait {
       $this->fail('Expected exception');
     }
     catch (ConflictHttpException $exception) {
-      self::assertSame('You do not have the latest changes, please refresh your browser.', $exception->getMessage());
+      self::assertMatchesRegularExpression('/^(You do not have the latest changes, please refresh your browser\\.|.+ changed this after you loaded it\\. Refresh your browser to get the latest changes\\.)$/', $exception->getMessage());
     }
   }
 

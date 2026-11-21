@@ -447,6 +447,26 @@ class AutoSaveManager implements EventSubscriberInterface {
     return self::generateHash(self::normalizeEntity($original));
   }
 
+  /**
+   * Gets who last wrote an entity's auto-save entry, without loading it.
+   *
+   * Cheaper than ::getAutoSaveEntity(), which reconstructs the entity.
+   *
+   * @return array{owner: int, client_id: ?string, updated: int}|null
+   *   NULL when the entity has no auto-save entry.
+   */
+  public function getAutoSaveAuthor(EntityInterface $entity): ?array {
+    $entry = $this->autoSaveStore->get($this->getAutoSaveKey($entity));
+    if (!\is_array($entry)) {
+      return NULL;
+    }
+    return [
+      'owner' => (int) $entry['owner'],
+      'client_id' => $entry['client_id'] ?? NULL,
+      'updated' => (int) $entry['updated'],
+    ];
+  }
+
   public function getAutoSaveEntity(EntityInterface $entity, bool $bypass_cache = FALSE): AutoSaveEntity {
     $key = $this->getAutoSaveKey($entity);
     if (!$bypass_cache) {
