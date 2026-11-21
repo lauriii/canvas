@@ -1453,6 +1453,16 @@ canvas.folder.*:
             configEntityTypeId: '%parent.%parent.configEntityTypeId'
       constraints:
         Unique: ~
+    path:
+      type: string
+      label: 'URL path of the pages in this folder'
+      nullable: true
+      # Folders that were saved before this key existed do not have it.
+      requiredKey: false
+      constraints:
+        Regex:
+          pattern: '/^(\/[a-z0-9_-]+)+$/'
+          message: 'The URL path must start with a slash, and use only lowercase letters, digits, hyphens, and underscores.'
 
 canvas.color.*:
   type: config_entity

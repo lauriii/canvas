@@ -1,14 +1,13 @@
-import { useRef, useState } from 'react';
 import FolderIcon from '@assets/icons/folder.svg?react';
 import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
-import { Button, DropdownMenu, Flex, Text, TextField } from '@radix-ui/themes';
+import { Button, DropdownMenu, Flex, TextField } from '@radix-ui/themes';
 
+import { useNewFolder } from '@/components/list/useNewFolder';
 import PermissionCheck from '@/components/PermissionCheck';
-import FolderNameInput from '@/features/brandKit/components/FolderNameInput';
 import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButton';
 
 import type { FormEvent } from 'react';
@@ -19,7 +18,6 @@ interface ManageLibraryToolbarProps {
   searchTerm: string;
   onSearch: (term: string) => void;
   showNewMenu?: boolean;
-  onFolderCreating?: (isCreating: boolean) => void;
 }
 
 const LibraryToolbar = ({
@@ -27,24 +25,8 @@ const LibraryToolbar = ({
   searchTerm,
   onSearch,
   showNewMenu,
-  onFolderCreating,
 }: ManageLibraryToolbarProps) => {
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-
-  // Suppresses the DropdownMenu's onCloseAutoFocus focus-return so the
-  // folder name input can receive focus instead.
-  const suppressAutoFocusRef = useRef(false);
-
-  const handleAddFolderClick = () => {
-    suppressAutoFocusRef.current = true;
-    setIsCreatingFolder(true);
-    onFolderCreating?.(true);
-  };
-
-  const handleFolderDone = () => {
-    setIsCreatingFolder(false);
-    onFolderCreating?.(false);
-  };
+  const newFolder = useNewFolder(type);
 
   return (
     <>
@@ -75,6 +57,7 @@ const LibraryToolbar = ({
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 <Button
+                  ref={newFolder.triggerRef}
                   variant="soft"
                   data-testid="canvas-page-list-new-button"
                   size="1"
@@ -85,21 +68,14 @@ const LibraryToolbar = ({
                 </Button>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content
-                onCloseAutoFocus={(e) => {
-                  // Prevent the dropdown from returning focus to the trigger
-                  // when we're creating a folder, so our input can receive focus.
-                  if (suppressAutoFocusRef.current) {
-                    e.preventDefault();
-                    suppressAutoFocusRef.current = false;
-                  }
-                }}
+                onCloseAutoFocus={newFolder.onCloseAutoFocus}
               >
                 <PermissionCheck hasPermission="codeComponents">
                   <AddCodeComponentButton />
                 </PermissionCheck>
                 <PermissionCheck hasPermission="folders">
                   <DropdownMenu.Item
-                    onClick={handleAddFolderClick}
+                    onClick={newFolder.start}
                     data-testid="canvas-library-new-folder-button"
                   >
                     <FolderIcon />
@@ -111,21 +87,7 @@ const LibraryToolbar = ({
           </PermissionCheck>
         )}
       </Flex>
-      {isCreatingFolder && (
-        <FolderNameInput
-          type={type}
-          onSuccess={handleFolderDone}
-          onCancel={handleFolderDone}
-          inputRowEnd={
-            <Flex align="center" gap="1">
-              <Text size="1" color="gray">
-                0
-              </Text>
-              <ChevronDownIcon width="12" height="12" color="gray" />
-            </Flex>
-          }
-        />
-      )}
+      {newFolder.input}
     </>
   );
 };

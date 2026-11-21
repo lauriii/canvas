@@ -32,8 +32,12 @@ export function useDropOnFolderHandler() {
     const priorFolder = folders.folders[priorFolderId];
     const newFolder = newFolderId ? folders.folders[newFolderId] : null;
 
-    if ((priorFolderId ?? null) === newFolderId) {
-      // The item is already there.
+    if (
+      (priorFolderId ?? null) === newFolderId ||
+      (newFolderId && !newFolder)
+    ) {
+      // The item is already there, or the target is the row of a folder that
+      // is not saved yet.
       return;
     }
 

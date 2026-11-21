@@ -5954,6 +5954,10 @@ components:
           items:
             type: string
             description: Singular Folder item id.
+        path:
+          type: string
+          nullable: true
+          description: The URL path that the alias of every page in the Folder starts with. Only Folders of pages use it.
       additionalProperties: false
     FolderType:
       type: string

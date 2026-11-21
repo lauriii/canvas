@@ -33,6 +33,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'configEntityTypeId',
     'weight',
     'items',
+    'path',
   ],
   constraints: [
     'ImmutableProperties' => [
@@ -58,6 +59,15 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
   protected int $weight = 0;
   protected array $items = [];
 
+  /**
+   * The URL path that the alias of every page in this folder starts with.
+   *
+   * Only folders of pages use it. NULL for a folder that only organizes.
+   *
+   * @see docs/adr/0027-page-folders-can-set-the-url-path-of-their-pages.md
+   */
+  protected ?string $path = NULL;
+
   public function id(): ?string {
     return $this->uuid();
   }
@@ -70,6 +80,7 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
         'type' => $this->configEntityTypeId,
         'weight' => $this->weight,
         'items' => $this->items,
+        'path' => $this->path,
       ],
       preview: NULL,
     )->addCacheableDependency($this);
@@ -86,8 +97,13 @@ final class Folder extends ConfigEntityBase implements CanvasHttpApiEligibleConf
     unset($data['id']);
     unset($data['type']);
     foreach ($data as $key => $value) {
-      $this->set($key, $value);
+      // An emptied path field means no path.
+      $this->set($key, $key === 'path' && $value === '' ? NULL : $value);
     }
+  }
+
+  public function getPath(): ?string {
+    return $this->path;
   }
 
   public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {

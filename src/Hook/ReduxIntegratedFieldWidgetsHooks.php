@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Controller\ApiLinkAutocompleteController;
+use Drupal\canvas\Entity\Folder;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
@@ -230,6 +232,17 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     $current_route = new CurrentRouteMatch($this->requestStack);
     $route_name = $current_route->getRouteName();
     $is_entity_form = $route_name === 'canvas.api.form.content_entity';
+
+    // The path widget generates the alias of a page in a folder under the URL
+    // path of that folder.
+    // @see ui/src/components/form/components/drupal/DrupalPathWidget.tsx
+    $entity = $context['items']->getEntity();
+    if ($entity instanceof Page && isset($form['alias'])) {
+      $folder_path = Folder::loadByItemAndConfigEntityTypeId((string) $entity->uuid(), Page::ENTITY_TYPE_ID)?->getPath();
+      if ($folder_path !== NULL) {
+        $form['alias']['#attributes']['data-canvas-folder-path'] = $folder_path;
+      }
+    }
 
     if ($this->themeManager->getActiveTheme()->getName() === 'canvas_stark' && $is_entity_form) {
       // Remove the description from the path alias field to have less

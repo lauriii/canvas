@@ -41,9 +41,10 @@ Page folders are `folder` config entities whose type is `canvas_page`.
 2. **Folders are flat, and a page is in at most one.** A folder cannot contain
    a folder. The rule that an item belongs to one folder of its type applies to
    pages as it does to components.
-3. **A folder only organizes.** It does not change a page's URL, access,
-   rendering, or publication. Folder membership is not part of the page: moving
-   a page creates no draft, no revision, and no undo step.
+3. **A folder only organizes.** It does not change a page's access,
+   rendering, or publication. It changes a page's URL only when the folder has
+   a URL path (ADR 0027). Folder membership is not part of the page: moving a
+   page creates no revision and no undo step.
 4. **Items are checked as UUIDs, not for existence.** A folder of a config type
    still requires each item to exist. A folder of pages requires each item to
    be a valid UUID. Config is deployed between environments that do not hold
@@ -83,8 +84,9 @@ In order of importance, with the following markers:
    config is being imported, a folder can list an unknown UUID. The editor
    ignores such an item, and it stays in config until the folder is next
    changed by moving pages.
-5. `+TO` **Moving a page is not a content change.** It needs no review and no
-   publish, and it cannot conflict with somebody editing the page.
+5. `+TO` **Moving a page is not a content change.** Between folders that have
+   no URL path, it needs no review and no publish, and it cannot conflict with
+   somebody editing the page.
 6. `-B` **Folder management needs an administrative permission.** An editor who
    can create and edit pages, but cannot administer folders, can see page
    folders and cannot change them. A separate permission for page folders can

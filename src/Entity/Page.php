@@ -170,6 +170,7 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
         'type' => 'path',
       ])
       ->setDisplayConfigurable('form', TRUE)
+      ->addConstraint('AliasInFolderPath')
       ->setComputed(TRUE);
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Authored on'))

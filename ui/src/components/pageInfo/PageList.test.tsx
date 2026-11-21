@@ -41,7 +41,7 @@ const folder = {
   items: ['uuid-careers', 'uuid-not-loaded'],
 };
 
-const renderList = (onMove = vi.fn()) => {
+const renderList = (path?: string) => {
   const patched: unknown[] = [];
   vi.stubGlobal(
     'fetch',
@@ -76,16 +76,17 @@ const renderList = (onMove = vi.fn()) => {
           page(1, 'About', 'uuid-about'),
           page(2, 'Careers', 'uuid-careers'),
         ]}
-        pageFolders={{
-          folders: [folder],
-          folderOfPage: { 'uuid-careers': folder.id },
-          canManage: true,
-          onMove,
+        folders={{
+          folders: { [folder.id]: { ...folder, path } },
+          componentIndexedFolders: {
+            'uuid-careers': folder.id,
+            'uuid-not-loaded': folder.id,
+          },
         }}
       />
     </AppWrapper>,
   );
-  return { onMove, patched };
+  return { patched };
 };
 
 describe('PageList with folders', () => {
@@ -119,11 +120,12 @@ describe('PageList with folders', () => {
 
   it('moves a page from its menu', async () => {
     const user = userEvent.setup();
-    const { onMove } = renderList();
+    const { patched } = renderList();
 
     const row = screen.getByText(/About/).closest('[data-canvas-page-id]');
+    // The menu has no items until the folders have loaded.
     await user.click(
-      within(row as HTMLElement).getByLabelText('Open contextual menu'),
+      await within(row as HTMLElement).findByLabelText('Open contextual menu'),
     );
     // The keyboard opens the submenu with its first folder focused.
     (await screen.findByText('Move to folder')).focus();
@@ -133,9 +135,72 @@ describe('PageList with folders', () => {
     ).toHaveFocus();
     await user.keyboard('{Enter}');
 
-    expect(onMove).toHaveBeenCalledWith(
-      expect.objectContaining({ uuid: 'uuid-about' }),
-      folder.id,
+    await waitFor(() => expect(patched).toHaveLength(1));
+    expect(patched[0]).toMatchObject({
+      items: ['uuid-careers', 'uuid-not-loaded', 'uuid-about'],
+    });
+  });
+
+  it('focuses the name of a new folder, then the "New" button', async () => {
+    const user = userEvent.setup();
+    renderList();
+
+    const newButton = screen.getByTestId('canvas-page-list-new-button');
+    await user.click(newButton);
+    await user.click(
+      await screen.findByTestId('canvas-page-list-new-folder-button'),
+    );
+    const input = await screen.findByTestId(
+      'canvas-manage-library-new-folder-name',
+    );
+    await waitFor(() => expect(input).toHaveFocus());
+    // The name is selected, so typing replaces it.
+    await user.keyboard('Launches');
+    expect(input).toHaveValue('Launches');
+
+    await user.keyboard('{Escape}');
+    expect(input).not.toBeInTheDocument();
+    expect(newButton).toHaveFocus();
+  });
+
+  it('sets the URL path of a folder, and keeps its items', async () => {
+    const user = userEvent.setup();
+    const { patched } = renderList();
+
+    const folderRow = screen
+      .getByText('Campaigns')
+      .closest('[data-canvas-folder-name]');
+    await user.click(
+      within(folderRow as HTMLElement).getByLabelText('Open contextual menu'),
+    );
+    await user.click(await screen.findByText('Set URL path'));
+    // The input replaces the name in the row, with a path made of the name
+    // selected.
+    const input = await screen.findByTestId('canvas-folder-path-input');
+    await waitFor(() => expect(input).toHaveFocus());
+    expect(input).toHaveValue('/campaigns');
+    await user.keyboard('Offers{Enter}');
+    expect(screen.getByText(/Start with a slash/)).toBeInTheDocument();
+    expect(patched).toHaveLength(0);
+    await user.clear(input);
+    await user.type(input, '/offers{Enter}');
+
+    await waitFor(() => expect(patched).toHaveLength(1));
+    expect(patched[0]).toMatchObject({
+      path: '/offers',
+      items: ['uuid-careers', 'uuid-not-loaded'],
+    });
+    await waitFor(() => expect(input).not.toBeInTheDocument());
+  });
+
+  it('edits the URL path of a folder on a double-click', async () => {
+    const user = userEvent.setup();
+    renderList('/offers');
+
+    // As a double-click on the name renames the folder.
+    await user.dblClick(screen.getByText('/offers'));
+    expect(await screen.findByTestId('canvas-folder-path-input')).toHaveValue(
+      '/offers',
     );
   });
 });

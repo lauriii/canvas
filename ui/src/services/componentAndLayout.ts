@@ -720,6 +720,9 @@ export const componentAndLayoutApi = createApi({
               if (changes.items !== undefined) {
                 folderDraft.items = changes.items;
               }
+              if (changes.path !== undefined) {
+                folderDraft.path = changes.path;
+              }
               draft.componentIndexedFolders = rebuildComponentIndexedFolders(
                 draft.folders,
               );
