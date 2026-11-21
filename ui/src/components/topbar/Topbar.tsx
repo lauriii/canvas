@@ -15,6 +15,7 @@ import ContentPreviewSelector from '@/components/templates/ContentPreviewSelecto
 import UndoRedo from '@/components/UndoRedo';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
+import PresenceAvatars from '@/features/presence/PresenceAvatars';
 import {
   EditorFrameContext,
   selectEditorFrameContext,
@@ -186,6 +187,7 @@ const Topbar = () => {
               )}
             </Flex>
             <Flex align="center" justify="end" gap="2">
+              <PresenceAvatars />
               <NotificationBell />
               {isTranslationEnabled && !isPatternEditorContext && (
                 <LanguageSelect />
