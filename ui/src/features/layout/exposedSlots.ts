@@ -39,6 +39,13 @@ export const CANVAS_SLOT_EMPTY_MARKER_ID = 'marker.empty_slot';
 export const EXPOSED_SLOTS_VIEW_MODE = 'full';
 
 /**
+ * The only entity type whose content templates can expose slots.
+ *
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\ValidExposedSlotConstraint::EXPOSED_SLOTS_ENTITY_TYPE_ID
+ */
+export const EXPOSED_SLOTS_ENTITY_TYPE_ID = 'node';
+
+/**
  * Whether a component node is the empty slot marker.
  */
 export const isEmptySlotMarkerNode = (node: ComponentNode): boolean =>
