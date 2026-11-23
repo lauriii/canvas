@@ -12,7 +12,8 @@
  * - An infrastructure failure is a failed job whose `failure_reason` is not
  *   `script_failure`. For example, a runner pod that was terminated
  *   (`runner_system_failure`) or a job that exceeded its timeout
- *   (`job_execution_timeout`). Retried jobs are included.
+ *   (`job_execution_timeout`). Retried jobs are included. The runner and the
+ *   runner manager (the host process that ran the job) are recorded too.
  *
  * The script:
  * 1. Fetches the previously published CSV files, so the record keeps history
@@ -82,6 +83,9 @@ export const INFRASTRUCTURE_FAILURES_COLUMNS = [
   'job_url',
   'failure_reason',
   'message',
+  'runner_id',
+  'runner_manager_system_id',
+  'runner_version',
 ];
 
 export const MERGED_MERGE_REQUESTS_COLUMNS = [
@@ -481,6 +485,21 @@ ${tableRows}
 }`;
 }
 
+/**
+ * Labels the runner of an infrastructure failure row.
+ *
+ * Jobs on drupalcode.org share one instance runner, so the runner manager
+ * (the host process that ran the job) tells them apart. Rows recorded before
+ * the runner columns were added have no runner.
+ */
+export function runnerLabel(row) {
+  if (!row.runner_manager_system_id) {
+    return row.runner_id ? `runner ${row.runner_id}` : '(unknown)';
+  }
+  const version = row.runner_version ? ` (${row.runner_version})` : '';
+  return `${row.runner_manager_system_id}${version}`;
+}
+
 function infrastructureFailuresSection(rows, scope) {
   const countTable = (heading, counts) => `<table>
 <thead><tr><th class="num">Jobs</th><th>${heading}</th></tr></thead>
@@ -494,7 +513,7 @@ ${counts.map(([label, count]) => `<tr><td class="num">${count}</td><td>${escapeH
     .map(
       (row) => `<tr>
   <td><a href="${escapeHtml(row.job_url)}">${escapeHtml(row.job_created_at.slice(0, 16).replace('T', ' '))}</a></td>
-  <td><div>${escapeHtml(row.job_name)}</div><div class="muted">${escapeHtml(row.pipeline_ref)} · ${escapeHtml(row.failure_reason)}</div><div class="error">${escapeHtml(row.message)}</div></td>
+  <td><div>${escapeHtml(row.job_name)}</div><div class="muted">${escapeHtml(row.pipeline_ref)} · ${escapeHtml(row.failure_reason)} · ${escapeHtml(runnerLabel(row))}</div><div class="error">${escapeHtml(row.message)}</div></td>
 </tr>`,
     )
     .join('\n');
@@ -515,6 +534,7 @@ ${countTable(
   'Job',
   countBy(rows, (row) => jobFamily(row.job_name)),
 )}
+${countTable('Runner', countBy(rows, runnerLabel))}
 </div>
 <h3>Latest ${Math.min(rows.length, 100)}</h3>
 <table>
@@ -1251,7 +1271,7 @@ async function main(outputDirectory) {
       }
       const message = await fetchJobFailureMessage(job);
       console.log(
-        `Pipeline ${pipeline.id}: ${job.name} failed (${job.failure_reason}) ${message}`,
+        `Pipeline ${pipeline.id}: ${job.name} failed (${job.failure_reason}) on runner manager ${job.runner_manager?.system_id ?? '(unknown)'}: ${message}`,
       );
       newInfrastructureFailures.push({
         job_created_at: job.created_at,
@@ -1263,6 +1283,9 @@ async function main(outputDirectory) {
         job_url: job.web_url,
         failure_reason: job.failure_reason ?? '',
         message,
+        runner_id: job.runner?.id ?? '',
+        runner_manager_system_id: job.runner_manager?.system_id ?? '',
+        runner_version: job.runner_manager?.version ?? '',
       });
     }
 

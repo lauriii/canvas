@@ -147,7 +147,10 @@ The same job also records infrastructure failures in all pipelines: failed
 jobs whose GitLab failure reason is not `script_failure`. For example, a runner
 pod that was terminated (`runner_system_failure`) or a job that exceeded its
 timeout (`job_execution_timeout`). Retried jobs are included. The message is
-read from the end of the job log.
+read from the end of the job log. Each failure records the runner, and the
+runner manager that ran the job: its system ID and GitLab Runner version. All
+jobs on drupalcode.org use the same instance runner, so the runner manager
+identifies the host.
 
 The job also records the merge requests merged into the default branch.
 
@@ -166,7 +169,8 @@ publishes the result to GitLab Pages under `flaky-tests/`:
     requests. A table below the chart lists the same data.
   - flaky tests, most frequently flaky first. The rate is the share of
     recorded pipelines that ran Playwright tests in which the test was flaky.
-  - infrastructure failures counted by reason, message, and job.
+  - infrastructure failures counted by reason, message, job, and runner
+    manager.
 - `flaky-tests/flaky-tests.csv`: one row per flaky test per pipeline.
 - `flaky-tests/test-runs.csv`: one row per pipeline with a Playwright report,
   with the number of tests that ran.
