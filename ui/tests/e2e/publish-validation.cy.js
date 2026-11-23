@@ -142,11 +142,16 @@ describe('Publish review functionality', () => {
       cy.clearAutoSave('node', 2);
 
       const iterations = [
-        { path: 'canvas/editor/node/1', waitFor: 'Review 1 change' },
-        { path: 'canvas/editor/node/2', waitFor: 'Review 2 changes' },
+        {
+          nid: 1,
+          label: 'Canvas Needs This For The Time Being',
+          waitFor: 'Review 1 change',
+        },
+        { nid: 2, label: 'I am an empty node', waitFor: 'Review 2 changes' },
       ];
 
-      iterations.forEach(({ path, waitFor }, index) => {
+      iterations.forEach(({ nid, waitFor }) => {
+        const path = `canvas/editor/node/${nid}`;
         cy.loadURLandWaitForCanvasLoaded({ url: path, clearAutoSave: false });
         // First remove the two image components because they will otherwise crash
         // due to the test not creating them in a way that allows the media entity
@@ -180,7 +185,20 @@ describe('Publish review functionality', () => {
           cy.findByText(waitFor).should('not.exist');
         }
 
+        // Typing can trigger auto-saves of a partial value. Wait for the one
+        // that saves the whole value, so that the node fails validation.
+        cy.intercept('POST', `**/canvas/api/v0/layout/node/${nid}`, (req) => {
+          if (
+            req.body?.entity_form_fields?.['field_cvt_textfield[0][value]'] ===
+            'invalid constraint'
+          ) {
+            req.alias = `saveInvalidNode${nid}`;
+          }
+        });
         cy.findByLabelText('Canvas Text Field').type('invalid constraint');
+        cy.wait(`@saveInvalidNode${nid}`)
+          .its('response.statusCode')
+          .should('eq', 200);
         cy.get('[data-testid="canvas-publish-review"]:not([disabled])', {
           timeout: 20000,
         }).should('exist');
@@ -193,14 +211,27 @@ describe('Publish review functionality', () => {
       cy.findByTestId('canvas-review-publish-errors').should('exist');
       cy.findByTestId('canvas-review-publish-errors').should(
         ($errorsContainer) => {
-          expect($errorsContainer.find('h3')).to.include.text('Errors');
-          $errorsContainer
-            .find('[data-testid="publish-error-detail"]')
-            .each((index, errorDetail) => {
-              expect(errorDetail).to.include.text(
-                'The value "invalid constraint" is not allowed in this field.',
-              );
-            });
+          // Each node reports its error once, even though both its form and
+          // its entity validation report it.
+          // @see \Drupal\canvas\Controller\ApiAutoSaveController::addFormViolations()
+          expect($errorsContainer.find('h3')).to.have.text('2 Errors');
+          const errorGroups = $errorsContainer.find(
+            '[data-testid="error-details"]',
+          );
+          expect(
+            errorGroups
+              .map((index, group) => Cypress.$(group).find('h4').text().trim())
+              .get(),
+          ).to.have.members(iterations.map(({ label }) => label));
+          errorGroups.each((index, group) => {
+            const details = Cypress.$(group).find(
+              '[data-testid="publish-error-detail"]',
+            );
+            expect(details).to.have.length(1);
+            expect(details).to.include.text(
+              'The value "invalid constraint" is not allowed in this field.',
+            );
+          });
         },
       );
     },

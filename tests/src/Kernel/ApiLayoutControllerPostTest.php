@@ -29,9 +29,12 @@ use Drupal\file\FileInterface;
 use Drupal\metatag\Entity\MetatagDefaults;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
+use Drupal\path_alias\Entity\PathAlias;
+use Drupal\path_alias\PathAliasInterface;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -41,6 +44,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::post
@@ -52,6 +57,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
 
   use AutoSaveRequestTestTrait;
   use CanvasFieldTrait;
+  use ConstraintViolationsTestTrait;
 
   /**
    * {@inheritdoc}
@@ -719,6 +725,15 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   }
 
   /**
+   * Gets the pointer and detail of each error in a response.
+   *
+   * @return array<array{mixed, mixed}>
+   */
+  private static function getErrorPointersAndDetails(Response $response): array {
+    return \array_map(static fn (array $error): array => [$error['source']['pointer'], $error['detail']], \json_decode((string) $response->getContent(), TRUE)['errors']);
+  }
+
+  /**
    * Note: `image-required-without-example` is not tested because it does not meet the requirement.
    *
    * @see \Drupal\Tests\canvas\Kernel\Config\ComponentTest::testComponentAutoCreate()
@@ -904,6 +919,136 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     \assert($autoSave->entity instanceof NodeInterface);
     self::assertEquals($admin->id(), (int) $autoSave->entity->getOwnerId());
     self::assertEquals($new_title, $autoSave->entity->label());
+  }
+
+  /**
+   * Tests that a slash-only alias from the editor cannot be published.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\StorablePathAliasConstraintValidator
+   */
+  public function testSlashOnlyPathAliasIsNotPublished(): void {
+    $this->setUpCurrentUser([], [
+      Page::EDIT_PERMISSION,
+      'administer url aliases',
+      'publish auto-saves',
+    ]);
+    $page = Page::create([
+      'title' => 'Path alias test page',
+      'status' => TRUE,
+      'components' => [],
+      'path' => ['alias' => '/editor-alias'],
+    ]);
+    $page->save();
+    $path_alias_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('path_alias');
+    $path_alias_ids = $path_alias_storage->getQuery()->accessCheck(FALSE)->condition('path', '/page/' . $page->id())->execute();
+    self::assertCount(1, $path_alias_ids);
+    $path_alias_id = \reset($path_alias_ids);
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+
+    // Auto-saving a slash-only alias keeps the stored alias in the auto-saved
+    // page, and records the violation.
+    $url = $this->getLayoutUrl($page)->toString();
+    $json = \json_decode((string) $this->parentRequest(Request::create($url))->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR);
+    self::assertSame('/editor-alias', $json['entity_form_fields']['path[0][alias]']);
+    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange']);
+    $json['entity_form_fields']['path[0][alias]'] = '/';
+    $json['entity_form_fields']['title[0][value]'] = 'Path alias test page, edited';
+    $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($json + $this->getPostContentsDefaults($page), \JSON_THROW_ON_ERROR)));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $auto_save_entity = $auto_save_manager->getAutoSaveEntity($page)->entity;
+    self::assertInstanceOf(Page::class, $auto_save_entity);
+    self::assertSame('Path alias test page, edited', $auto_save_entity->label());
+    self::assertSame('/editor-alias', $auto_save_entity->get('path')->first()?->get('alias')->getValue());
+    self::assertSame([
+      'path.0.alias' => 'The alias / cannot consist only of slashes.',
+    ], self::violationsToArray($auto_save_manager->getEntityFormViolations($page)));
+    // The editor keeps showing the invalid alias, so it can be corrected.
+    $json = \json_decode((string) $this->parentRequest(Request::create($url))->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR);
+    self::assertSame('/', $json['entity_form_fields']['path[0][alias]']);
+
+    // Publishing is rejected while the violation is unresolved.
+    $response = $this->makePublishAllRequest();
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    self::assertSame(
+      [['path.0.alias', 'The alias / cannot consist only of slashes.']],
+      self::getErrorPointersAndDetails($response),
+    );
+
+    // An auto-saved slash-only alias, as could be stored before the violation
+    // was recorded, cannot be published either.
+    $auto_save_manager->saveEntityFormViolations($page);
+    $auto_save_entity->set('path', ['alias' => '/', 'pid' => $path_alias_id]);
+    $auto_save_manager->saveEntity($auto_save_entity);
+    $response = $this->makePublishAllRequest();
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    self::assertSame(
+      [['path.0.alias', 'The alias <em class="placeholder">/</em> cannot consist only of slashes.']],
+      self::getErrorPointersAndDetails($response),
+    );
+
+    // Neither the page nor its path alias were changed.
+    $page_id = $page->id();
+    \assert($page_id !== NULL);
+    $page = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID)->loadUnchanged($page_id);
+    \assert($page instanceof Page);
+    self::assertSame('Path alias test page', $page->label());
+    $path_alias = $path_alias_storage->loadUnchanged($path_alias_id);
+    \assert($path_alias instanceof PathAliasInterface);
+    self::assertSame('/editor-alias', $path_alias->getAlias());
+    self::assertSame([$path_alias_id => $path_alias_id], $path_alias_storage->getQuery()->accessCheck(FALSE)->condition('path', '/page/' . $page->id())->execute());
+  }
+
+  /**
+   * Tests publishing violations that both the form and the entity report.
+   *
+   * @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
+   */
+  public function testPublishReportsFormAndEntityViolationsOnce(): void {
+    $this->setUpCurrentUser([], [
+      Page::EDIT_PERMISSION,
+      'administer url aliases',
+      'publish auto-saves',
+    ]);
+    $page = Page::create(['title' => 'Page', 'components' => [], 'path' => ['alias' => '/taken']]);
+    $page->save();
+    $other_page = Page::create(['title' => 'Other page', 'components' => []]);
+    $other_page->save();
+    // A duplicate alias, as could be stored before path aliases of pages were
+    // validated.
+    PathAlias::create(['path' => '/page/' . $other_page->id(), 'alias' => '/taken', 'langcode' => 'en'])->save();
+    $other_page = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID)->loadUnchanged((string) $other_page->id());
+    \assert($other_page instanceof Page);
+
+    // Both the path alias widget and the page reject the unchanged alias when
+    // only the title is changed: publishing reports that once.
+    $url = $this->getLayoutUrl($other_page)->toString();
+    $json = \json_decode((string) $this->parentRequest(Request::create($url))->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR);
+    unset($json['isNew'], $json['isPublished'], $json['html'], $json['hasUnsavedStatusChange']);
+    $json['entity_form_fields']['title[0][value]'] = 'Other page, edited';
+    $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($json + $this->getPostContentsDefaults($other_page), \JSON_THROW_ON_ERROR)));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $response = $this->makePublishAllRequest();
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    self::assertSame(
+      [['path.0.alias', 'The alias /taken is already in use in this language.']],
+      self::getErrorPointersAndDetails($response),
+    );
+
+    // Different violations of the same property are all reported.
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    $auto_save_manager->saveEntityFormViolations($other_page, new ConstraintViolationList([
+      new ConstraintViolation('Another alias error.', NULL, [], NULL, 'path.0.alias', '/taken'),
+    ]));
+    $response = $this->makePublishAllRequest();
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    self::assertSame(
+      [
+        ['path.0.alias', 'The alias <em class="placeholder">/taken</em> is already in use in this language.'],
+        ['path.0.alias', 'Another alias error.'],
+      ],
+      self::getErrorPointersAndDetails($response),
+    );
+    self::assertSame('Other page', $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID)->loadUnchanged((string) $other_page->id())?->label());
   }
 
   /**

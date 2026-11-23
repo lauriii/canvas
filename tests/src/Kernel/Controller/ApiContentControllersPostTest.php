@@ -349,6 +349,40 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
     );
   }
 
+  /**
+   * Tests that an invalid path alias is reported, and no page is created.
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Validation\StorablePathAliasConstraintValidatorTest
+   */
+  public function testPostWithInvalidPathAlias(): void {
+    $response = $this->request(
+      Request::create(
+        self::URL,
+        'POST',
+        server: ['CONTENT_TYPE' => 'application/json'],
+        content: \json_encode([
+          'title' => 'Page with an invalid alias',
+          'status' => FALSE,
+          'path' => '/',
+          'components' => [],
+        ], JSON_THROW_ON_ERROR),
+      ),
+    );
+    $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The alias <em class="placeholder">/</em> cannot consist only of slashes.',
+          'source' => ['pointer' => 'path.0.alias'],
+        ],
+      ],
+    ], $this->decodeResponse($response));
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $this->assertEmpty($entity_type_manager->getStorage(Page::ENTITY_TYPE_ID)->loadByProperties(['title' => 'Page with an invalid alias']));
+    // Only the pre-existing page's alias exists.
+    $this->assertCount(1, $entity_type_manager->getStorage('path_alias')->loadMultiple());
+  }
+
   public function testPostWithEmptyContentRequest(): void {
     $this->expectException(InvalidBody::class);
     $this->request(

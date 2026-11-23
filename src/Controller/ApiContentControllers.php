@@ -246,8 +246,6 @@ final class ApiContentControllers extends ApiControllerBase {
       $requestBodyTitle = $body['title'] ?? static::defaultTitle($entity_type_definition);
       $requestStatus = $body['status'] ?? FALSE;
       $requestComponents = $body['components'] ?? [];
-      // @todo This won't check if the alias is already used, potentially
-      //   creating duplicated aliases.
       $requestPath = $body['path'] ?? NULL;
       $requestDescription = $body['description'] ?? NULL;
       $requestPageVariant = $body['pageVariant'] ?? NULL;
