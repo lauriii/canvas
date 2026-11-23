@@ -20,6 +20,7 @@ use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -470,12 +471,9 @@ final class ApiAutoSaveController extends ApiControllerBase {
       // undone by rolling back the database transaction, such as sending
       // emails.
       $violations = $this->getConflictAwareContentEntityViolations($entity, $conflict_detection_dev_mode);
-      $form_violations = $this->autoSaveManager->getEntityFormViolations($entity);
-      foreach ($form_violations as $form_violation) {
-        // Add any form violations at this point.
-        // @todo Remove this in https://drupal.org/i/3505018
-        $violations->add($form_violation);
-      }
+      // Add any form violations at this point.
+      // @todo Remove this in https://drupal.org/i/3505018
+      self::addFormViolations($violations, $this->autoSaveManager->getEntityFormViolations($entity));
       if ($violations->count() > 0) {
         $violationSets[] = self::getViolationSetsFromPropertyPathsAndRoot($entity, $violations);
         continue;
@@ -625,6 +623,29 @@ final class ApiAutoSaveController extends ApiControllerBase {
     }
     if (count($violations) > 0) {
       throw new ConstraintViolationException($violations);
+    }
+  }
+
+  /**
+   * Adds an entity's stored form violations to its entity violations.
+   *
+   * Form validation and entity validation can report the same error twice. If
+   * both report the same message for the same field, keep only the form error.
+   * Form errors are stored as plain-text messages without their constraint, so
+   * compare plain text, because entity messages may contain HTML.
+   *
+   * @see \Drupal\canvas\ClientDataToEntityConverter::setEntityFields()
+   *
+   * @todo Remove this in https://drupal.org/i/3505018
+   */
+  private static function addFormViolations(ConstraintViolationListInterface $violations, ConstraintViolationListInterface $form_violations): void {
+    foreach ($form_violations as $form_violation) {
+      foreach ($violations as $offset => $violation) {
+        if ($violation->getPropertyPath() === $form_violation->getPropertyPath() && PlainTextOutput::renderFromHtml((string) $violation->getMessage()) === (string) $form_violation->getMessage()) {
+          $violations->remove($offset);
+        }
+      }
+      $violations->add($form_violation);
     }
   }
 

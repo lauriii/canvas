@@ -1,0 +1,9 @@
+name: Drupal Canvas AI Legacy
+type: module
+description: 'The orchestrator-based Drupal Canvas AI chat and its agents.'
+package: Drupal Canvas
+lifecycle: deprecated
+lifecycle_link: 'https://www.drupal.org/node/3628747'
+core_version_requirement: ^11.3
+dependencies:
+  - canvas:canvas_ai

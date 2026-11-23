@@ -1,7 +1,7 @@
 /**
  * Serializes the Redux layout into the dev chat's current_layout parameter.
  *
- * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::render()
+ * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
  */
 
 import type {

@@ -28,6 +28,8 @@ final class ComponentTreeInputExtractorTest extends CanvasKernelTestBase {
 
   protected function setUp(): void {
     parent::setUp();
+    // Validating a page with an alias checks the alias is not already in use.
+    $this->installEntitySchema('path_alias');
     $this->installConfig(['canvas_test_search']);
     $this->container->get(ComponentSourceManager::class)->generateComponents();
   }

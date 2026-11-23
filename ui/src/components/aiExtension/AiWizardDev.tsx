@@ -1,8 +1,8 @@
 /**
  * ⚠️ This is highly experimental and *will* be refactored.
  *
- * Development variant of AiWizard. It drives the canvas_dev_ai endpoint
- * (/admin/api/canvas/ai-dev) as a client-side hop loop: the agent pauses after
+ * Development variant of AiWizard. It drives the canvas_ai endpoint
+ * (/admin/api/canvas/ai) as a client-side hop loop: the agent pauses after
  * each tool decision, and the turn is re-POSTed under one request_id until it
  * reports it is finished. Each hop's narration is rendered into a single
  * progress message, and the answer follows it on the final hop. Every turn
@@ -12,7 +12,10 @@
  * last_successful_request_id, and that is the checkpoint the backend
  * resumes: a turn the user stopped is never named, so whatever it left on
  * the server is never resumed. Rendered instead of AiWizard when
- * drupalSettings.canvas.aiDevMode is set by the canvas_dev_ai module.
+ * drupalSettings.canvas.aiDevMode is set: by canvas_ai while canvas_ai_legacy
+ * is not installed, and by the canvas_dev_ai module.
+ *
+ * @todo Rename AiWizard to AiWizardLegacy and render it on an aiLegacyMode flag set by canvas_ai_legacy, rename AiWizardDev to AiWizard, and set aiDevMode only from canvas_dev_ai, see https://git.drupalcode.org/project/canvas/-/work_items/3592374
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeepChat } from 'deep-chat-react';
@@ -1183,7 +1186,7 @@ const AiWizardDev = () => {
           }
           isFirstHop = false;
 
-          const response = await fetch('/admin/api/canvas/ai-dev', {
+          const response = await fetch('/admin/api/canvas/ai', {
             method: 'POST',
             headers,
             body: requestBody,

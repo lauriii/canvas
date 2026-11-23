@@ -9,6 +9,15 @@ use Drupal\Core\Validation\Attribute\Constraint;
 use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint as SymfonyConstraint;
 
+/**
+ * Validates an exposed slot of a content template.
+ *
+ * Exposed slots are only allowed in templates of one entity type (`node`) and
+ * one view mode (`full`). Both are constraint options, set in the config
+ * schema.
+ *
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\ValidExposedSlotConstraintValidator
+ */
 #[Constraint(
   id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Validates an exposed slot', [], ['context' => 'Validation']),
@@ -22,10 +31,17 @@ final class ValidExposedSlotConstraint extends SymfonyConstraint {
    */
   public const string EXPOSED_SLOTS_VIEW_MODE = 'full';
 
+  /**
+   * The only entity type whose content templates can expose slots.
+   */
+  public const string EXPOSED_SLOTS_ENTITY_TYPE_ID = 'node';
+
   #[HasNamedArguments]
   public function __construct(
     // The view mode in which the exposed slots will be used.
     public string $viewMode = self::EXPOSED_SLOTS_VIEW_MODE,
+    // The entity type whose content templates the exposed slots are used in.
+    public string $entityTypeId = self::EXPOSED_SLOTS_ENTITY_TYPE_ID,
     // The violation message when the component instance does not exist in the
     // tree.
     public string $unknownComponentMessage = 'The component %id does not exist in the tree.',
@@ -43,6 +59,9 @@ final class ValidExposedSlotConstraint extends SymfonyConstraint {
     // The violation message when the exposed slot is defined for a disallowed
     // view mode.
     public string $viewModeMismatchMessage = 'Exposed slots are only allowed in the %mode view mode.',
+    // The violation message when the exposed slot is defined for a disallowed
+    // entity type.
+    public string $entityTypeMismatchMessage = 'Exposed slots are only allowed for the %type entity type.',
     ?array $groups = NULL,
     mixed $payload = NULL,
   ) {

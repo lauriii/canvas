@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\path_alias\PathAliasInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -288,6 +289,63 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
     $path_aliases = $alias_storage->loadByProperties($internal_path);
     $this->assertCount(1, $path_aliases);
     $this->assertSame('/new-alias', reset($path_aliases)->getAlias());
+  }
+
+  /**
+   * Tests that an invalid path alias is reported, and an empty one clears it.
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Validation\StorablePathAliasConstraintValidatorTest
+   */
+  public function testPatchInvalidPathAlias(): void {
+    $page = Page::create([
+      'title' => 'Initial title',
+      'status' => TRUE,
+      'path' => ['alias' => '/old-alias'],
+      'components' => [],
+    ]);
+    $page->save();
+    $page_id = $page->id();
+    \assert($page_id !== NULL);
+    $pid = (int) $page->get('path')->first()?->get('pid')->getValue();
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
+    $path_alias_storage = $entity_type_manager->getStorage('path_alias');
+    $patch = fn (array $body): Response => $this->request(Request::create(
+      \sprintf(self::URL, $page_id),
+      'PATCH',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode($body + [
+        'title' => 'Changed title',
+        'status' => TRUE,
+        'components' => [],
+      ], JSON_THROW_ON_ERROR),
+    ));
+
+    // Neither the title nor the alias is saved.
+    $response = $patch(['path' => '/']);
+    $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The alias <em class="placeholder">/</em> cannot consist only of slashes.',
+          'source' => ['pointer' => 'path.0.alias'],
+        ],
+      ],
+    ], $this->decodeResponse($response));
+    $stored_page = $page_storage->loadUnchanged($page_id);
+    \assert($stored_page instanceof Page);
+    $this->assertSame('Initial title', $stored_page->label());
+    $path_alias = $path_alias_storage->loadUnchanged($pid);
+    \assert($path_alias instanceof PathAliasInterface);
+    $this->assertSame('/old-alias', $path_alias->getAlias());
+
+    // An empty alias deletes the existing one.
+    $response = $patch(['path' => '']);
+    $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $stored_page = $page_storage->loadUnchanged($page_id);
+    \assert($stored_page instanceof Page);
+    $this->assertSame('Changed title', $stored_page->label());
+    $this->assertNull($path_alias_storage->loadUnchanged($pid));
   }
 
   public static function providerPatchPathAlias(): \Generator {

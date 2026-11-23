@@ -1,0 +1,13 @@
+canvas_ai_legacy.canvas_builder:
+  path: '/admin/api/canvas/ai-legacy'
+  defaults:
+    _controller: '\Drupal\canvas_ai_legacy\Controller\CanvasAiLegacyBuilder::render'
+  requirements:
+    _permission: 'use Drupal Canvas AI'
+
+canvas_ai_legacy.get_progress:
+  path: '/admin/api/canvas/ai-progress-legacy'
+  defaults:
+    _controller: '\Drupal\canvas_ai_legacy\Controller\CanvasAiLegacyBuilder::getAiProgress'
+  requirements:
+    _permission: 'use Drupal Canvas AI'

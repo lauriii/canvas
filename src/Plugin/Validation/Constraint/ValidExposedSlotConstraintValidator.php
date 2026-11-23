@@ -53,6 +53,13 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     }
     \assert($template instanceof ContentTemplate);
 
+    if ($template->getTargetEntityTypeId() !== $constraint->entityTypeId) {
+      $this->context->addViolation($constraint->entityTypeMismatchMessage, [
+        '%type' => $constraint->entityTypeId,
+      ]);
+      return;
+    }
+
     $component_tree_item_list = $template->getComponentTree();
     $item = $component_tree_item_list->getComponentTreeItemByUuid($value['component_uuid']);
     if ($item === NULL) {

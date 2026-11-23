@@ -4,6 +4,7 @@ import { Box, Button, Callout, Flex, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
+  EXPOSED_SLOTS_ENTITY_TYPE_ID,
   EXPOSED_SLOTS_VIEW_MODE,
   findSlotNestingConflict,
   getSlotHostComponentUuid,
@@ -38,9 +39,12 @@ const SlotExposePanel: React.FC<SlotExposePanelProps> = ({
   const dispatch = useAppDispatch();
   const exposedSlots = useAppSelector(selectExposedSlots);
   const layout = useAppSelector(selectLayout);
-  const { viewMode } = useParams();
-  // Only one view mode can expose slots; other templates can't enable editing.
-  const isViewModeBlocked = viewMode !== EXPOSED_SLOTS_VIEW_MODE;
+  const { viewMode, entityType } = useParams();
+  // Only one entity type and one view mode can expose slots; other templates
+  // can't enable editing.
+  const isExposeBlocked =
+    viewMode !== EXPOSED_SLOTS_VIEW_MODE ||
+    entityType !== EXPOSED_SLOTS_ENTITY_TYPE_ID;
 
   // Exposed slots must not nest; block the invalid exposure here exactly like
   // the slot context menu does, instead of letting the save fail on the
@@ -84,22 +88,22 @@ const SlotExposePanel: React.FC<SlotExposePanelProps> = ({
             onClick={openExposeDialog}
             className="canvas-button"
             data-testid="canvas-slot-expose-button"
-            disabled={isViewModeBlocked || !!nestingConflict}
+            disabled={isExposeBlocked || !!nestingConflict}
           >
             Enable editing
           </Button>
         </Box>
-        {isViewModeBlocked && (
+        {isExposeBlocked && (
           <Text
             size="1"
             color="gray"
             data-testid="canvas-slot-expose-view-mode-blocked"
           >
             Editing can only be enabled on slots in the Full content view mode
-            template.
+            template of a content type.
           </Text>
         )}
-        {!isViewModeBlocked && nestingConflict && (
+        {!isExposeBlocked && nestingConflict && (
           <Text size="1" color="gray" data-testid="canvas-slot-expose-blocked">
             {nestingConflict.direction === 'inside'
               ? `Editing cannot be enabled on this slot because it is inside the editable slot "${nestingConflict.definition.label}".`

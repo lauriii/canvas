@@ -1279,7 +1279,8 @@ canvas.content_template.*.*.*:
         constraints:
           # Exposed slots are only supported by the "canonical" view mode, which is generally
           # assumed to be `full` (see \Drupal\Core\Entity\Controller\EntityViewController::view()
-          # for where core makes this assumption). Example:
+          # for where core makes this assumption), and only by `node` templates.
+          # Example:
           #
           # exposed_slots:
           #  canvas_slot_profile_bio:
@@ -1292,6 +1293,7 @@ canvas.content_template.*.*.*:
           #    slot_name: body
           ValidExposedSlot:
             viewMode: full
+            entityTypeId: node
         mapping:
           component_uuid:
             type: uuid

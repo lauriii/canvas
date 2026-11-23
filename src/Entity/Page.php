@@ -171,6 +171,9 @@ final class Page extends EditorialContentEntityBase implements EntityOwnerInterf
       ])
       ->setDisplayConfigurable('form', TRUE)
       ->setComputed(TRUE);
+    // Canvas' own HTTP API saves pages without core's path widget.
+    // @todo Add this to all path fields in https://git.drupalcode.org/project/canvas/-/work_items/3592373, or remove it when https://www.drupal.org/i/3638830 lands.
+    $fields['path']->getItemDefinition()->addConstraint('StorablePathAlias');
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Authored on'))
       ->setDescription(t('The time the page was created.'))

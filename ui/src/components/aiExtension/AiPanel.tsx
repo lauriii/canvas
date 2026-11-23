@@ -12,6 +12,7 @@ import styles from './AiPanel.module.css';
 interface AiPanelProps {}
 
 const AiPanel: React.FC<AiPanelProps> = () => {
+  // @todo Rename AiWizard to AiWizardLegacy and render it on an aiLegacyMode flag set by canvas_ai_legacy, rename AiWizardDev to AiWizard, and set aiDevMode only from canvas_dev_ai, see https://git.drupalcode.org/project/canvas/-/work_items/3592374
   const isOpen = useAppSelector(selectAiPanelOpen);
   return (
     <Box

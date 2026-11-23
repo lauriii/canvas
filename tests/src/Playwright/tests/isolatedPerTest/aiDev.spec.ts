@@ -6,16 +6,17 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * Coverage for the Canvas AI dev chat, which runs a turn as several requests.
  *
  * The agent pauses after each tool decision, and `AiWizardDev` re-POSTs the
- * same turn to `/admin/api/canvas/ai-dev` until a response reports
+ * same turn to `/admin/api/canvas/ai` until a response reports
  * `should_continue: false`.
  *
- * `canvas_dev_ai` is what puts `drupalSettings.canvas.aiDevMode` in place, so
- * this file installs it to render `AiWizardDev` instead of `AiWizard`. That is
- * also why this coverage does not live in `ai.spec.ts`: installing the module
- * would switch that file's tests over to the dev wizard too.
+ * `canvas_ai` sets `drupalSettings.canvas.aiDevMode` while `canvas_ai_legacy`
+ * is not installed, which renders `AiWizardDev` instead of `AiWizard`.
+ * `ai.spec.ts` installs `canvas_ai_legacy` to cover `AiWizard`.
  *
- * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder
+ * @see \Drupal\canvas_ai\Controller\CanvasBuilder
  * @see \Drupal\canvas_ai_test\EventSubscriber\CanvasAiRequestInterceptor
+ *
+ * @todo Rename to ai.spec.ts, see https://git.drupalcode.org/project/canvas/-/work_items/3592376
  */
 
 test.use({
@@ -28,15 +29,6 @@ test.use({
 test.describe('AI dev chat', () => {
   test.beforeEach(async ({ drupal }) => {
     await drupal.loginAsAdmin();
-    // canvas_dev_ai is installed on its own, after canvas_ai, rather than
-    // alongside it in `test.use()` above. Its default canvas_dev_ai.settings
-    // names the ai_agent config entities canvas_ai provides, and the
-    // ConfigExists constraints on those names are validated when the settings
-    // are saved. Core installs every module's simple config before any
-    // module's config entities, so installing both modules in one operation
-    // saves the settings while the agents do not exist yet — which the config
-    // schema checker this test site runs with turns into a fatal error.
-    await drupal.installModules(['canvas_dev_ai']);
     await drupal.createRole({ name: 'ai_editor' });
     await drupal.createUser({
       email: `ai_editor@example.com`,
@@ -66,7 +58,7 @@ test.describe('AI dev chat', () => {
     let requests = 0;
     const conversationIds = new Set<unknown>();
     const bodies: Record<string, unknown>[] = [];
-    await page.route('**/admin/api/canvas/ai-dev', async (route) => {
+    await page.route('**/admin/api/canvas/ai', async (route) => {
       requests += 1;
       const body = route.request().postDataJSON();
       bodies.push(body);
@@ -132,7 +124,7 @@ test.describe('AI dev chat', () => {
 
     // That final request carried a `component_structure`, so its side effect
     // ran: the component was created and the code editor opened on it.
-    // @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::buildSolvableResponse()
+    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::buildSolvableResponse()
     await expect(page).toHaveURL(
       /\/canvas\/code-editor\/component\/red_button/,
     );
@@ -177,7 +169,7 @@ test.describe('AI dev chat', () => {
     expect([...conversationIds][0]).toMatch(/^conv_/);
     // The first turn had nothing to resume. The chat accepted it, so every
     // hop of the second turn names it as the checkpoint to resume from.
-    // @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
+    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::prepareAgent()
     expect(bodies[0].request_id).toMatch(/^req_/);
     expect(bodies.map((body) => body.last_successful_request_id)).toEqual([
       '',
@@ -218,7 +210,7 @@ test.describe('AI dev chat', () => {
     const headingsUpdateHop = new Promise<void>((resolve) => {
       releaseHeadingsUpdateHop = resolve;
     });
-    await page.route('**/admin/api/canvas/ai-dev', async (route) => {
+    await page.route('**/admin/api/canvas/ai', async (route) => {
       requests += 1;
       if (requests === 4) {
         await secondPlacementHop;
@@ -613,7 +605,7 @@ test.describe('AI dev chat', () => {
     const heldHop = new Promise<void>((resolve) => {
       releaseHeldHop = resolve;
     });
-    await page.route('**/admin/api/canvas/ai-dev', async (route) => {
+    await page.route('**/admin/api/canvas/ai', async (route) => {
       requests += 1;
       bodies.push(route.request().postDataJSON());
       if (requests === 3) {
@@ -701,7 +693,7 @@ test.describe('AI dev chat', () => {
     // named the first turn, and so does the turn after the stop: the stopped
     // turn was never accepted, so whatever it left on the server is never
     // resumed.
-    // @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
+    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::prepareAgent()
     expect(requests).toBe(4);
     const acceptedTurn = bodies[0].request_id;
     expect(acceptedTurn).toMatch(/^req_/);
@@ -728,7 +720,7 @@ test.describe('AI dev chat', () => {
     // Replace the page's timers and Date with a clock the test controls.
     await page.clock.install();
     let requests = 0;
-    await page.route('**/admin/api/canvas/ai-dev', async (route) => {
+    await page.route('**/admin/api/canvas/ai', async (route) => {
       requests += 1;
       // The first two hops run unchanged: the first places no components (see
       // approved.json) and the second places three (see approved-2.json).
@@ -790,9 +782,9 @@ test.describe('AI dev chat', () => {
   test('Tools dropdown', async ({ page, drupal, canvas, ai }) => {
     // The body of every request the chat sends, in order: the Tool a message
     // was sent with travels as its `selected_tool` key.
-    // @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::resolveAgentId()
+    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::resolveAgentId()
     const bodies: Record<string, unknown>[] = [];
-    await page.route('**/admin/api/canvas/ai-dev', async (route) => {
+    await page.route('**/admin/api/canvas/ai', async (route) => {
       bodies.push(route.request().postDataJSON());
       await route.continue();
     });
@@ -820,11 +812,11 @@ test.describe('AI dev chat', () => {
     });
     const answer = chat.locator('.text-message.ai-message-text');
 
-    // The menu lists every agent canvas_dev_ai.settings offers as a Tool, in
+    // The menu lists every agent canvas_ai.settings offers as a Tool, in
     // the configured order, each with its label and description. Nothing is
     // selected to begin with.
-    // @see canvas_dev_ai_install()
-    // @see \Drupal\canvas_dev_ai\Hook\CanvasDevAiHooks::jsSettingsAlter()
+    // @see canvas_ai_install()
+    // @see \Drupal\canvas_ai\Hook\CanvasAiHooks::jsSettingsAlter()
     await toolsTrigger.click();
     await expect(menu).toBeVisible();
     await expect(rows).toHaveCount(2);
@@ -916,13 +908,13 @@ test.describe('AI dev chat', () => {
 
   test('No Tools configured', async ({ page, drupal, canvas, ai }) => {
     const bodies: Record<string, unknown>[] = [];
-    await page.route('**/admin/api/canvas/ai-dev', async (route) => {
+    await page.route('**/admin/api/canvas/ai', async (route) => {
       bodies.push(route.request().postDataJSON());
       await route.continue();
     });
 
     // An administrator turns every Tool off on the Agents & Tools form.
-    // @see \Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm
+    // @see \Drupal\canvas_ai\Form\CanvasAiAgentSelectionForm
     await drupal.loginAsAdmin();
     await page.goto('/admin/config/ai/canvas-ai-agent-selection');
     await page

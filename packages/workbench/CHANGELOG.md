@@ -1,5 +1,16 @@
 # @drupal-canvas/workbench
 
+## 0.15.0
+
+### Minor Changes
+
+- 6c9eea2: Add exposed slots: per-entity editable areas in content templates
+
+### Patch Changes
+
+- Updated dependencies [515fb66]
+  - drupal-canvas@0.9.0
+
 ## 0.14.0
 
 ### Minor Changes

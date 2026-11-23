@@ -13,7 +13,9 @@ import {
   createJsonApiClient,
   DraftSessionError,
   isDraftSessionError,
+  isJsonApiError,
   JsonApiClient,
+  JsonApiError,
 } from './jsonapi-client.js';
 import { getNodePath, sortMenu } from './jsonapi-utils.js';
 import {
@@ -47,6 +49,7 @@ export type {
 export type {
   CanvasJsonApiClient,
   JsonApiClientConfig,
+  JsonApiErrorObject,
   JsonApiRuntimeConfig,
 } from './jsonapi-client.js';
 export type { CanvasDataV0 } from './drupal-settings.js';
@@ -86,4 +89,6 @@ export {
   createJsonApiClient,
   DraftSessionError,
   isDraftSessionError,
+  JsonApiError,
+  isJsonApiError,
 };

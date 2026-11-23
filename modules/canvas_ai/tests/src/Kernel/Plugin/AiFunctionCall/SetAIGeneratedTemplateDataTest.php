@@ -9,7 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedTemplateData;
+use Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\SetAIGeneratedTemplateData;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -26,7 +26,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Tests Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedTemplateData.
+ * Tests Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\SetAIGeneratedTemplateData.
  */
 #[CoversClass(SetAIGeneratedTemplateData::class)]
 #[Group('canvas_ai')]
@@ -55,6 +55,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
     'ai',
     'ai_agents',
     'canvas_ai',
+    'canvas_ai_legacy',
   ];
 
   /**

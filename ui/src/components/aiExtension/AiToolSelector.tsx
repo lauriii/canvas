@@ -16,7 +16,7 @@ interface AiToolSelectorProps {
 
 // Icon shown next to each tool's title/description; also reused by
 // ActiveToolPill for the same tool once selected. Keyed by the real
-// ai_agent config entity ids (see canvas_dev_ai.settings.yml).
+// ai_agent config entity ids (see canvas_ai.settings).
 export const TOOL_ICONS: Record<string, typeof ReaderIcon> = {
   drupal_canvas_page_agent: ReaderIcon,
   canvas_component_agent: CodeIcon,

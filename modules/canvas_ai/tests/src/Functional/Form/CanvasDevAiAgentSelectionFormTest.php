@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Functional\Form;
 
-use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
@@ -12,7 +11,9 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Functional test for the Canvas Dev AI Agents & Tools settings form.
+ * Functional test for the Canvas AI Agents & Tools settings form.
+ *
+ * @todo Rename to CanvasAiAgentSelectionFormTest, see https://git.drupalcode.org/project/canvas/-/work_items/3592376
  */
 #[Group('canvas')]
 #[Group('canvas_ai')]
@@ -22,7 +23,7 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
   /**
    * The route name for the form.
    */
-  private const ROUTE_NAME = 'canvas_dev_ai.agent_selection';
+  private const ROUTE_NAME = 'canvas_ai.agent_selection';
 
   /**
    * {@inheritdoc}
@@ -36,7 +37,6 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
     'block',
     'canvas',
     'canvas_ai',
-    'canvas_dev_ai',
     'ai',
     'ai_agents',
     'user',
@@ -59,18 +59,9 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
    * Tests that the Agents & Tools tab is available under the settings route.
    */
   public function testLocalTaskIsAvailable(): void {
-    // Resolve the path while the module — and so its route — still exists.
-    $tab_path = Url::fromRoute(self::ROUTE_NAME)->toString();
-
     $this->drupalGet(Url::fromRoute('canvas_ai.setting'));
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->linkByHrefExists($tab_path);
-
-    \Drupal::service(ModuleInstallerInterface::class)->uninstall(['canvas_dev_ai']);
-
-    $this->drupalGet(Url::fromRoute('canvas_ai.setting'));
-    $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->linkByHrefNotExists($tab_path);
+    $this->assertSession()->linkByHrefExists(Url::fromRoute(self::ROUTE_NAME)->toString());
   }
 
   /**
@@ -97,7 +88,7 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
 
     $this->assertSession()->pageTextContains('The configuration options have been saved.');
 
-    $config = $this->config('canvas_dev_ai.settings');
+    $config = $this->config('canvas_ai.settings');
     $this->assertSame('drupal_canvas_page_agent', $config->get('main_agent'));
     $this->assertSame(['canvas_component_agent'], $config->get('tools'));
     $this->assertTrue($config->get('keep_tool_calls_in_history'));

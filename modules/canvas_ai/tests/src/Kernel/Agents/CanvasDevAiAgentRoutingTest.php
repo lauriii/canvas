@@ -7,10 +7,9 @@ namespace Drupal\Tests\canvas_ai\Kernel\Agents;
 use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
-use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
+use Drupal\canvas_ai\Controller\CanvasBuilder;
 use Drupal\Component\Plugin\PluginManagerInterface;
-use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas_ai\Kernel\Traits\CanvasAiDevHopTrait;
@@ -22,15 +21,17 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
- * Tests the dev AI controller invokes the configured main agent or Tool.
+ * Tests the AI controller invokes the configured main agent or Tool.
  *
  * The agent plugin manager hands back a mocked AiAgentEntityWrapper and records
  * the ID it was asked for in $requestedAgentId. No agent runs.
  *
  * @see https://git.drupalcode.org/project/canvas/-/work_items/3591777
+ *
+ * @todo Rename to CanvasAiAgentRoutingTest, see https://git.drupalcode.org/project/canvas/-/work_items/3592376
  */
 #[Group('canvas_ai')]
-#[CoversClass(CanvasDevAiBuilder::class)]
+#[CoversClass(CanvasBuilder::class)]
 #[RunTestsInSeparateProcesses]
 final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
 
@@ -53,6 +54,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     'canvas_ai',
+    'canvas_ai_legacy',
     'key',
     'ai',
     'ai_agents',
@@ -64,13 +66,10 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->installConfig(['canvas_ai', 'ai', 'ai_agents']);
+    $this->installConfig(['canvas_ai', 'canvas_ai_legacy', 'ai', 'ai_agents']);
     $this->installEntitySchema('path_alias');
-    // Installed separately to trigger canvas_dev_ai_install().
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $container = \Drupal::getContainer();
-    \assert($container instanceof ContainerBuilder);
-    $this->container = $container;
+    $this->container->get(ModuleHandlerInterface::class)->loadInclude('canvas_ai', 'install');
+    canvas_ai_install(FALSE);
     $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
     $this->setUpAiDevHops();
 
@@ -111,7 +110,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    * Tests a request without a Tool invokes the configured main agent.
    */
   public function testCustomMainAgentIsInvoked(): void {
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('main_agent', 'drupal_canvas_page_agent')
       ->save();
 
@@ -134,7 +133,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
 
     $this->assertSame('drupal_canvas_page_agent', $this->requestedAgentId);
 
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('main_agent', 'canvas_component_agent')
       ->save();
     $this->requestedAgentId = NULL;
@@ -164,7 +163,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    * Tests a request that resolves to no agent at all is rejected.
    */
   public function testUnresolvedAgentIsRejected(): void {
-    $this->config('canvas_dev_ai.settings')->delete();
+    $this->config('canvas_ai.settings')->clear('main_agent')->save();
 
     $response = $this->hop(['messages' => [['role' => 'user', 'text' => 'Routing test.']]]);
 
@@ -176,7 +175,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    * Tests a request resolving an agent without a plugin definition is rejected.
    */
   public function testAgentWithoutDefinitionIsRejected(): void {
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('main_agent', 'canvas_title_generation_agent')
       ->save();
 

@@ -7,11 +7,30 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * This test suite will verify Canvas AI related features.
  */
 
-test.use({ modules: ['canvas_ai_test'], enableTestExtensions: true });
+test.use({
+  modules: ['canvas_ai_test'],
+  enableTestExtensions: true,
+});
 
 test.describe('AI Features', () => {
-  test.beforeEach(async ({ drupal }) => {
+  test.beforeEach(async ({ page, drupal }) => {
     await drupal.loginAsAdmin();
+    // Installs canvas_ai_legacy and accepts the deprecated module confirmation,
+    // which drupal.installModules() does not submit.
+    await page.goto('/admin/modules');
+    const legacy = page.locator(
+      'input[name="modules[canvas_ai_legacy][enable]"]',
+    );
+    await legacy.evaluate((input) =>
+      input.closest('details')?.setAttribute('open', ''),
+    );
+    await legacy.check();
+    await page.locator('[data-drupal-selector="edit-submit"]').click();
+    await expect(page.locator('h1')).toHaveText(
+      'Are you sure you wish to install a deprecated module?',
+    );
+    await page.locator('[data-drupal-selector="edit-submit"]').click();
+    await expect(legacy).toBeDisabled();
     await drupal.createRole({ name: 'ai_editor' });
     await drupal.createUser({
       email: `ai_editor@example.com`,

@@ -7,9 +7,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Agents;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
-use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -51,11 +49,6 @@ final class DrupalCanvasPageAgentConfigTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['canvas_ai']);
-    // A real module install, so the agent entity ships from config/install.
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $container = \Drupal::getContainer();
-    \assert($container instanceof ContainerBuilder);
-    $this->container = $container;
   }
 
   /**

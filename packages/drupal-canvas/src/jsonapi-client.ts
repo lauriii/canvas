@@ -7,6 +7,7 @@
  * - transparent mapping of browser requests to a same-origin proxy, including
  *   absolute pagination links and the path-translation endpoint;
  * - draft-session errors surfaced as `DraftSessionError`;
+ * - HTTP error responses surfaced as `JsonApiError`;
  * - client caches separated by resource version and session scope.
  *
  * The legacy `new JsonApiClient()` API remains for Drupal-rendered Code
@@ -167,6 +168,51 @@ export function isDraftSessionError(
     (typeof error === 'object' &&
       error !== null &&
       (error as { name?: unknown }).name === 'DraftSessionError')
+  );
+}
+
+/** A JSON:API error object as Drupal returns it in an error document. */
+export interface JsonApiErrorObject {
+  status?: string;
+  title?: string;
+  detail?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Thrown when Drupal answers a request with an HTTP error status (4xx or
+ * 5xx). Carries the status, the response, and the JSON:API error objects of
+ * the error document.
+ */
+export class JsonApiError extends Error {
+  readonly status: number;
+  readonly response: Response;
+  readonly errors: JsonApiErrorObject[];
+  readonly document: unknown;
+
+  constructor(response: Response, document: unknown) {
+    const errors = (document as { errors?: unknown } | null)?.errors;
+    const errorObjects = Array.isArray(errors)
+      ? (errors as JsonApiErrorObject[])
+      : [];
+    const first = errorObjects[0];
+    const reason =
+      first?.detail || first?.title || response.statusText || 'Request failed';
+    super(`JSON:API request failed with status ${response.status}: ${reason}`);
+    this.name = 'JsonApiError';
+    this.status = response.status;
+    this.response = response;
+    this.errors = errorObjects;
+    this.document = document;
+  }
+}
+
+export function isJsonApiError(error: unknown): error is JsonApiError {
+  return (
+    error instanceof JsonApiError ||
+    (typeof error === 'object' &&
+      error !== null &&
+      (error as { name?: unknown }).name === 'JsonApiError')
   );
 }
 
@@ -386,6 +432,8 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
    * (the upstream builder resolves root-relative and would drop a site path
    * such as `/sub`). A same-site full URL override is a prefix override; a
    * foreign one has no known site root, so a locale prefix is refused.
+   * When index lookup is enabled, a failed index request throws `JsonApiError`,
+   * including when the requested read uses `rawResponse: true`.
    */
   override async createURL(segments: EndpointUrlSegments): Promise<string> {
     const {
@@ -415,6 +463,10 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
         if (error) {
           throw error;
         }
+        // Check HTTP errors before parsing the index body.
+        if (response.status >= 400) {
+          throw new JsonApiError(response, await readErrorDocument(response));
+        }
         index = (await response.json()) as typeof index;
         if (this.cache && response.status < 400) {
           await this.cache.set(cacheKey, index);
@@ -430,6 +482,24 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
     return viewName
       ? `${prefixUrl}/views/${viewName}/${viewDisplayId}${query}`
       : `${prefixUrl}/${entityTypeId}${bundleId ? `/${bundleId}` : ''}${resourceId ? `/${resourceId}` : ''}${query}`;
+  }
+
+  /**
+   * Error responses (4xx and 5xx) throw `JsonApiError` instead of resolving
+   * with the deserialized error document. Raw responses are returned as-is so
+   * callers can inspect the status themselves.
+   */
+  override async processApiResponseAndParseBody<T>(
+    response: Response,
+    cacheKey: string,
+    options?: Parameters<
+      UpstreamJsonApiClient['processApiResponseAndParseBody']
+    >[2],
+  ): Promise<T | string> {
+    if (response.status >= 400 && !(options as GetOptions)?.rawResponse) {
+      throw new JsonApiError(response, await readErrorDocument(response));
+    }
+    return super.processApiResponseAndParseBody<T>(response, cacheKey, options);
   }
 
   /**
@@ -461,6 +531,7 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
    * without the version from then on. Any other response keeps the original
    * one; a failed request throws as any read does. Raw responses and
    * caller-selected versions bypass this.
+   * HTTP errors are checked before parsing or deserializing their bodies.
    */
   override async getResource<T>(
     type: string,
@@ -477,28 +548,43 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
     const { entityTypeId, bundleId } =
       UpstreamJsonApiClient.getEntityTypeIdAndBundleId(type);
     const localeSegment = options?.locale || this.defaultLocale;
+    const cacheKey = await UpstreamJsonApiClient.createCacheKey({
+      entityTypeId,
+      bundleId,
+      resourceId,
+      localeSegment,
+      queryString: versioned?.queryString,
+    });
     if (!options?.disableCache) {
-      const cached = await this.getCachedResponse<T>(
-        await UpstreamJsonApiClient.createCacheKey({
-          entityTypeId,
-          bundleId,
-          resourceId,
-          localeSegment,
-          queryString: versioned?.queryString,
-        }),
-      );
+      const cached = await this.getCachedResponse<T>(cacheKey);
       if (cached) {
         return cached;
       }
     }
-    // The raw read parses, caches, and fails exactly like an ordinary read,
-    // and exposes the response status.
-    const { response, json } = (await super.getResource<T>(type, resourceId, {
-      ...versioned,
-      rawResponse: true,
-    })) as RawApiResponseWithData<T>;
+    const versionedUrl = await this.createURL({
+      localeSegment,
+      entityTypeId,
+      bundleId,
+      resourceId,
+      queryString: versioned?.queryString,
+    });
+    const init: RequestInit = options?.disableAuthentication
+      ? { credentials: 'omit' }
+      : {};
+    // Fetch without parsing so HTTP errors and the 501 fallback are handled first.
+    const { response, error } = await this.fetch(versionedUrl, init);
+    if (error) {
+      throw error;
+    }
     if (!(await isNotImplementedResponse(response))) {
-      return json;
+      if (response.status >= 400) {
+        throw new JsonApiError(response, await readErrorDocument(response));
+      }
+      return (await this.processApiResponseAndParseBody<T>(
+        response.clone(),
+        cacheKey,
+        versioned,
+      )) as T;
     }
     const url = await this.createURL({
       localeSegment,
@@ -507,10 +593,7 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
       resourceId,
       queryString: options?.queryString,
     });
-    const retry = await this.fetch(
-      url,
-      options?.disableAuthentication ? { credentials: 'omit' } : {},
-    );
+    const retry = await this.fetch(url, init);
     if (retry.error) {
       throw retry.error;
     }
@@ -522,7 +605,7 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
             .catch(() => null)
         : null;
     if (!isUnversionedResourceDocument(document, type, resourceId)) {
-      return json;
+      throw new JsonApiError(response, await readErrorDocument(response));
     }
     this.unversionedTypes.add(type);
     return (await this.processApiResponseAndParseBody<T>(
@@ -545,7 +628,7 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
    * no `working-copy` link and are kept. Working copies are merged into the
    * raw document before the serializer runs. A failing ordinary item fetch
    * keeps the original item; draft-session errors propagate. Raw responses
-   * bypass this.
+   * bypass this. HTTP errors are checked before parsing their bodies.
    *
    * An omitted or false rawResponse returns the deserialized T. A literal
    * true returns the response wrapper; a dynamic flag retains both types.
@@ -596,8 +679,11 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
       throw error;
     }
     const status = response.status;
+    if (status >= 400) {
+      throw new JsonApiError(response, await readErrorDocument(response));
+    }
     let document: unknown = status === 204 ? '' : await response.json();
-    if (status < 400 && isCollectionDocument(document)) {
+    if (isCollectionDocument(document)) {
       document = await this.hydrateWorkingCopies(type, document, init, {
         localeSegment,
         queryString: options?.queryString,
@@ -755,7 +841,7 @@ async function isNotImplementedResponse(response: Response): Promise<boolean> {
     return false;
   }
   try {
-    const document = (await response.json()) as { errors?: unknown };
+    const document = (await response.clone().json()) as { errors?: unknown };
     return (
       Array.isArray(document?.errors) &&
       document.errors.some(
@@ -764,6 +850,18 @@ async function isNotImplementedResponse(response: Response): Promise<boolean> {
     );
   } catch {
     return false;
+  }
+}
+
+/**
+ * Reads the body of an error response as JSON, or `null` when it has none or
+ * it is not JSON. The response itself stays unread.
+ */
+async function readErrorDocument(response: Response): Promise<unknown> {
+  try {
+    return await response.clone().json();
+  } catch {
+    return null;
   }
 }
 

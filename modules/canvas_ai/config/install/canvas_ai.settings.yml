@@ -2,3 +2,4 @@ http_client_options:
   timeout: 300
 file_upload_size: 2
 chat_history_max_messages: 10
+keep_tool_calls_in_history: false

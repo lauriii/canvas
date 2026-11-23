@@ -11,10 +11,14 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
+use Drupal\canvas_ai_legacy\Hook\CanvasAiLegacyHooks;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ConfigInstallerInterface;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\MemoryStorage;
 use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
@@ -51,8 +55,8 @@ function canvas_ai_post_update_0002_chat_history_max_messages(): void {
  * @see https://www.drupal.org/project/canvas/issues/3582390
  */
 function canvas_ai_post_update_0003_reimport_orchestrator_agent(): void {
-  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
-  $source = new FileStorage($module_path . '/config/install');
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai_legacy');
+  $source = new FileStorage($module_path . '/config/optional');
   $data = $source->read('ai_agents.ai_agent.canvas_ai_orchestrator');
   $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_ai_orchestrator');
   if ($data && !$config->isNew()) {
@@ -153,8 +157,8 @@ function canvas_ai_post_update_0006_restore_orchestrator_agent_uuid(): void {
   if (empty($config->get('_core.default_config_hash'))) {
     // Recompute the hash exactly as core does when installing config
     // @see \Drupal\Core\Config\ConfigInstaller::createConfiguration()
-    $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
-    $install = (new FileStorage($module_path . '/config/install'))->read($name);
+    $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai_legacy');
+    $install = (new FileStorage($module_path . '/config/optional'))->read($name);
     $config->set('_core.default_config_hash', Crypt::hashBase64(serialize($install)));
     $changed = TRUE;
   }
@@ -283,8 +287,9 @@ function canvas_ai_post_update_0010_rename_page_variant_settings(): void {
  * uuid and _core) untouched.
  */
 function canvas_ai_post_update_0011_reimport_default_agents(): void {
-  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
-  $source = new FileStorage($module_path . '/config/install');
+  $extension_list = \Drupal::service(ModuleExtensionList::class);
+  $source = new FileStorage($extension_list->getPath('canvas_ai') . '/config/install');
+  $legacy_source = new FileStorage($extension_list->getPath('canvas_ai_legacy') . '/config/optional');
   $config_factory = \Drupal::configFactory();
 
   $agent_ids = [
@@ -298,7 +303,7 @@ function canvas_ai_post_update_0011_reimport_default_agents(): void {
 
   foreach ($agent_ids as $agent_id) {
     $name = "ai_agents.ai_agent.$agent_id";
-    $data = $source->read($name);
+    $data = ($legacy_source->exists($name) ? $legacy_source : $source)->read($name);
     $config = $config_factory->getEditable($name);
     if (!$data || $config->isNew()) {
       continue;
@@ -337,8 +342,8 @@ function canvas_ai_post_update_0011_reimport_default_agents(): void {
  * @see https://git.drupalcode.org/project/canvas/-/work_items/3592030
  */
 function canvas_ai_post_update_0012_reimport_region_free_builder_agents(): void {
-  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
-  $source = new FileStorage($module_path . '/config/install');
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai_legacy');
+  $source = new FileStorage($module_path . '/config/optional');
   $changed_keys = [
     'ai_agents.ai_agent.canvas_page_builder_agent' => ['system_prompt'],
     'ai_agents.ai_agent.canvas_template_builder_agent' => ['system_prompt', 'description'],
@@ -402,4 +407,39 @@ function canvas_ai_post_update_0014_clarify_component_agent_description(): void 
   if ($data && !$config->isNew()) {
     $config->set('description', $data['description'])->save(TRUE);
   }
+}
+
+/**
+ * Make the legacy agents depend on the Canvas AI Legacy module.
+ */
+function canvas_ai_post_update_0015_enforce_legacy_agent_dependency(): void {
+  if (!\Drupal::moduleHandler()->moduleExists('canvas_ai_legacy')) {
+    return;
+  }
+  foreach (\Drupal::entityTypeManager()->getStorage('ai_agent')->loadMultiple(CanvasAiLegacyHooks::LEGACY_AGENT_IDS) as $agent) {
+    \assert($agent instanceof ConfigEntityInterface);
+    $dependencies = $agent->get('dependencies');
+    $dependencies['enforced']['module'] = ['canvas_ai_legacy'];
+    // Saving recalculates the module dependencies from the agent's tools.
+    $agent->set('dependencies', $dependencies)->save();
+  }
+}
+
+/**
+ * Create the Canvas and page agents and set the chat agent settings.
+ */
+function canvas_ai_post_update_0016_install_chat_agents(): void {
+  $source = new FileStorage(\Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai') . '/config/install');
+  $agents = new MemoryStorage();
+  foreach ($source->readMultiple(['ai_agents.ai_agent.canvas_agent', 'ai_agents.ai_agent.drupal_canvas_page_agent']) as $name => $data) {
+    $agents->write($name, $data);
+  }
+  // Creates each agent that does not exist yet.
+  \Drupal::service(ConfigInstallerInterface::class)->installOptionalConfig($agents);
+
+  \Drupal::configFactory()->getEditable('canvas_ai.settings')
+    ->set('main_agent', 'canvas_agent')
+    ->set('tools', ['canvas_component_agent', 'drupal_canvas_page_agent'])
+    ->set('keep_tool_calls_in_history', FALSE)
+    ->save();
 }

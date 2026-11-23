@@ -685,6 +685,41 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     $this->assertValidationErrors([]);
   }
 
+  public function testExposedSlotsOnlyAllowedForNodes(): void {
+    \assert($this->entity instanceof ContentTemplate);
+    $this->createComponentTreeField('user', 'user', 'footer_for_you');
+    EntityViewMode::create([
+      'id' => 'user.full',
+      'label' => 'Full',
+      'targetEntityType' => 'user',
+    ])->save();
+    $this->entity = ContentTemplate::create([
+      'content_entity_type_id' => 'user',
+      'content_entity_type_bundle' => 'user',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => 'There be a slot here',
+          ],
+        ],
+      ],
+      'exposed_slots' => [
+        'footer_for_you' => [
+          'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+          'slot_name' => 'the_footer',
+          'label' => "I got your footer right here",
+        ],
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'exposed_slots.footer_for_you' => 'Exposed slots are only allowed for the <em class="placeholder">node</em> entity type.',
+    ]);
+  }
+
   public function testNestedExposedSlotIsRejected(): void {
     \assert($this->entity instanceof ContentTemplate);
     $template = $this->entity;
