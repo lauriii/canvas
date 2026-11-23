@@ -234,6 +234,50 @@ The associated
 [parameter helper package](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/parameters/#generating-query-strings-with-drupal-jsonapi-params)
 is also included as a native package.
 
+#### Handling HTTP errors
+
+Client reads and writes reject with `JsonApiError` when Drupal answers with an
+HTTP error status (4xx or 5xx). Check for it with `isJsonApiError()`, imported
+from `drupal-canvas` (or `drupal-canvas/jsonapi-client` in headless code);
+`drupal-canvas/react` does not export it.
+
+| Property   | Type                   | Description                                                                        |
+| ---------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| `status`   | `number`               | HTTP status code.                                                                  |
+| `response` | `Response`             | The failed response.                                                               |
+| `errors`   | `JsonApiErrorObject[]` | JSON:API error objects (`status`, `title`, `detail`, …); empty if the body has none. |
+| `document` | `unknown`              | Parsed response body, or `null` if it is not JSON.                                 |
+
+A rejected SWR fetcher sets `error`, so HTTP failures reach the `error` branch
+of the SWR examples on this page. A successful collection read with no results
+resolves `[]`. Elsewhere, handle only the errors you expect and rethrow the
+rest:
+
+```js
+import { isJsonApiError } from 'drupal-canvas';
+
+async function loadArticle(client, id) {
+  try {
+    return await client.getResource('node--article', id);
+  } catch (error) {
+    // A missing article is expected; show nothing.
+    if (isJsonApiError(error) && error.status === 404) return null;
+    throw error;
+  }
+}
+```
+
+Do not catch every error and return empty data: that hides access denied (403)
+and server (5xx) errors.
+
+Other failures are not `JsonApiError`: network failures reject with the
+underlying fetch error, and a rejected draft preview session rejects with
+`DraftSessionError` (check with `isDraftSessionError()`). `rawResponse: true`
+bypasses `JsonApiError` handling for the requested resource or collection
+response, but the body is parsed as JSON, which can throw. HTTP errors during a
+preliminary `indexLookup: true` request throw `JsonApiError`, even for raw
+reads.
+
 #### Writing portable components
 
 Use `useJsonApiClient()` to write the same component for Drupal, Workbench, and
@@ -316,7 +360,7 @@ and outputs links to each of them using the `getNodePath` utility from the
 back to the `/node/[nid]` path.
 
 ```jsx
-import { getNodePath } from 'drupal-canvas'; import { useJsonApiClient } from 'drupal-canvas/react';
+import { getNodePath, isJsonApiError } from 'drupal-canvas'; import { useJsonApiClient } from 'drupal-canvas/react';
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
 import useSWR from 'swr';
 
@@ -336,8 +380,14 @@ const Articles = () => {
     ([type, options]) => client.getCollection(type, options),
   );
 
-  if (error) return 'An error has occurred.';
+  if (error) {
+    if (isJsonApiError(error) && error.status === 403) {
+      return 'You do not have permission to view these articles.';
+    }
+    return 'Unable to load articles.';
+  }
   if (isLoading || !data) return 'Loading...';
+  if (data.length === 0) return 'No articles found.';
   return (
     <ul>
       {data.map((article) => (
