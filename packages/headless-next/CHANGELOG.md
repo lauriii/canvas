@@ -1,5 +1,14 @@
 # @drupal-canvas/headless-next
 
+## 0.10.1
+
+### Patch Changes
+
+- Updated dependencies [515fb66]
+  - drupal-canvas@0.9.0
+  - @drupal-canvas/headless@0.13.1
+  - @drupal-canvas/headless-react@0.7.1
+
 ## 0.10.0
 
 ### Minor Changes
