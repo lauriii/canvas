@@ -7,7 +7,7 @@ the last user message, slugified: "What is a CMS?" is answered from
 
 ## Fixtures for a turn that hops
 
-The dev chat (`canvas_dev_ai`) runs one turn as several requests: the agent
+The client-side orchestrated chat runs one turn as several requests: the agent
 pauses after each tool decision and the browser re-POSTs under the same
 `request_id` until a response reports `should_continue: false`. Because every
 hop sends the same messages, the slug alone cannot vary the answer.

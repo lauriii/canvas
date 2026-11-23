@@ -28,13 +28,14 @@ final class CanvasAiDefaultInformationToolsTest extends CanvasKernelTestBase {
     'ai',
     'ai_agents',
     'canvas_ai',
+    'canvas_ai_legacy',
   ];
 
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
-    $this->installConfig(['ai_agents', 'canvas_ai']);
+    $this->installConfig(['ai_agents', 'canvas_ai', 'canvas_ai_legacy']);
     $this->container->set('plugin.manager.ai_agents', NULL);
     $this->setUpCurrentUser(['uid' => 1], [], TRUE);
   }

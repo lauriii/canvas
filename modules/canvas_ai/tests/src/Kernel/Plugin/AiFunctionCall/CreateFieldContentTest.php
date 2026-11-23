@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
-use Drupal\canvas_ai\Plugin\AiFunctionCall\CreateFieldContent;
+use Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\CreateFieldContent;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -35,6 +35,7 @@ final class CreateFieldContentTest extends CanvasKernelTestBase {
     'ai',
     'ai_agents',
     'canvas_ai',
+    'canvas_ai_legacy',
   ];
 
   /**

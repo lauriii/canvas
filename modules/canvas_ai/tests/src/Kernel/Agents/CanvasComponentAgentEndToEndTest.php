@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Agents;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
-use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
+use Drupal\canvas_ai\Controller\CanvasBuilder;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas_ai\Kernel\Traits\CanvasAiDevHopTrait;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
- * Tests canvas_component_agent turns driven through the dev AI controller.
+ * Tests canvas_component_agent turns driven through the AI controller.
  *
  * Provider responses come from the ai module's echoai provider, which matches
  * each hop's request against a recorded fixture under
@@ -27,7 +27,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * @see https://git.drupalcode.org/project/canvas/-/work_items/3591777
  */
 #[Group('canvas_ai')]
-#[CoversClass(CanvasDevAiBuilder::class)]
+#[CoversClass(CanvasBuilder::class)]
 #[RunTestsInSeparateProcesses]
 final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
 
@@ -45,7 +45,6 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     'canvas_ai',
-    'canvas_dev_ai',
     'key',
     'ai',
     'ai_test',
@@ -58,11 +57,11 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->installConfig(['canvas_ai', 'canvas_dev_ai', 'ai', 'ai_agents', 'ai_test']);
+    $this->installConfig(['canvas_ai', 'ai', 'ai_agents', 'ai_test']);
     // The component agent is not the shipped main agent; sites select it on
     // the Agents & Tools form. The controller reads this setting, and these
     // turns select no Tool, so they run whichever agent it names.
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('main_agent', 'canvas_component_agent')
       ->set('tools', ['drupal_canvas_page_agent'])
       ->save();
@@ -271,7 +270,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
    */
   public function testSelectedToolAgentRunsEveryHop(): void {
     // Set another agent as the main agent.
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('main_agent', 'drupal_canvas_page_agent')
       ->set('tools', ['canvas_component_agent'])
       ->save();
@@ -305,7 +304,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
    * agent, which is not the agent that parked the state.
    */
   public function testToolCannotChangeDuringTurn(): void {
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('main_agent', 'canvas_agent')
       ->set('tools', ['canvas_component_agent'])
       ->save();
@@ -362,7 +361,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
    * This agent ships without a max_loops_message, unlike the dev page builder
    * agent, so the controller supplies its own text.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::getNotSolvableMessage()
    */
   public function testMaxLoopsWithoutAConfiguredMessageUsesTheDefault(): void {
     $agent = $this->config('ai_agents.ai_agent.canvas_component_agent');

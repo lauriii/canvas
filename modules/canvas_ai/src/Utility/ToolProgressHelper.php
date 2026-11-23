@@ -10,7 +10,7 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Builds the progress lines for tool calls an agent made without narrating.
  *
- * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getAiProgress()
+ * @see \Drupal\canvas_ai\Controller\CanvasBuilder::getAiProgress()
  */
 final class ToolProgressHelper {
 

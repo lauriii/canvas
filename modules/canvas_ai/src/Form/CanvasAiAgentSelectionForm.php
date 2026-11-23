@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\canvas_dev_ai\Form;
+namespace Drupal\canvas_ai\Form;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
@@ -12,14 +12,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Selects the main agent and the Tools offered in the Canvas AI chat.
  */
-final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
+final class CanvasAiAgentSelectionForm extends ConfigFormBase {
 
   /**
    * The ai_agent IDs that may be selected.
    *
    * CanvasDevAiHooks reads this to decide which Tools are available, so every
    * ID here except the Canvas agent is described to it whether or not it is
-   * enabled. The shipped canvas_dev_ai.settings must name only IDs from this
+   * enabled. The canvas_ai.settings defaults must name only IDs from this
    * list: a stored value outside it is silently replaced when the form saves.
    */
   public const SELECTABLE_AGENTS = [
@@ -29,7 +29,7 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
   ];
 
   /**
-   * Creates a new CanvasDevAiAgentSelectionForm instance.
+   * Creates a new CanvasAiAgentSelectionForm instance.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
@@ -52,21 +52,21 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'canvas_dev_ai_agent_selection';
+    return 'canvas_ai_agent_selection';
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getEditableConfigNames(): array {
-    return ['canvas_dev_ai.settings'];
+    return ['canvas_ai.settings'];
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->config('canvas_dev_ai.settings');
+    $config = $this->config('canvas_ai.settings');
     $options = $this->agentOptions();
 
     $form['main_agent'] = [
@@ -113,7 +113,7 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $tools = array_values(array_filter((array) $form_state->getValue('tools')));
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('main_agent', $form_state->getValue('main_agent'))
       ->set('tools', $tools)
       ->set('keep_tool_calls_in_history', (bool) $form_state->getValue('keep_tool_calls_in_history'))

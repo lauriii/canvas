@@ -6,7 +6,7 @@ dependencies:
     - canvas_ai
   enforced:
     module:
-      - canvas_dev_ai
+      - canvas_ai
 id: drupal_canvas_page_agent
 label: 'Drupal Canvas Page Agent'
 description: 'Builds and extends pages using existing components, edits components already on a page, and sets the page title and description.'

@@ -6,7 +6,7 @@ dependencies:
     - canvas_ai
   enforced:
     module:
-      - canvas_ai
+      - canvas_ai_legacy
 id: canvas_title_generation_agent
 label: 'Drupal Canvas Title Generation Agent'
 description: 'This agent focuses solely on generating new title and editing existing title for Drupal Canvas. It ensures that the created or edited title matches user-provided guidelines and specifications.'

@@ -92,9 +92,9 @@ class CanvasAiPageBuilderHelper {
    *   The modified response array.
    *
    * @see ui/src/components/aiExtension/AiWizard.tsx
-   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\CreateFieldContent
-   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\EditFieldContent
-   * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\AddMetadata
+   * @see \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\CreateFieldContent
+   * @see \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\EditFieldContent
+   * @see \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\AddMetadata
    */
   public function processCanvasPageFields(array $response): array {
     $canvasPageData = [];

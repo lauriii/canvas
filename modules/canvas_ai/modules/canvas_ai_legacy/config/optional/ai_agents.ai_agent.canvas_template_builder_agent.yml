@@ -5,7 +5,7 @@ dependencies:
     - canvas_ai
   enforced:
     module:
-      - canvas_ai
+      - canvas_ai_legacy
 id: canvas_template_builder_agent
 label: 'Drupal Canvas Template Builder Agent'
 description: 'This tool specializes in building the body of a complete web page by assembling available components into a cohesive layout in the content region. It should be used whenever the user requests to create an entire page. For example, “Create a landing page for a university website” or “Build a landing page template for a cookie shop”.'

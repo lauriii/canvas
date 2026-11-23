@@ -1,11 +1,12 @@
 <?php
 
-namespace Drupal\canvas_ai\Plugin\AiFunctionCall;
+namespace Drupal\canvas_ai_legacy\Plugin\AiFunctionCall;
 
 use Drupal\ai\Attribute\FunctionCall;
 use Drupal\ai\Base\FunctionCallBase;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
+use Drupal\canvas_ai\Plugin\AiFunctionCall\BuilderResponseFunctionCallInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 

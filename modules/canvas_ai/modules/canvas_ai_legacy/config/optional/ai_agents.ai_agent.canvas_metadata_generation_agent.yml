@@ -7,7 +7,7 @@ dependencies:
     - canvas_ai
   enforced:
     module:
-      - canvas_ai
+      - canvas_ai_legacy
 id: canvas_metadata_generation_agent
 label: 'Drupal Canvas Metadata Generation Agent'
 description: 'This agent focuses on generating metadata(meta description) for Drupal Canvas content, as well as for any user-provided content'

@@ -1,11 +1,14 @@
 /**
  * ⚠️ This is highly experimental and *will* be refactored.
+ *
+ * @todo Rename AiWizard to AiWizardLegacy and render it on an aiLegacyMode flag set by canvas_ai_legacy, rename AiWizardDev to AiWizard, and set aiDevMode only from canvas_dev_ai, see https://git.drupalcode.org/project/canvas/-/work_items/3592374
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeepChat } from 'deep-chat-react';
 import { useNavigate, useParams } from 'react-router';
 import AiWelcome from '@assets/icons/ai-welcome.svg?react';
-import { Box, Flex, Text } from '@radix-ui/themes';
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { Box, Callout, Flex, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
@@ -419,7 +422,7 @@ const startPolling = (
     try {
       pollCount++;
       const response = await fetch(
-        `/admin/api/canvas/ai-progress?request_id=${requestId}`,
+        `/admin/api/canvas/ai-progress-legacy?request_id=${requestId}`,
         {
           method: 'GET',
           headers: { 'X-CSRF-Token': csrfToken },
@@ -1060,7 +1063,7 @@ const AiWizard = () => {
         }
 
         // Make the main API call but don't process the response immediately
-        fetch('/admin/api/canvas/ai', {
+        fetch('/admin/api/canvas/ai-legacy', {
           method: 'POST',
           headers,
           body: requestBody,
@@ -1212,6 +1215,22 @@ const AiWizard = () => {
           <Text ref={welcomeTextRef} className={styles.aiWizardSubtitle}>
             Hello, how can I help you today?
           </Text>
+          <Callout.Root color="orange" size="1" mt="2">
+            <Callout.Icon>
+              <ExclamationTriangleIcon />
+            </Callout.Icon>
+            <Callout.Text>
+              You are using a legacy version of the Canvas chatbot, see the{' '}
+              <a
+                href="https://www.drupal.org/node/3628747"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                change record
+              </a>{' '}
+              on how to update.
+            </Callout.Text>
+          </Callout.Root>
         </Flex>
         <MemoDeepChat
           ref={chatElementRef}

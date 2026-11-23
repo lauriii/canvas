@@ -92,7 +92,7 @@ class CanvasAiRequestInterceptor implements EventSubscriberInterface {
     // @todo Add Playwright coverage for a message with an image attachment.
     // With attachments the client sends one 'message<number>' JSON string per
     // message instead of a 'messages' array.
-    // @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::collectNumberedMessages()
+    // @see \Drupal\canvas_ai\Controller\CanvasBuilder::collectNumberedMessages()
     $prompt = $request->request->all();
     $messages = [];
     foreach ($prompt as $key => $value) {

@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
-use Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm;
-use Drupal\canvas_dev_ai\Hook\CanvasDevAiHooks;
+use Drupal\canvas_ai\Form\CanvasAiAgentSelectionForm;
+use Drupal\canvas_ai\Hook\CanvasAiHooks;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -24,10 +22,12 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * The same configured Tools reach the front end as JavaScript settings and an
  * agent's system prompt as a token, so both are covered here.
+ *
+ * @todo Rename to CanvasAiAgentSelectionTest, see https://git.drupalcode.org/project/canvas/-/work_items/3592376
  */
 #[Group('canvas_ai')]
-#[CoversClass(CanvasDevAiAgentSelectionForm::class)]
-#[CoversClass(CanvasDevAiHooks::class)]
+#[CoversClass(CanvasAiAgentSelectionForm::class)]
+#[CoversClass(CanvasAiHooks::class)]
 #[RunTestsInSeparateProcesses]
 final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
 
@@ -45,24 +45,20 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    // Uninstalling any module fires user_module_uninstall(), which deletes from
-    // the users_data table. Kernel tests do not create it unless asked.
-    $this->installSchema('user', ['users_data']);
     // The ai_agent entities the form filters on ship in canvas_ai's
     // config/install. CanvasKernelTestBase installs config for 'system' and
     // 'canvas' only, so without this the agents do not exist and the Tools
     // payload is silently empty.
     $this->installConfig(['canvas_ai']);
+    $this->container->get(ModuleHandlerInterface::class)->loadInclude('canvas_ai', 'install');
+    canvas_ai_install(FALSE);
   }
 
   /**
    * Tests that the selected Tools are exposed to JavaScript.
    */
   public function testToolsAreExposedToJs(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('tools', ['canvas_component_agent', 'drupal_canvas_page_agent'])
       ->save();
 
@@ -93,10 +89,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * Tests that no tools key is emitted when no Tools are selected.
    */
   public function testNoToolsKeyWhenNoneSelected(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $this->config('canvas_dev_ai.settings')->set('tools', [])->save();
+    $this->config('canvas_ai.settings')->set('tools', [])->save();
 
     $settings = $this->alterJsSettings();
     $this->assertTrue($settings['canvas']['aiDevMode']);
@@ -104,43 +97,9 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that uninstalling removes the config object and the JS key.
-   *
-   * The local task's availability and removal are covered by
-   * \Drupal\Tests\canvas_ai\Functional\Form\CanvasDevAiAgentSelectionFormTest,
-   * because enumerating local task definitions in a kernel test triggers a PHP
-   * warning from core's views local-task deriver, whose routes are not built.
-   */
-  public function testUninstallRemovesEverything(): void {
-    $module_installer = $this->container->get(ModuleInstallerInterface::class);
-
-    $module_installer->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    // Present while installed.
-    $this->assertFalse($this->config('canvas_dev_ai.settings')->isNew());
-    $this->assertInstanceOf(ConfigEntityInterface::class, $this->agentStorage()->load('canvas_agent'));
-    $this->assertArrayHasKey('tools', $this->alterJsSettings()['canvas']['ai']);
-
-    $module_installer->uninstall(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    // Gone once uninstalled. Uninstalling a module deletes the config objects
-    // prefixed with its name, so the settings object disappears with it.
-    $this->assertTrue($this->config('canvas_dev_ai.settings')->isNew());
-    $this->assertArrayNotHasKey('tools', $this->alterJsSettings()['canvas']['ai'] ?? []);
-    // The agent declares an enforced dependency on canvas_dev_ai, so removing
-    // the feature flag leaves no agent behind.
-    $this->assertNull($this->agentStorage()->load('canvas_agent'));
-  }
-
-  /**
    * Tests that the Canvas agent ships without tools.
    */
   public function testCanvasAgentShipsWithoutTools(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
     $agent = $this->agentStorage()->load('canvas_agent');
     $this->assertInstanceOf(ConfigEntityInterface::class, $agent);
     // The user selects the Tool, so this agent answers questions rather than
@@ -149,7 +108,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     $this->assertFalse($agent->get('orchestration_agent'));
     // The prompt must carry the token. The token tests replace it in
     // isolation and would still pass if the YAML dropped this string.
-    $this->assertStringContainsString('[canvas_dev_ai:available_tools]', (string) $agent->get('system_prompt'));
+    $this->assertStringContainsString('[canvas_ai:available_tools]', (string) $agent->get('system_prompt'));
   }
 
   /**
@@ -158,10 +117,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * It describes the Tools, so offering it as one would let it describe itself.
    */
   public function testCanvasAgentIsNotShippedAsTool(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $this->assertNotContains('canvas_agent', $this->config('canvas_dev_ai.settings')->get('tools'));
+    $this->assertNotContains('canvas_agent', $this->config('canvas_ai.settings')->get('tools'));
   }
 
   /**
@@ -172,19 +128,16 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * longer the main agent, ships as a Tool so the prompt can name it.
    */
   public function testCanvasAgentShipsAsMainAgent(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $settings = $this->config('canvas_dev_ai.settings');
+    $settings = $this->config('canvas_ai.settings');
     $this->assertSame('canvas_agent', $settings->get('main_agent'));
-    $this->assertContains('canvas_agent', CanvasDevAiAgentSelectionForm::SELECTABLE_AGENTS);
+    $this->assertContains('canvas_agent', CanvasAiAgentSelectionForm::SELECTABLE_AGENTS);
     $this->assertSame(
       ['canvas_component_agent', 'drupal_canvas_page_agent'],
       $settings->get('tools'),
     );
     // Every shipped Tool is selectable, for the same reason as the main agent.
     foreach ($settings->get('tools') as $id) {
-      $this->assertContains($id, CanvasDevAiAgentSelectionForm::SELECTABLE_AGENTS);
+      $this->assertContains($id, CanvasAiAgentSelectionForm::SELECTABLE_AGENTS);
     }
     // Keeping the agent's tool calls and results between turns is opt-in.
     $this->assertFalse($settings->get('keep_tool_calls_in_history'));
@@ -194,10 +147,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * Tests that the token renders the configured Tools.
    */
   public function testAvailableToolsToken(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('tools', ['canvas_component_agent'])
       ->save();
 
@@ -227,7 +177,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     // so both must bubble; without them, anything caching the rendered output
     // would keep serving a stale Tool list after the config changes.
     $cache_tags = $bubbleable_metadata->getCacheTags();
-    $this->assertContains('config:canvas_dev_ai.settings', $cache_tags);
+    $this->assertContains('config:canvas_ai.settings', $cache_tags);
     $this->assertContains('config:ai_agents.ai_agent.canvas_component_agent', $cache_tags);
   }
 
@@ -235,10 +185,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * Tests that the token renders empty when no Tool is offered.
    */
   public function testAvailableToolsTokenWithoutTools(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $this->config('canvas_dev_ai.settings')->set('tools', [])->save();
+    $this->config('canvas_ai.settings')->set('tools', [])->save();
 
     // Enabling nothing does not make the Tools unavailable: every available
     // Tool is still described, marked disabled, so the agent can point the
@@ -249,10 +196,10 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     $this->assertStringNotContainsString('(enabled)', $rendered);
     // The raw token must not survive into the prompt, otherwise the agent
     // reads it as literal text.
-    $this->assertStringNotContainsString('[canvas_dev_ai:available_tools]', $rendered);
+    $this->assertStringNotContainsString('[canvas_ai:available_tools]', $rendered);
     // The empty list is still derived from the settings: offering a Tool
     // later must invalidate whatever cached the empty rendering.
-    $this->assertContains('config:canvas_dev_ai.settings', $bubbleable_metadata->getCacheTags());
+    $this->assertContains('config:canvas_ai.settings', $bubbleable_metadata->getCacheTags());
   }
 
   /**
@@ -264,9 +211,6 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * degrade to the label rather than fail rendering.
    */
   public function testAvailableToolsTokenWithoutDescription(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
     // The record replaces a selectable agent, because only those are described.
     // AiAgent::$description is a typed string property, so the entity API
     // rejects a record without one, but a raw config record loads and get()
@@ -284,7 +228,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
         'max_loops' => 3,
       ])
       ->save();
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('tools', ['canvas_component_agent'])
       ->save();
 
@@ -303,10 +247,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * neither the prompt nor the front end.
    */
   public function testStaleToolIdIsSkipped(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('tools', ['canvas_component_agent', 'drupal_canvas_page_agent'])
       ->save();
     $stale = $this->agentStorage()->load('canvas_component_agent');
@@ -335,14 +276,11 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    * Tests that nothing renders when every offered Tool is stale.
    */
   public function testAllToolIdsStale(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $this->config('canvas_dev_ai.settings')
+    $this->config('canvas_ai.settings')
       ->set('tools', ['canvas_component_agent'])
       ->save();
     // Delete every selectable agent, so nothing is available to describe.
-    foreach (CanvasDevAiAgentSelectionForm::SELECTABLE_AGENTS as $id) {
+    foreach (CanvasAiAgentSelectionForm::SELECTABLE_AGENTS as $id) {
       $agent = $this->agentStorage()->load($id);
       if ($agent instanceof ConfigEntityInterface) {
         $agent->delete();
@@ -370,7 +308,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     // system prompt. It passes no options, so an unreplaced token would
     // survive into the prompt as literal text.
     return $this->container->get('token')
-      ->replacePlain('[canvas_dev_ai:available_tools]', [], [], $bubbleable_metadata);
+      ->replacePlain('[canvas_ai:available_tools]', [], [], $bubbleable_metadata);
   }
 
   /**
@@ -378,15 +316,6 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
    */
   private function agentStorage(): EntityStorageInterface {
     return $this->container->get(EntityTypeManagerInterface::class)->getStorage('ai_agent');
-  }
-
-  /**
-   * Re-fetches the container after a module install or uninstall rebuild.
-   */
-  private function refreshContainer(): void {
-    $container = \Drupal::getContainer();
-    \assert($container instanceof ContainerBuilder);
-    $this->container = $container;
   }
 
   /**

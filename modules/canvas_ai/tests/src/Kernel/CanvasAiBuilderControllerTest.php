@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_ai\Kernel;
 
 use Drupal\canvas_ai\CanvasAiPermissions;
-use Drupal\canvas_ai\Controller\CanvasBuilder;
+use Drupal\canvas_ai_legacy\Controller\CanvasAiLegacyBuilder;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Tests the request guards of the Canvas AI controller.
  */
 #[Group('canvas_ai')]
-#[CoversClass(CanvasBuilder::class)]
+#[CoversClass(CanvasAiLegacyBuilder::class)]
 #[RunTestsInSeparateProcesses]
 final class CanvasAiBuilderControllerTest extends CanvasKernelTestBase {
 
@@ -34,6 +34,7 @@ final class CanvasAiBuilderControllerTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     'canvas_ai',
+    'canvas_ai_legacy',
     'ai',
     'ai_agents',
   ];
@@ -43,7 +44,7 @@ final class CanvasAiBuilderControllerTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig(['canvas_ai']);
+    $this->installConfig(['canvas_ai', 'canvas_ai_legacy']);
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
     $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
@@ -80,7 +81,7 @@ final class CanvasAiBuilderControllerTest extends CanvasKernelTestBase {
    */
   private function postToBuilder(array $payload): Response {
     $request = Request::create(
-      '/admin/api/canvas/ai',
+      '/admin/api/canvas/ai-legacy',
       'POST',
       server: ['CONTENT_TYPE' => 'application/json'],
       content: (string) \json_encode($payload),

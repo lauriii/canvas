@@ -58,7 +58,7 @@ final class EditComponents extends FunctionCallBase implements ExecutableFunctio
    * of the applied updates that follows it is scoped to the turn the tool
    * ran in.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::trimKeptToolResults()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::trimKeptToolResults()
    */
   public const SUCCESS_MESSAGE = 'The updates were applied successfully.';
 

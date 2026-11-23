@@ -10,9 +10,9 @@ use Drupal\ai\OperationType\Chat\ChatMessage;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
+use Drupal\canvas_ai\Controller\CanvasBuilder;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponents;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents;
-use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
 use Drupal\Component\Uuid\Php;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -41,7 +41,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  * @see \Drupal\ai_test\Plugin\AiProvider\EchoProvider::getMatchingRequest()
  */
 #[Group('canvas_ai')]
-#[CoversClass(CanvasDevAiBuilder::class)]
+#[CoversClass(CanvasBuilder::class)]
 #[RunTestsInSeparateProcesses]
 final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
 
@@ -69,7 +69,6 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     'canvas_ai',
-    'canvas_dev_ai',
     'key',
     'ai',
     'ai_test',
@@ -97,10 +96,10 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->installConfig(['canvas_ai', 'canvas_dev_ai', 'ai', 'ai_agents', 'ai_test']);
-    // The dev page builder agent is not the shipped default; sites select it
-    // on the Agents & Tools form. The controller reads this setting.
-    $this->config('canvas_dev_ai.settings')
+    $this->installConfig(['canvas_ai', 'ai', 'ai_agents', 'ai_test']);
+    // The page builder agent is not the shipped default; sites select it on
+    // the Agents & Tools form. The controller reads this setting.
+    $this->config('canvas_ai.settings')
       ->set('main_agent', 'drupal_canvas_page_agent')
       ->save();
     // The echoai provider reads the ai_mock_provider_result table before the
@@ -145,7 +144,7 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
    * generic "Something went wrong"; the configured message tells the user
    * what happened and that the page keeps what was placed.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::getNotSolvableMessage()
    */
   public function testMaxLoopsOutcomeIsReported(): void {
     $agent = $this->config('ai_agents.ai_agent.drupal_canvas_page_agent');
@@ -222,13 +221,13 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
    * failure keeps its error text. With it off, each turn rebuilds from the
    * client's text-only transcript.
    *
-   * @see \Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm
+   * @see \Drupal\canvas_ai\Form\CanvasAiAgentSelectionForm
    * @see https://git.drupalcode.org/project/canvas/-/work_items/3592032
    * @see https://git.drupalcode.org/project/canvas/-/work_items/3592082
    */
   #[DataProvider('providerPageBuilding')]
   public function testPageBuilding(bool $keep_tool_calls_in_history): void {
-    $this->config('canvas_dev_ai.settings')->set('keep_tool_calls_in_history', $keep_tool_calls_in_history)->save();
+    $this->config('canvas_ai.settings')->set('keep_tool_calls_in_history', $keep_tool_calls_in_history)->save();
 
     // Record what the model is sent, so each turn can be asserted on the
     // request that opened it.
@@ -434,7 +433,7 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
         'The reference_uuid must be provided for above/below placement.',
         $messages[6]->getText(),
       );
-      // CanvasDevAiBuilder::trimKeptToolResults() trims them when turn 2 is
+      // CanvasBuilder::trimKeptToolResults() trims them when turn 2 is
       // stored.
       self::assertSame(PlaceComponents::SUCCESS_MESSAGE, $messages[8]->getText());
       self::assertSame(PlaceComponents::SUCCESS_MESSAGE, $messages[10]->getText());

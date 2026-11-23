@@ -27,6 +27,7 @@ final class CanvasAiOrchestratorPostUpdateTest extends CanvasKernelTestBase {
     'ai',
     'ai_agents',
     'canvas_ai',
+    'canvas_ai_legacy',
   ];
 
   /**
@@ -34,7 +35,7 @@ final class CanvasAiOrchestratorPostUpdateTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig(['canvas_ai']);
+    $this->installConfig(['canvas_ai', 'canvas_ai_legacy']);
   }
 
   /**
