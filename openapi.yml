@@ -2140,6 +2140,98 @@ paths:
                       - detail: Language can only be changed on a draft page that has never been published.
                         source:
                           pointer: '1'
+  '/canvas/api/v0/content/canvas_page/{entityId}/revisions/{revisionId}/restore':
+    description: Restores an earlier revision of a page as its draft.
+    post:
+      summary: Makes a revision the page's draft in the language being edited, replacing any draft in that language. Nothing is published.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/revisionId'
+      responses:
+        '200':
+          description: The revision is the page's draft, unless it matches the live page, in which case the page has no draft.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - hasDraft
+                properties:
+                  hasDraft:
+                    type: boolean
+                    description: Whether the page now has a draft. FALSE when the revision matches what is live.
+                additionalProperties: false
+              examples:
+                restored:
+                  value:
+                    hasDraft: true
+        '404':
+          description: The page or revision does not exist, or the revision is not of this page.
+        '422':
+          description: The revision has no translation in the language being edited.
+  '/canvas/api/v0/content/canvas_page/{entityId}/revisions':
+    description: A page's history.
+    get:
+      summary: Lists the revisions of a page that changed the language being edited, newest first (at most 50).
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '200':
+          description: The revisions, and whether the current user may restore them.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - revisions
+                  - draft
+                  - canRestore
+                properties:
+                  revisions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PageRevision'
+                  draft:
+                    description: The page's unpublished changes in the language being edited, on top of the live revision, or NULL if it has none. Restoring a revision replaces them.
+                    oneOf:
+                      - type: 'null'
+                      - type: object
+                        required:
+                          - updated
+                          - author
+                        properties:
+                          updated:
+                            type: integer
+                            description: When they were last saved, as a Unix timestamp.
+                          author:
+                            type: [string, 'null']
+                            description: Who last saved them, or NULL if their account was deleted.
+                        additionalProperties: false
+                  canRestore:
+                    type: boolean
+                additionalProperties: false
+              examples:
+                twoRevisions:
+                  value:
+                    revisions:
+                      - id: 12
+                        created: 1731661200
+                        author: Kim
+                        message: null
+                        title: About us
+                        published: true
+                        live: true
+                      - id: 9
+                        created: 1731574800
+                        author: Kim
+                        message: null
+                        title: About
+                        published: true
+                        live: false
+                    draft:
+                      updated: 1731664800
+                      author: Kim
+                    canRestore: true
   '/canvas/api/v0/content/canvas_page/{entityId}/translations':
     description: Endpoint for deleting a specific translation of a Page content entity. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
@@ -2953,6 +3045,40 @@ paths:
                   error:
                     type: string
                     description: Error message indicating the conflict.
+  '/canvas/api/v0/layout/canvas_page/{entityId}/revisions/{revisionId}':
+    description: Previews of earlier revisions of a page.
+    get:
+      summary: Renders a revision of a page, for comparing it with other versions. Read-only. Unlike the layout endpoint, it never updates or auto-saves anything.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/revisionId'
+      responses:
+        '200':
+          description: The rendered revision.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - revision
+                  - updated
+                properties:
+                  html:
+                    type: string
+                  revision:
+                    type: integer
+                  updated:
+                    type: integer
+                    description: When the revision was made, as a Unix timestamp.
+              examples:
+                revision:
+                  value:
+                    html: '<html>The preview would be here</html>'
+                    revision: 9
+                    updated: 1731574800
+        '404':
+          description: The page or revision does not exist, or the revision is not of this page.
   '/canvas/api/v0/layout/{entityTypeId}/{entityId}':
     description: Entity layout and previews endpoint.
     get:
@@ -5721,6 +5847,37 @@ components:
               - string
               - 'null'
             description: Optional label for the component instance.
+    PageRevision:
+      type: object
+      description: One revision of a page, in the language being edited.
+      required:
+        - id
+        - created
+        - author
+        - message
+        - title
+        - published
+        - live
+      properties:
+        id:
+          type: integer
+        created:
+          type: integer
+          description: When the revision was made, as a Unix timestamp.
+        author:
+          type: [string, 'null']
+          description: Who made it, or NULL if their account was deleted.
+        message:
+          type: [string, 'null']
+          description: The revision log message, if any.
+        title:
+          type: string
+        published:
+          type: boolean
+        live:
+          type: boolean
+          description: Whether this is the revision visitors see now.
+      additionalProperties: false
     PageVariant:
       title: Page Variant
       description: A named, theme-independent, full-page component tree. Its tree must contain exactly one "Page content" marker (component ID `marker.page_content`), where the route's main content is injected.
@@ -6752,6 +6909,14 @@ components:
       schema:
         type: string
       example: article
+    revisionId:
+      name: revisionId
+      in: path
+      required: true
+      description: The revision ID
+      schema:
+        type: integer
+      example: 9
     entityId:
       name: entityId
       in: path
