@@ -92,9 +92,13 @@ final class ApiContentTemplateSlotFieldController extends ApiControllerBase {
    *
    * The field is not added to any form or view display: its content is the
    * canvas itself, merged into the template's target slot at render time.
-   * Only templates of the view mode that can expose slots accept new fields.
+   * Only templates of the entity type and view mode that can expose slots
+   * accept new fields.
    */
   public function create(Request $request, ContentTemplate $content_template): JsonResponse {
+    if ($content_template->getTargetEntityTypeId() !== ValidExposedSlotConstraint::EXPOSED_SLOTS_ENTITY_TYPE_ID) {
+      throw new UnprocessableEntityHttpException(\sprintf('Exposed slots are only allowed for the %s entity type.', ValidExposedSlotConstraint::EXPOSED_SLOTS_ENTITY_TYPE_ID));
+    }
     if ($content_template->getMode() !== ValidExposedSlotConstraint::EXPOSED_SLOTS_VIEW_MODE) {
       throw new UnprocessableEntityHttpException(\sprintf('Exposed slots are only allowed in the %s view mode.', ValidExposedSlotConstraint::EXPOSED_SLOTS_VIEW_MODE));
     }

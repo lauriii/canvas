@@ -5,6 +5,7 @@ import { Flex } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
 import {
+  EXPOSED_SLOTS_ENTITY_TYPE_ID,
   EXPOSED_SLOTS_VIEW_MODE,
   findExposedSlotEntry,
   findSlotNestingConflict,
@@ -46,7 +47,7 @@ export const SlotMenuItems: React.FC<SlotMenuProps> = ({
   const layout = useAppSelector(selectLayout);
   const slotTitle = useGetComponentName(slot, parentComponent);
   const editFieldsUrl = useEditFieldsUrl();
-  const { viewMode } = useParams();
+  const { viewMode, entityType } = useParams();
   const componentUuid = parentComponent.uuid;
   const slotName = slot.name;
 
@@ -56,8 +57,11 @@ export const SlotMenuItems: React.FC<SlotMenuProps> = ({
   const nestingConflict = exposed
     ? null
     : findSlotNestingConflict(exposedSlots, layout, slot, componentUuid);
-  // Only one view mode can expose slots; other templates can't enable editing.
-  const isViewModeBlocked = viewMode !== EXPOSED_SLOTS_VIEW_MODE;
+  // Only one entity type and one view mode can expose slots; other templates
+  // can't enable editing.
+  const isExposeBlocked =
+    viewMode !== EXPOSED_SLOTS_VIEW_MODE ||
+    entityType !== EXPOSED_SLOTS_ENTITY_TYPE_ID;
 
   const openExposeDialog = () => {
     const data: ExposeSlotDialogData = {
@@ -99,20 +103,20 @@ export const SlotMenuItems: React.FC<SlotMenuProps> = ({
 
   return (
     <>
-      {!exposed && isViewModeBlocked && (
+      {!exposed && isExposeBlocked && (
         <UnifiedMenu.Item
           disabled
           data-testid={`canvas-expose-slot-view-mode-blocked-${componentUuid}/${slotName}`}
         >
-          Enable editing (only in the Full content view mode)
+          Enable editing (only for content types in the Full content view mode)
         </UnifiedMenu.Item>
       )}
-      {!exposed && !isViewModeBlocked && !nestingConflict && (
+      {!exposed && !isExposeBlocked && !nestingConflict && (
         <UnifiedMenu.Item onClick={openExposeDialog}>
           Enable editing
         </UnifiedMenu.Item>
       )}
-      {!exposed && !isViewModeBlocked && nestingConflict && (
+      {!exposed && !isExposeBlocked && nestingConflict && (
         <UnifiedMenu.Item
           disabled
           data-testid={`canvas-expose-slot-blocked-${componentUuid}/${slotName}`}

@@ -288,7 +288,7 @@ Which content entity types can be _edited_ in Canvas is a separate question, tra
 
 If a `ContentTemplate` is used for rendering a content entity, then `hook_entity_display_build_alter()` will NOT be invoked for that entity, because that hook (and all its implementations) assume field formatters are used to render (all or some) fields in sequence, which is not the case when using Canvas.
 
-A `ContentTemplate` may _expose_ slots (`exposed_slots`): a Site Builder marks slots in the template's component tree as
+A `ContentTemplate` for the `node` entity type and the `full` view mode may _expose_ slots (`exposed_slots`): a Site Builder marks slots in the template's component tree as
 editable per entity. Each exposed slot is a `component_tree` field on the template's bundle, one value per entity, and
 the field's machine name is the slot's key in `exposed_slots` and its stable identity. The expose dialog either:
 - creates a new `canvas_slot_`-prefixed field, or

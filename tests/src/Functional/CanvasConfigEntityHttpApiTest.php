@@ -3006,6 +3006,21 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $body = $this->assertExpectedResponse('POST', $slot_field_url, $request_options, 201, NULL, NULL, NULL, NULL);
     self::assertSame(['fieldName' => 'canvas_slot_sidebar', 'label' => 'Sidebar'], $body);
 
+    // A template of an entity type other than `node` cannot expose slots: 422,
+    // and no field is created.
+    $user_template = ContentTemplate::create([
+      'content_entity_type_id' => 'user',
+      'content_entity_type_bundle' => 'user',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [],
+    ]);
+    $user_template->save();
+    $user_slot_field_url = Url::fromUri('base:/canvas/api/v0/config/content_template/user.user.full/slot-fields');
+    $body = $this->assertExpectedResponse('POST', $user_slot_field_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame(['errors' => ['Exposed slots are only allowed for the node entity type.']], $body);
+    self::assertNull(FieldStorageConfig::loadByName('user', 'canvas_slot_sidebar'));
+    $user_template->delete();
+
     // Without the X-CSRF-Token request header: 403.
     $request_options[RequestOptions::JSON]['fieldName'] = 'canvas_slot_other';
     $response = $this->makeApiRequest('POST', $slot_field_url, $request_options);
