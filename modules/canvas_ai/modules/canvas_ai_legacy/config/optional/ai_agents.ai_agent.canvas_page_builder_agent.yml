@@ -5,7 +5,7 @@ dependencies:
     - canvas_ai
   enforced:
     module:
-      - canvas_ai
+      - canvas_ai_legacy
 id: canvas_page_builder_agent
 label: 'Drupal Canvas Page Builder Agent'
 description: 'This agent can insert one or many existing components or sections into a specific location on a page. Use this to place a previously created component or section on a layout or page.'

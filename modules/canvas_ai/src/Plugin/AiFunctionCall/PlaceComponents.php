@@ -25,11 +25,11 @@ use Symfony\Component\Yaml\Yaml;
  *
  * The drupal_canvas_page_agent lists this tool, restricted to one call
  * per model response. It will eventually replace
- * \Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure.
+ * \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure.
  *
  * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
  * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\GetCurrentLayout
- * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure
+ * @see \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure
  */
 #[FunctionCall(
   id: 'canvas_ai:place_components',
@@ -57,7 +57,7 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
    * A conversation's next turn keeps only this line of the result: the UUIDs
    * and layout that follow it are scoped to the turn the tool ran in.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::trimKeptToolResults()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::trimKeptToolResults()
    */
   public const SUCCESS_MESSAGE = 'Components placed successfully.';
 

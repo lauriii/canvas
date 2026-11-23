@@ -18,9 +18,9 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * This tool will soon replace the separate create_field_content,
  * edit_field_content and add_metadata tools once it is wired.
  *
- * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\CreateFieldContent
- * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\EditFieldContent
- * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\AddMetadata
+ * @see \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\CreateFieldContent
+ * @see \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\EditFieldContent
+ * @see \Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\AddMetadata
  */
 #[FunctionCall(
   id: 'canvas_ai:set_page_value',

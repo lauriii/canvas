@@ -21,6 +21,33 @@ canvas_ai.settings:
       constraints:
         Range:
           min: -1
+    # The main_agent and tools defaults are set by canvas_ai_install(), because
+    # their constraints reference agents this module ships itself.
+    # @see canvas_ai_install()
+    # @see https://www.drupal.org/project/drupal/issues/3425992
+    main_agent:
+      type: string
+      label: 'Main agent'
+      description: 'The ai_agent ID invoked for a chat turn when no Tool is active.'
+      constraints:
+        NotBlank: []
+        ConfigExists:
+          prefix: 'ai_agents.ai_agent.'
+    tools:
+      type: sequence
+      label: 'Tools'
+      description: 'The ai_agent IDs offered as Tools in the chat.'
+      orderby: value
+      sequence:
+        type: string
+        label: 'Agent ID'
+        constraints:
+          ConfigExists:
+            prefix: 'ai_agents.ai_agent.'
+    keep_tool_calls_in_history:
+      type: boolean
+      label: 'Keep tool calls and results in the chat history'
+      description: "Whether the agent state a turn ends with, tool calls and results included, is kept for the conversation's next turn."
 
 canvas_ai.component_description.settings:
   type: config_object

@@ -3,7 +3,7 @@ status: true
 dependencies:
   enforced:
     module:
-      - canvas_dev_ai
+      - canvas_ai
 id: canvas_agent
 label: 'Drupal Canvas Agent'
 description: 'This agent answers general questions about Drupal Canvas. It has no tools. It explains what Canvas can do, tells the user which Tool to select for a task, and points to the documentation.'
@@ -36,7 +36,7 @@ system_prompt: |-
 
   The user can select a Tool from the tools dropdown in the chat. A Tool is a separate assistant that can do work. Tools are not functions you can call. This list shows which Tools this site has, what each one does, and whether each one is enabled:
 
-  [canvas_dev_ai:available_tools]
+  [canvas_ai:available_tools]
 
   1. Pick the Tool whose description in the list above names the task. Do not stretch a description to cover a task it does not name. If the facts say no AI Tool is available for a task, no Tool does it.
   2. If that Tool is enabled, reply:

@@ -9,7 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
-use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
+use Drupal\canvas_ai_legacy\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -72,6 +72,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
     'ai',
     'ai_agents',
     'canvas_ai',
+    'canvas_ai_legacy',
   ];
 
   /**

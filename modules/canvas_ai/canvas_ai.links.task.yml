@@ -8,3 +8,9 @@ canvas_ai.component_description_settings:
   route_name: canvas_ai.component_description_settings
   base_route: canvas_ai.setting
   weight: 10
+
+canvas_ai.agent_selection:
+  title: 'Agents & Tools'
+  route_name: canvas_ai.agent_selection
+  base_route: canvas_ai.setting
+  weight: 30

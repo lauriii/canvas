@@ -17,7 +17,7 @@ use Drupal\ai_agents\Service\AgentStatus\UpdateItems\TextGenerated;
 use Drupal\ai_agents\Service\AgentStatus\UpdateItems\ToolSelected;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
-use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
+use Drupal\canvas_ai\Controller\CanvasBuilder;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -36,12 +36,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * Tests the canvas_dev_ai AI controller's access, settings and error paths.
+ * Tests the canvas_ai AI controller's access, settings and error paths.
  *
  * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasComponentAgentEndToEndTest
+ *
+ * @todo Rename to CanvasAiControllerTest, see https://git.drupalcode.org/project/canvas/-/work_items/3592376
  */
 #[Group('canvas_ai')]
-#[CoversClass(CanvasDevAiBuilder::class)]
+#[CoversClass(CanvasBuilder::class)]
 #[RunTestsInSeparateProcesses]
 final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
 
@@ -75,10 +77,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    // canvas_dev_ai_install() offers an ai_agent entity from canvas_ai's
-    // config/install as a Tool, so that must be installed before
-    // canvas_dev_ai is.
     $this->installConfig(['canvas_ai', 'ai', 'ai_agents', 'ai_test']);
+    $this->container->get(ModuleHandlerInterface::class)->loadInclude('canvas_ai', 'install');
+    canvas_ai_install(FALSE);
     $this->installEntitySchema('user');
     // Uninstalling any module fires user_module_uninstall(), which deletes from
     // the users_data table. Kernel tests do not create it unless asked.
@@ -96,28 +97,29 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that the `aiDevMode` flag follows the module install state.
+   * Tests that the `aiDevMode` flag is unset only while the legacy chat is on.
    */
   public function testAiDevModeFlagFollowsInstallState(): void {
+    $this->assertTrue($this->alterJsSettings()['canvas']['aiDevMode']);
+
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_ai_legacy']);
+    $this->refreshContainer();
     $this->assertArrayNotHasKey('aiDevMode', $this->alterJsSettings()['canvas']);
 
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
     $this->refreshContainer();
     $this->assertTrue($this->alterJsSettings()['canvas']['aiDevMode']);
 
-    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_dev_ai']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_dev_ai', 'canvas_ai_legacy']);
     $this->refreshContainer();
-    $this->assertArrayNotHasKey('aiDevMode', $this->alterJsSettings()['canvas']);
+    $this->assertTrue($this->alterJsSettings()['canvas']['aiDevMode']);
   }
 
   /**
    * Tests that the controller rejects a request with an invalid CSRF token.
    */
   public function testControllerRejectsInvalidCsrfToken(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-
-    $request = Request::create('/admin/api/canvas/ai-dev', 'POST');
+    $request = Request::create('/admin/api/canvas/ai', 'POST');
     $request->headers->set('X-CSRF-Token', 'invalid-token');
 
     $this->expectException(AccessDeniedHttpException::class);
@@ -132,11 +134,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * seeds the agent from the client transcript rather than from a history
    * that stops before the failed turn.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::render()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
    */
   public function testDetermineSolvabilityFailureClearsStoredAgentState(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
 
     // Seed the state a previous hop would have parked, so deletion is
@@ -185,14 +185,12 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * go with the turn: what the agent did before giving up is not a history
    * the next turn should resume from.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::getNotSolvableMessage()
    * @see \Drupal\Tests\canvas_ai\Kernel\Agents\DrupalCanvasPageAgentEndToEndTest::testMaxLoopsOutcomeIsReported()
    * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasComponentAgentEndToEndTest::testMaxLoopsWithoutAConfiguredMessageUsesTheDefault()
    */
   #[DataProvider('providerNotSolvableResponse')]
   public function testNotSolvableResponseGivesExpectedError(?string $last_error, string $expected_message): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
 
     $temp_store = $this->container->get(CanvasAiTempStore::class);
@@ -245,11 +243,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * next turn resumes from, keyed by this turn's request ID, is the agent as
    * it finished.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::storeConversationState()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::storeConversationState()
    */
   public function testCleanTurnEndKeepsTheConversationState(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
@@ -280,11 +276,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
   /**
    * A request that sends no conversation_id keeps nothing for a next turn.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getConversationId()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::getConversationId()
    */
   public function testTurnWithoutConversationIdKeepsNothing(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
@@ -312,11 +306,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * is: the earlier messages become the chat history and the last one the
    * chat input.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::prepareAgent()
    */
   public function testFirstTurnSeedsTheAgentFromTheTranscript(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
@@ -353,11 +345,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * message is added to it. The checkpoint stays beside the one this turn
    * writes, which records the number of messages this turn was sent with.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::prepareAgent()
    */
   public function testLaterTurnResumesTheConversationState(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
@@ -405,11 +395,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * describes what the previous agent did, so the new one is seeded from the
    * client transcript instead, and its own turn replaces what is kept.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::prepareAgent()
    */
   public function testLaterTurnWithAnotherToolDoesNotResumeTheConversation(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
@@ -428,9 +416,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $agent->method('solve')->willReturn('Component created.');
     $this->useMockedAgent($agent);
 
-    // The Tool names an agent canvas_dev_ai.settings offers, so the turn runs
+    // The Tool names an agent canvas_ai.settings offers, so the turn runs
     // it instead of the main agent that wrote the checkpoint it names.
-    // @see canvas_dev_ai_install()
+    // @see canvas_ai_install()
     $response = $this->hop([
       'messages' => [
         ['role' => 'user', 'text' => 'Add a hero'],
@@ -460,14 +448,11 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * client transcript even when a conversation state exists, and drops that
    * state when it ends, so turning the setting off is enough to stop resuming.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::keepsToolCallsInHistory()
-   * @see canvas_dev_ai_install()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::keepsToolCallsInHistory()
    */
   public function testConversationStateNeedsTheOptIn(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
-    self::assertFalse($this->config('canvas_dev_ai.settings')->get('keep_tool_calls_in_history'));
+    self::assertFalse($this->config('canvas_ai.settings')->get('keep_tool_calls_in_history'));
 
     $temp_store = $this->container->get(CanvasAiTempStore::class);
     $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', [
@@ -510,13 +495,11 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * nothing to resume: the agent is seeded from the client transcript, and
    * once the turn ends its own checkpoint is the only one left.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::prepareAgent()
    * @see \Drupal\canvas_ai\CanvasAiTempStore::setStoredConversationState()
    */
   #[DataProvider('providerNoResumableCheckpoint')]
   public function testTurnNamingNoResumableCheckpointSeedsFromTheTranscript(string $last_successful_request_id): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
@@ -576,12 +559,10 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * accepted turn 2, so turn 3 names turn 1: it resumes turn 1's checkpoint,
    * and turn 2's goes with the write turn 3 makes.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::prepareAgent()
    * @see \Drupal\canvas_ai\CanvasAiTempStore::setStoredConversationState()
    */
   public function testOnlyTheCheckpointTheClientNamesIsResumed(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
@@ -713,14 +694,12 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * @param string $expected_progress
    *   The expected progress.
    *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getAiProgress()
+   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::getAiProgress()
    */
   #[DataProvider('providerFallbackProgress')]
   public function testFallbackProgress(array $items, string $expected_progress): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
     $this->setUpAiDevHops();
-    $this->config('canvas_dev_ai.settings')->set('main_agent', 'drupal_canvas_page_agent')->save();
+    $this->config('canvas_ai.settings')->set('main_agent', 'drupal_canvas_page_agent')->save();
     $this->generateComponentConfig();
     // Running out of loops ends the hop before the provider is called, so the
     // progress comes from the status items below only.
@@ -896,10 +875,10 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
   /**
    * Opts the site in to keeping the agent state between turns.
    *
-   * @see \Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm
+   * @see \Drupal\canvas_ai\Form\CanvasAiAgentSelectionForm
    */
   private function keepToolCallsInHistory(): void {
-    $this->config('canvas_dev_ai.settings')->set('keep_tool_calls_in_history', TRUE)->save();
+    $this->config('canvas_ai.settings')->set('keep_tool_calls_in_history', TRUE)->save();
   }
 
   /**

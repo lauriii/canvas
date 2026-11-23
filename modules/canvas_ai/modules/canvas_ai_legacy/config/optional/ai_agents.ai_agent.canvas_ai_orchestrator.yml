@@ -5,7 +5,7 @@ dependencies:
     - canvas_ai
   enforced:
     module:
-      - canvas_ai
+      - canvas_ai_legacy
 id: canvas_ai_orchestrator
 label: 'Drupal Canvas AI Orchestrator'
 description: 'This orchestration agent analyzes user input to determine the intent — content creation, content editing, metadata generation, component or layout addition/modification —and delegates the task to the corresponding specialized sub-agent. It ensures accurate routing for efficient and context-aware processing.'

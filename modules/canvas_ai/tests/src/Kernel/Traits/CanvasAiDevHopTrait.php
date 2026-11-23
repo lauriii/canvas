@@ -11,7 +11,7 @@ use Drupal\Core\Session\SessionManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Drives chat turns through the canvas_dev_ai controller, one hop per request.
+ * Drives chat turns through the canvas_ai controller, one hop per request.
  *
  * The controller runs the agent with setLooped(FALSE), so one request is one
  * hop: it returns should_continue while the agent still has work parked, and
@@ -19,14 +19,16 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * Requires \Drupal\Tests\canvas\Kernel\Traits\RequestTrait.
  *
- * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::render()
+ * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
+ *
+ * @todo Rename to CanvasAiHopTrait, see https://git.drupalcode.org/project/canvas/-/work_items/3592376
  */
 trait CanvasAiDevHopTrait {
 
   /**
    * The controller path every hop is sent to.
    */
-  private const AI_DEV_PATH = '/admin/api/canvas/ai-dev';
+  private const AI_DEV_PATH = '/admin/api/canvas/ai';
 
   /**
    * The number of hops one turn may take before the test gives up.
