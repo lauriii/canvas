@@ -1,5 +1,11 @@
 # @drupal-canvas/headless-host
 
+## 0.6.2
+
+### Patch Changes
+
+- @drupal-canvas/headless@0.13.1
+
 ## 0.6.1
 
 ### Patch Changes

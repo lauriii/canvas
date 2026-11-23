@@ -4,7 +4,9 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {
   createJsonApiClient,
   isDraftSessionError,
+  isJsonApiError,
   JsonApiClient,
+  JsonApiError,
 } from './jsonapi-client';
 import {
   JSONAPI_PROXY_SESSION_EXPIRED,
@@ -755,6 +757,72 @@ describe('createJsonApiClient', () => {
       'https://drupal.example/sub/fr/api/node/page/u1',
     ]);
 
+    // Index failures stop URL discovery before a resource request is made.
+    const indexErrors = { errors: [{ status: '502', title: 'Bad Gateway' }] };
+    const networkError = new TypeError('fetch failed');
+    for (const [name, respond, check] of [
+      [
+        'JSON:API error',
+        () => jsonResponse(indexErrors, { status: 502 }),
+        (error: unknown) =>
+          isJsonApiError(error) &&
+          error.status === 502 &&
+          error.document !== null &&
+          error.errors[0]?.title === 'Bad Gateway',
+      ],
+      [
+        'network error',
+        () => {
+          throw networkError;
+        },
+        (error: unknown) => error === networkError,
+      ],
+      [
+        'session error',
+        () =>
+          jsonResponse(
+            { error: 'draft_session_expired' },
+            {
+              status: 401,
+              headers: {
+                [JSONAPI_PROXY_SESSION_HEADER]: JSONAPI_PROXY_SESSION_EXPIRED,
+              },
+            },
+          ),
+        isDraftSessionError,
+      ],
+    ] as Array<[string, () => Response, (error: unknown) => boolean]>) {
+      for (const resourceVersion of [null, 'rel:working-copy']) {
+        const failing = fakeFetch(respond);
+        const { cache, store } = memoryCache();
+        const failingClient = createJsonApiClient({
+          baseUrl: 'https://drupal.example/sub',
+          apiPrefix: 'api',
+          proxyUrl: '/api/canvas/jsonapi',
+          resourceVersion,
+          cache,
+          cacheScope: 'session:1',
+          fetch: failing.fetch,
+          upstreamOptions: { indexLookup: true },
+        });
+        for (const rawResponse of [false, true]) {
+          for (const method of ['getResource', 'getCollection'] as const) {
+            await expect(
+              method === 'getResource'
+                ? failingClient.getResource('node--page', 'u1', { rawResponse })
+                : failingClient.getCollection('node--page', { rawResponse }),
+              `${name}: ${resourceVersion}: ${method}: raw=${rawResponse}`,
+            ).rejects.toSatisfy(check);
+          }
+        }
+        expect(
+          failing.calls.map((call) => call.url),
+          name,
+        ).toEqual(Array(4).fill('/api/canvas/jsonapi/api'));
+        expect(store.size, name).toBe(0);
+      }
+    }
+
     // Through the proxy, the old `/sub/jsonapi` prefix is outside the
     // boundary and a backend URL outside the site path never leaves unmapped.
     const proxied = fakeFetch(() => jsonResponse({ data: [] }));
@@ -1283,7 +1351,7 @@ describe('createJsonApiClient', () => {
     ]);
   });
 
-  it('keeps the original response when the unversioned read is not the requested resource of a type without revisions', async () => {
+  it('throws the original 501 when the unversioned read is not the requested resource of a type without revisions', async () => {
     const original = await notImplementedResponse().json();
     const retries: Array<[string, () => Response | Promise<Response>]> = [
       [
@@ -1306,6 +1374,19 @@ describe('createJsonApiClient', () => {
         'error',
         () => jsonResponse({ errors: [{ status: '403' }] }, { status: 403 }),
       ],
+      [
+        'HTML 502',
+        () => new Response('<html>Bad Gateway</html>', { status: 502 }),
+      ],
+      ['empty 503', () => new Response('', { status: 503 })],
+      [
+        'malformed JSON 500',
+        () =>
+          new Response('{"errors":', {
+            status: 500,
+            headers: { 'Content-Type': 'application/vnd.api+json' },
+          }),
+      ],
       ['not JSON', () => new Response('<html></html>', { status: 200 })],
       ['HTML', () => typedResponse(userDocument('u1'), 200, 'text/html')],
       [
@@ -1327,11 +1408,16 @@ describe('createJsonApiClient', () => {
         serializer: null,
         fetch,
       });
-      expect(await client.getResource('user--user', 'u1'), name).toEqual(
-        original,
-      );
+      await expect(
+        client.getResource('user--user', 'u1'),
+        name,
+      ).rejects.toMatchObject({
+        name: 'JsonApiError',
+        status: 501,
+        document: original,
+      });
       // Nothing is cached or remembered: the next read probes again.
-      await client.getResource('user--user', 'u1');
+      await client.getResource('user--user', 'u1').catch(() => undefined);
       expect(
         calls.map((call) => call.url.includes('resourceVersion=')),
         name,
@@ -1408,10 +1494,11 @@ describe('createJsonApiClient', () => {
         fetch,
       });
       const name = String(contentType);
-      expect(await client.getResource('user--user', 'u1'), name).toEqual(
-        original,
-      );
-      await client.getResource('user--user', 'u1');
+      await expect(
+        client.getResource('user--user', 'u1'),
+        name,
+      ).rejects.toSatisfy(isJsonApiError);
+      await client.getResource('user--user', 'u1').catch(() => undefined);
       expect(
         calls.map((call) => call.url.includes('resourceVersion=')),
         name,
@@ -1439,6 +1526,117 @@ describe('createJsonApiClient', () => {
       false,
       false,
     ]);
+  });
+
+  it.each([
+    { resourceVersion: null, indexLookup: false },
+    { resourceVersion: 'rel:working-copy', indexLookup: false },
+    { resourceVersion: null, indexLookup: true },
+    { resourceVersion: 'rel:working-copy', indexLookup: true },
+  ])(
+    'throws JsonApiError for non-JSON HTTP error responses (resourceVersion: $resourceVersion, indexLookup: $indexLookup)',
+    async ({ resourceVersion, indexLookup }) => {
+      for (const [name, status, body, contentType] of [
+        ['HTML 502', 502, '<html>Bad Gateway</html>', 'text/html'],
+        ['empty 503', 503, '', 'text/plain'],
+        ['malformed JSON 500', 500, '{"errors":', 'application/vnd.api+json'],
+      ] as const) {
+        const { fetch, calls } = fakeFetch(
+          () =>
+            new Response(body, {
+              status,
+              headers: { 'Content-Type': contentType },
+            }),
+        );
+        const deserialize = vi.fn(() => {
+          throw new Error('Error responses must not be deserialized.');
+        });
+        const client = createJsonApiClient({
+          baseUrl: 'https://drupal.example',
+          resourceVersion,
+          serializer: { deserialize },
+          upstreamOptions: { indexLookup },
+          fetch,
+        });
+        for (const method of ['getResource', 'getCollection'] as const) {
+          const label = `${name}: ${method}`;
+          const error = await (
+            method === 'getResource'
+              ? client.getResource('node--article', 'a')
+              : client.getCollection('node--article')
+          ).catch((caught: unknown) => caught);
+          expect.soft(error, label).toBeInstanceOf(JsonApiError);
+          expect.soft(error, label).toMatchObject({
+            status,
+            document: null,
+            errors: [],
+          });
+          if (isJsonApiError(error)) {
+            expect.soft(error.response.status, label).toBe(status);
+          }
+        }
+        // These failures must not trigger the versioning fallback retry.
+        expect(calls, name).toHaveLength(2);
+        if (indexLookup) {
+          expect(
+            calls.map((call) => call.url),
+            name,
+          ).toEqual([
+            'https://drupal.example/jsonapi',
+            'https://drupal.example/jsonapi',
+          ]);
+        }
+        expect(deserialize, name).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('throws JsonApiError for HTTP error responses', async () => {
+    const notFound = {
+      errors: [{ status: '404', title: 'Not Found', detail: 'No entity.' }],
+    };
+    const badRequest = {
+      errors: [{ status: '400', title: 'Bad Request', detail: 'Bad filter.' }],
+    };
+    const { fetch } = fakeFetch((url) =>
+      url.includes('filter')
+        ? jsonResponse(badRequest, { status: 400 })
+        : jsonResponse(notFound, { status: 404 }),
+    );
+    for (const resourceVersion of [null, 'rel:working-copy']) {
+      const name = String(resourceVersion);
+      const deserialize = vi.fn((document) => document);
+      const client = createJsonApiClient({
+        baseUrl: 'https://drupal.example',
+        resourceVersion,
+        serializer: { deserialize },
+        fetch,
+      });
+      const resourceError = await client
+        .getResource('node--article', 'missing')
+        .catch((error: unknown) => error);
+      expect(resourceError, name).toBeInstanceOf(JsonApiError);
+      expect(resourceError, name).toMatchObject({
+        status: 404,
+        errors: notFound.errors,
+        message: 'JSON:API request failed with status 404: No entity.',
+      });
+      const collectionError = await client
+        .getCollection('node--article', { queryString: 'filter[nope]=1' })
+        .catch((error: unknown) => error);
+      expect(collectionError, name).toBeInstanceOf(JsonApiError);
+      expect(collectionError, name).toMatchObject({
+        status: 400,
+        errors: badRequest.errors,
+      });
+      expect(deserialize, name).not.toHaveBeenCalled();
+      // Raw responses expose the status without throwing.
+      const raw = await client.getCollection('node--article', {
+        queryString: 'filter[nope]=1',
+        rawResponse: true,
+      });
+      expect(raw.response.status, name).toBe(400);
+    }
   });
 
   it('repeats a versioned read only after a JSON:API 501 the client caused', async () => {
@@ -1471,7 +1669,9 @@ describe('createJsonApiClient', () => {
         serializer: null,
         fetch,
       });
-      await client.getResource('user--user', 'u1', options);
+      await client
+        .getResource('user--user', 'u1', options)
+        .catch(() => undefined);
       expect(calls, name).toHaveLength(1);
     }
     // Failures that throw keep throwing, without a second request.
@@ -1479,7 +1679,10 @@ describe('createJsonApiClient', () => {
       [
         'HTML 501',
         () => new Response('<html>Not Implemented</html>', { status: 501 }),
-        (error: unknown) => error instanceof SyntaxError,
+        (error: unknown) =>
+          isJsonApiError(error) &&
+          error.status === 501 &&
+          error.document === null,
       ],
       [
         'network',
@@ -1510,11 +1713,15 @@ describe('createJsonApiClient', () => {
         resourceVersion: 'rel:working-copy',
         fetch,
       });
-      await expect(
-        client.getResource('user--user', 'u1'),
-        name,
-      ).rejects.toSatisfy(check);
-      expect(calls, name).toHaveLength(1);
+      for (const method of ['getResource', 'getCollection'] as const) {
+        await expect(
+          method === 'getResource'
+            ? client.getResource('user--user', 'u1')
+            : client.getCollection('user--user'),
+          `${name}: ${method}`,
+        ).rejects.toSatisfy(check);
+      }
+      expect(calls, name).toHaveLength(2);
     }
   });
 });

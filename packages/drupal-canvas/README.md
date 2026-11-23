@@ -275,6 +275,12 @@ install path included) a locale prefix goes between them
 (`https://api.example/mount/fr/api`), without it no locale prefix applies; the
 Decoupled Router stays under `baseUrl` either way.
 
+HTTP error responses throw `JsonApiError`, which exposes `status`, `response`,
+and the JSON:API `errors`. Raw responses (`rawResponse: true`) bypass this error
+handling for the requested resource or collection response. If
+`indexLookup: true` is enabled, a failed preliminary index request still throws
+`JsonApiError`.
+
 ```js
 import { createJsonApiClient } from 'drupal-canvas/jsonapi-client';
 
