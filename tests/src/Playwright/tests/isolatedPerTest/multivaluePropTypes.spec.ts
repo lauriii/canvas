@@ -919,21 +919,40 @@ test.describe('Multivalue Prop Types', () => {
     });
     await expect(optionForty).toHaveClass(/option--is-disabled/);
 
+    // Verify the state that should persist before reloading.
+    await expect(intChips).toHaveCount(2);
+    await expect(intChips.nth(0)).toContainText('Twenty');
+    await expect(intChips.nth(1)).toContainText('Thirty');
+    await canvas.testInPreviewFrame(
+      '#list-int-list li',
+      async (intListBeforeReload) => {
+        await expect(intListBeforeReload).toHaveCount(2);
+        await expect(intListBeforeReload.nth(0)).toContainText('20');
+        await expect(intListBeforeReload.nth(1)).toContainText('30');
+      },
+    );
+
     // Test persistence after page reload.
+    // eslint-disable-next-line playwright/no-networkidle
+    await page.waitForLoadState('networkidle');
     await page.reload();
     await canvas.waitForEditorUi();
     const intFieldAfterReload = page.locator('.form-item').filter({
       has: page.locator('label', { hasText: 'List Integer (Unlimited)' }),
     });
-    intFieldAfterReload.scrollIntoViewIfNeeded();
+    await intFieldAfterReload.scrollIntoViewIfNeeded();
     const intChipsAfterReload = intFieldAfterReload.locator(
       '[class*="multiValue"]',
     );
     await expect(intChipsAfterReload).toHaveCount(2);
+    await expect(intChipsAfterReload.nth(0)).toContainText('Twenty');
+    await expect(intChipsAfterReload.nth(1)).toContainText('Thirty');
     await canvas.testInPreviewFrame(
       '#list-int-list li',
       async (intListAfterReload) => {
         await expect(intListAfterReload).toHaveCount(2);
+        await expect(intListAfterReload.nth(0)).toContainText('20');
+        await expect(intListAfterReload.nth(1)).toContainText('30');
       },
     );
   });
