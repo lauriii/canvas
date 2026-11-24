@@ -1548,6 +1548,9 @@ class CanvasAiPageBuilderHelper {
     if (\array_key_exists($region, $layout_regions)) {
       return NULL;
     }
+    if ($layout_regions === []) {
+      return 'Unable to read the page layout: no regions were sent. Do not retry; tell the user to reload the page and try again.';
+    }
     return \sprintf(
       'Region "%s" does not exist. Available regions are: %s.',
       $region,

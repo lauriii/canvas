@@ -683,4 +683,26 @@ XML;
     $this->assertSame([], $this->canvasAiPageBuilderHelper->getComponentsByUuid([]));
   }
 
+  /**
+   * Tests the validateRegionExists method.
+   */
+  public function testValidateRegionExists(): void {
+    $layout = '{"regions":{"content":{"nodePathPrefix":[0],"components":[]},"sidebar":{"nodePathPrefix":[1],"components":[]}}}';
+
+    // An existing region is valid.
+    $this->assertNull($this->canvasAiPageBuilderHelper->validateRegionExists('content', $layout));
+
+    // A missing region lists the available ones.
+    $message = $this->canvasAiPageBuilderHelper->validateRegionExists('footer', $layout);
+    $this->assertIsString($message);
+    $this->assertStringContainsString('does not exist', $message);
+    $this->assertStringContainsString('content, sidebar', $message);
+
+    // An empty layout tells the user to reload the page.
+    $message = $this->canvasAiPageBuilderHelper->validateRegionExists('content', '{}');
+    $this->assertIsString($message);
+    $this->assertStringContainsString('no regions were sent', $message);
+    $this->assertStringNotContainsString('does not exist', $message);
+  }
+
 }
