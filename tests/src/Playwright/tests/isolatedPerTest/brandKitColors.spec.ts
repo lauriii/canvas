@@ -62,7 +62,7 @@ async function openColorPropPopover(
 async function fillInput(locator: Locator, value: string): Promise<void> {
   await expect(async () => {
     await locator.fill(value);
-    await expect(locator).toHaveValue(value);
+    await expect(locator).toHaveValue(value, { timeout: 300 });
   }).toPass({ timeout: 5000 });
 }
 
@@ -465,7 +465,9 @@ test.describe('brand kit colors', () => {
       await page
         .locator(SEL.form.hex)
         .pressSequentially('GGGGGG', { delay: 15 });
-      await expect(page.locator(SEL.form.hex)).toHaveValue('GGGGGG');
+      await expect(page.locator(SEL.form.hex)).toHaveValue('GGGGGG', {
+        timeout: 300,
+      });
     }).toPass({ timeout: 5000 });
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
@@ -474,7 +476,9 @@ test.describe('brand kit colors', () => {
       await page.locator(SEL.form.hex).click();
       await page.keyboard.press('ControlOrMeta+A');
       await page.locator(SEL.form.hex).pressSequentially('FFF', { delay: 15 });
-      await expect(page.locator(SEL.form.hex)).toHaveValue('FFF');
+      await expect(page.locator(SEL.form.hex)).toHaveValue('FFF', {
+        timeout: 300,
+      });
     }).toPass({ timeout: 5000 });
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
