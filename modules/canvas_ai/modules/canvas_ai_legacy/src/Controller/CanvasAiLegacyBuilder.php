@@ -164,14 +164,6 @@ final class CanvasAiLegacyBuilder extends ControllerBase {
       ]);
     }
 
-    // The page builder and template builder agents resolve their target
-    // against the regions the UI sends here, so at least one is required.
-    if (empty($prompt['current_layout']['regions'])) {
-      return new JsonResponse([
-        'status' => FALSE,
-        'message' => 'Unable to read the page layout. Please reload the page and try again.',
-      ]);
-    }
     $task_message = array_pop($prompt['messages']);
 
     // Generate verbose context for orchestrator.
@@ -187,7 +179,14 @@ final class CanvasAiLegacyBuilder extends ControllerBase {
     // Store the current layout in the temp store. This will be later used by
     // the ai agents.
     // @see \Drupal\canvas_ai\Plugin\AiFunctionCall\GetCurrentLayout.
-    $this->canvasAiTempStore->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, Json::encode($prompt['current_layout']));
+    // Without regions (e.g. code component requests) nothing is stored, so
+    // a layout from an earlier request cannot leak in.
+    if (!empty($prompt['current_layout']['regions'])) {
+      $this->canvasAiTempStore->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, Json::encode($prompt['current_layout']));
+    }
+    else {
+      $this->canvasAiTempStore->deleteData(CanvasAiTempStore::CURRENT_LAYOUT_KEY);
+    }
 
     $chat_history = $this->canvasAiChatHelper->getFilteredChatHistory($prompt['messages']);
     $agent->setChatHistory($chat_history);

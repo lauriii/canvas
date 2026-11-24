@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_ai\Kernel;
 
 use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai_legacy\Controller\CanvasAiLegacyBuilder;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -45,34 +47,48 @@ final class CanvasAiBuilderControllerTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['canvas_ai', 'canvas_ai_legacy']);
+    // The agent manager snapshots config-based agents when constructed, which
+    // happened before the agent config was installed.
+    $this->container->set('plugin.manager.ai_agents', NULL);
     $this->installEntitySchema('user');
     $this->installEntitySchema('path_alias');
     $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
   }
 
   /**
-   * Tests that a request without usable layout regions is refused.
+   * Tests that a missing layout is not refused by the controller.
+   *
+   * Agents needing regions report the problem themselves; the controller does
+   * not guess intent from the prompt or the payload.
    */
-  #[DataProvider('providerLayoutsWithoutRegions')]
-  public function testRequestWithoutLayoutRegionsIsRefused(array $payload): void {
+  #[DataProvider('providerRequestsWithoutLayout')]
+  public function testRequestWithoutLayoutRegionsIsNotRefused(array $payload, ?array $expected_stored_layout): void {
     $response = $this->postToBuilder($payload + [
-      'messages' => [['role' => 'user', 'text' => 'Add a hero.']],
+      'request_id' => 'test-request',
     ]);
 
-    $this->assertSame([
-      'status' => FALSE,
-      'message' => 'Unable to read the page layout. Please reload the page and try again.',
-    ], static::decodeResponse($response));
+    $this->assertNotSame('Unable to read the page layout. Please reload the page and try again.', static::decodeResponse($response)['message'] ?? NULL);
+
+    // Only a layout with regions is stored for the agents.
+    $stored = $this->container->get(CanvasAiTempStore::class)->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY);
+    $this->assertSame($expected_stored_layout === NULL ? NULL : Json::encode($expected_stored_layout), $stored);
   }
 
   /**
-   * Provides payloads whose layout carries no regions.
+   * Provides requests without layout regions, however they are worded.
    */
-  public static function providerLayoutsWithoutRegions(): array {
+  public static function providerRequestsWithoutLayout(): array {
+    $message = static fn (string $text): array => [['role' => 'user', 'text' => $text]];
     return [
-      'layout key absent' => [[]],
-      'layout is null' => [['current_layout' => NULL]],
-      'regions key empty' => [['current_layout' => ['regions' => []]]],
+      'code component prompt' => [['messages' => $message('Create a code component with multivalue props')], NULL],
+      'page builder prompt' => [['messages' => $message('Add a hero section to the page.')], NULL],
+      'differently worded' => [['messages' => $message('Make me a button component'), 'current_layout' => ['regions' => []]], NULL],
+      'in code' => [['messages' => $message('Create a card in code'), 'current_layout' => NULL], NULL],
+      'layout with regions' => [
+        ['messages' => $message('Add a hero section.'), 'current_layout' => ['regions' => ['content' => ['components' => []]]]],
+        ['regions' => ['content' => ['components' => []]]],
+      ],
+      'selected component' => [['messages' => $message('Change the heading to blue.'), 'selected_component' => 'some-uuid'], NULL],
     ];
   }
 
