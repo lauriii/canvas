@@ -12,7 +12,7 @@ import {
 import { useGetFoldersQuery } from '@/services/componentAndLayout';
 import { ALL_FOLDERS_ID } from '@/utils/colorConstants';
 
-const FALLBACK_DEFAULT_COLOR = '#ff0000ff';
+const FALLBACK_DEFAULT_COLOR = '#ffffff';
 
 const COLOR_PICKER_MODES = [
   { value: 'kit-only', label: 'Brand Kit' },

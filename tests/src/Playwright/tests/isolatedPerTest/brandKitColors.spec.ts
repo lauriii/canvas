@@ -192,9 +192,9 @@ const SEL = {
   },
   renameInput: '[data-testid="canvas-color-row-rename-input"]',
   instancesPop: '[data-testid="canvas-find-color-instances-popover"]',
-  deletePop: '[data-testid="canvas-delete-color-popover"]',
-  deletePopBody: '[data-testid="canvas-delete-color-popover-body"]',
-  deletePopConfirm: '[data-testid="canvas-delete-color-confirm-button"]',
+  deletePop: '[role="dialog"]',
+  deletePopBody: '[data-testid="canvas-delete-color-dialog-body"]',
+  deletePopConfirm: '[data-testid="dialog-confirm-button"]',
 };
 
 const PROP = {
@@ -304,6 +304,10 @@ test.describe('brand kit colors', () => {
     // Edit Brand Red - should open in RGBA mode (srgb colorSpace)
     // A single click on the row opens the edit modal.
     await page.locator(SEL.row('Brand Red')).click();
+    await expect(
+      page.locator('[data-testid="color-variable-edit-info"]'),
+    ).toBeHidden();
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
     await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
     await expect(page.locator(SEL.form.rgba.r)).toHaveValue('204');
     await expect(page.locator(SEL.form.rgba.g)).toHaveValue('0');
@@ -327,8 +331,10 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(SEL.form.rgba.b)).toHaveValue('204');
     await expect(page.locator(SEL.form.rgba.a)).toHaveValue('0.9');
 
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
     // Confirm duplicate CSS variable prevention in edit mode.
     await fillInput(page.locator(SEL.form.variable), 'brand-green');
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
     await page.locator(SEL.form.save).click();
     await expect(
       page.locator('[data-testid="color-error-card"]'),
@@ -339,6 +345,10 @@ test.describe('brand kit colors', () => {
 
     // Set a unique variable name and continue editing.
     await fillInput(page.locator(SEL.form.variable), 'brand-yellow');
+    await expect(
+      page.locator('[data-testid="color-variable-edit-info"]'),
+    ).toBeVisible();
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
     await page.locator(SEL.form.save).click();
     // A successful save closes the popover — wait for it to close before
     // clicking the row again to reopen it.
@@ -833,9 +843,12 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.menu.delete).click();
     await expect(page.locator(SEL.deletePop)).toBeVisible();
     await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeVisible();
     await expect(page.locator(SEL.deletePopConfirm)).toBeDisabled();
     await expect(page.locator(SEL.deletePopBody)).toContainText('is in use');
-    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+    await page
+      .locator(`${SEL.deletePop} [data-testid="dialog-cancel-button"]`)
+      .click();
 
     // Create a Pattern referencing "Brand Red" via the UI.
     // The component currently has brandAll = Brand Red (published above), so
@@ -868,7 +881,9 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
     await expect(page.locator(SEL.deletePopConfirm)).toBeDisabled();
     await expect(page.locator(SEL.deletePopBody)).toContainText('is in use');
-    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+    await page
+      .locator(`${SEL.deletePop} [data-testid="dialog-cancel-button"]`)
+      .click();
 
     // Remove Brand Red from the page and republish.
     await openColorPropPopover(page, 'brandAll');
@@ -886,7 +901,9 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
     await expect(page.locator(SEL.deletePopConfirm)).toBeDisabled();
     await expect(page.locator(SEL.deletePopBody)).toContainText('is in use');
-    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+    await page
+      .locator(`${SEL.deletePop} [data-testid="dialog-cancel-button"]`)
+      .click();
 
     // Remove Brand Red from the pattern via the UI.
     await canvas.openLibraryPanel();
@@ -918,7 +935,9 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
     await expect(page.locator(SEL.deletePopConfirm)).toBeEnabled();
     await expect(page.locator(SEL.deletePopBody)).toContainText('past version');
-    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+    await page
+      .locator(`${SEL.deletePop} [data-testid="dialog-cancel-button"]`)
+      .click();
 
     // Deletion succeeds.
     await page.locator(SEL.row('Brand Red')).hover();

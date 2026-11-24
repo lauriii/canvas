@@ -1,4 +1,5 @@
 import { createAppSlice } from '@/app/createAppSlice';
+import { type BrandKitColor } from '@/types/CodeComponent';
 
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { Pattern } from '@/types/Pattern';
@@ -36,6 +37,7 @@ export interface DeleteComponentWithExposedSlotsDialogData {
 interface DialogDataMap {
   deletePatternConfirm: Pattern;
   renamePatternConfirm: Pattern;
+  deleteColorConfirm: BrandKitColor;
   exposeSlot: ExposeSlotDialogData;
   removeExposedSlotConfirm: RemoveExposedSlotDialogData;
   deleteComponentWithExposedSlots: DeleteComponentWithExposedSlotsDialogData;
@@ -69,6 +71,7 @@ const initialState: DialogSliceState = {
   removeExposedSlotConfirm: closedDialog,
   deleteComponentWithExposedSlots: closedDialog,
   renamePatternConfirm: closedDialog,
+  deleteColorConfirm: closedDialog,
 };
 
 type UpdateDialogPayload = keyof Omit<DialogSliceState, DataDialog>;

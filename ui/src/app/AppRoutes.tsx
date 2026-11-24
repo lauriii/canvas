@@ -12,6 +12,7 @@ import ExtensionPage from '@/components/extensions/ExtensionPage';
 import PermissionCheck from '@/components/PermissionCheck';
 import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
+import DeleteColorDialog from '@/features/brandKit/components/DeleteColorDialog';
 import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
 import ConflictResolutionPage from '@/features/conflict/ConflictResolutionPage';
@@ -88,6 +89,7 @@ const Dialogs = () => (
     <CodeComponentDialogs />
     <ExtensionDialog />
     <ExposeSlotDialogs />
+    <DeleteColorDialog />
   </div>
 );
 

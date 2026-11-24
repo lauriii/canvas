@@ -126,7 +126,14 @@ const setup = (initialColor: BrandKitColor = color) => {
 describe('ColorFormPopover save failures', () => {
   it('still shows why the save failed after the optimistic close reopens the popover', async () => {
     setup();
-
+    expect(
+      await screen.findByTestId('canvas-color-save-button'),
+    ).toBeDisabled();
+    // Enable save before clicking save button
+    const redInput = screen.getByLabelText('Red value');
+    fireEvent.change(redInput, { target: { value: '0' } });
+    expect(redInput).toHaveValue(0);
+    expect(await screen.findByTestId('canvas-color-save-button')).toBeEnabled();
     fireEvent.click(screen.getByTestId('canvas-color-save-button'));
 
     // The popover closes right away (the optimistic update already changed
@@ -148,6 +155,11 @@ describe('ColorFormPopover save failures', () => {
 
   it('does not resurface a previous failure when the user cancels instead of retrying', async () => {
     setup();
+
+    const redInput = screen.getByLabelText('Red value');
+    fireEvent.change(redInput, { target: { value: '0' } });
+    expect(redInput).toHaveValue(0);
+    expect(await screen.findByTestId('canvas-color-save-button')).toBeEnabled();
 
     fireEvent.click(screen.getByTestId('canvas-color-save-button'));
     await waitFor(() =>
