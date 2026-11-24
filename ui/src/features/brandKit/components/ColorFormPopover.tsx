@@ -58,6 +58,7 @@ const DEFAULT_COLOR_VALUE: BrandKitColorValue = {
 interface FormState {
   colorName: string;
   variableName: string;
+  originalVariableName: string;
   colorValue: BrandKitColorValue;
   displayFormat: 'rgb' | 'hex' | 'hsl' | null;
   variableNameTouched: boolean;
@@ -86,6 +87,7 @@ type FormAction =
 const INITIAL_FORM_STATE: FormState = {
   colorName: '',
   variableName: '',
+  originalVariableName: '',
   colorValue: DEFAULT_COLOR_VALUE,
   displayFormat: 'rgb',
   variableNameTouched: false,
@@ -114,6 +116,9 @@ function formReducer(state: FormState, action: FormAction): FormState {
         ...INITIAL_FORM_STATE,
         colorName: action.color.name,
         variableName: action.color.cssVariable.startsWith('--')
+          ? action.color.cssVariable.slice(2)
+          : action.color.cssVariable,
+        originalVariableName: action.color.cssVariable.startsWith('--')
           ? action.color.cssVariable.slice(2)
           : action.color.cssVariable,
         colorValue: action.color.value,
@@ -220,6 +225,7 @@ const ColorFormPopover = ({
   const {
     colorName,
     variableName,
+    originalVariableName,
     colorValue,
     displayFormat,
     originalColor,
@@ -385,6 +391,18 @@ const ColorFormPopover = ({
     operation === 'add' ? 'Add color' : (color?.name ?? 'Edit color');
   const confirmText = operation === 'add' ? 'Add' : 'Save';
 
+  const isNameChanged = variableName !== originalVariableName;
+  const isColorValueChanged = Boolean(
+    originalColor?.value &&
+    (originalColor.value.colorSpace !== colorValue.colorSpace ||
+      originalColor.value.components.some(
+        (component, index) => component !== colorValue.components[index],
+      ) ||
+      originalColor.value.alpha !== colorValue.alpha),
+  );
+
+  const hasChanges = isNameChanged || isColorValueChanged;
+
   const isConfirmDisabled = useMemo(() => {
     // Block save if color value is invalid (for both add and edit operations).
     if (!isColorValueValid) {
@@ -398,13 +416,14 @@ const ColorFormPopover = ({
         !!variableNameError
       );
     }
-    return !variableName.trim() || !!variableNameError;
+    return !variableName.trim() || !!variableNameError || !hasChanges;
   }, [
     colorName,
     variableName,
     colorNameError,
     variableNameError,
     isColorValueValid,
+    hasChanges,
     operation,
   ]);
 
@@ -667,8 +686,8 @@ const ColorFormPopover = ({
                     </Box>
                   )}
 
-                  {!isUsageLoading && (
-                    <Box className={styles.verticalPadding} px="3">
+                  {!isUsageLoading && hasChanges && (
+                    <Box px="3" pt="3">
                       <div
                         className={styles.infoBox}
                         data-testid="canvas-color-edit-info"
@@ -686,7 +705,11 @@ const ColorFormPopover = ({
                             fill="currentColor"
                           />
                         </svg>
-                        <Text size="1" className={styles.infoText}>
+                        <Text
+                          size="1"
+                          className={styles.infoText}
+                          data-testid="color-variable-edit-info"
+                        >
                           Changing this color will affect {componentCount}{' '}
                           component
                           {componentCount !== 1 ? 's' : ''} across your design.
@@ -711,6 +734,7 @@ const ColorFormPopover = ({
               px="3"
               pb="3"
               pt="3"
+              mt="3"
               className={styles.footer}
             >
               <Popover.Close asChild>

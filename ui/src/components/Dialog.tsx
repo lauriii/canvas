@@ -150,6 +150,7 @@ const Dialog = ({
         <Flex gap="2" justify="end" mt="3">
           <ThemedDialog.Close>
             <Button
+              data-testid="dialog-cancel-button"
               variant="outline"
               size="1"
               onClick={() => {
@@ -165,6 +166,7 @@ const Dialog = ({
           </ThemedDialog.Close>
           {footer.onConfirm && (
             <Button
+              data-testid="dialog-confirm-button"
               onClick={footer.onConfirm}
               disabled={footer.isConfirmDisabled}
               loading={footer.isConfirmLoading}

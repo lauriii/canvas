@@ -11,11 +11,12 @@ import {
   TextField,
 } from '@radix-ui/themes';
 
+import { useAppDispatch } from '@/app/hooks';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import ColorFormPopover from '@/features/brandKit/components/ColorFormPopover';
-import DeleteColorPopover from '@/features/brandKit/components/DeleteColorPopover';
 import FindColorInstancesPopover from '@/features/brandKit/components/FindColorInstancesPopover';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import { useUpdateColorMutation } from '@/services/brandKit';
 import { getColorHex, getCssColorValue } from '@/utils/brandKitColor';
 
@@ -29,6 +30,7 @@ interface ColorRowProps {
 }
 
 const ColorRow = ({ color }: ColorRowProps) => {
+  const dispatch = useAppDispatch();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: color.id,
     data: {
@@ -59,7 +61,6 @@ const ColorRow = ({ color }: ColorRowProps) => {
 
   // Popover state
   const [isEditPopoverOpen, setIsEditPopoverOpen] = useState(false);
-  const [isDeletePopoverOpen, setIsDeletePopoverOpen] = useState(false);
   const [isFindInstancesPopoverOpen, setIsFindInstancesPopoverOpen] =
     useState(false);
   const [, setIsMenuOpen] = useState(false);
@@ -158,6 +159,17 @@ const ColorRow = ({ color }: ColorRowProps) => {
     handleRenameCancel();
   };
 
+  const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setIsEditPopoverOpen(false);
+    dispatch(
+      setDialogWithDataOpen({
+        operation: 'deleteColorConfirm',
+        data: color,
+      }),
+    );
+  };
+
   const menuItems = (
     <>
       <UnifiedMenu.Item
@@ -184,12 +196,7 @@ const ColorRow = ({ color }: ColorRowProps) => {
       </UnifiedMenu.Item>
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item
-        onClick={() => {
-          // Close the edit popover so only one popover is open at a time.
-          setIsEditPopoverOpen(false);
-          openingPopoverRef.current = true;
-          setIsDeletePopoverOpen(true);
-        }}
+        onClick={handleDeleteClick}
         color="red"
         data-testid="canvas-color-row-delete"
       >
@@ -205,9 +212,7 @@ const ColorRow = ({ color }: ColorRowProps) => {
         [styles.isDragging]: isDragging,
       })}
       data-popover-open={
-        isEditPopoverOpen || isDeletePopoverOpen || isFindInstancesPopoverOpen
-          ? true
-          : undefined
+        isEditPopoverOpen || isFindInstancesPopoverOpen ? true : undefined
       }
       data-is-renaming={isRenaming ? true : undefined}
       data-has-inline-error={renameErrorMessage ? true : undefined}
@@ -354,12 +359,6 @@ const ColorRow = ({ color }: ColorRowProps) => {
         anchorRef={dotsButtonRef}
         open={isEditPopoverOpen}
         onOpenChange={setIsEditPopoverOpen}
-      />
-      <DeleteColorPopover
-        color={color}
-        anchorRef={dotsButtonRef}
-        open={isDeletePopoverOpen}
-        onOpenChange={setIsDeletePopoverOpen}
       />
       <FindColorInstancesPopover
         color={color}

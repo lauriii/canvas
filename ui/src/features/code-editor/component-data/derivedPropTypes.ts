@@ -188,7 +188,7 @@ const derivedPropTypes = [
     init: {
       type: 'string',
       $ref: 'json-schema-definitions://canvas.module/color',
-      example: '#ff0000ff',
+      example: '#ffffff',
     },
   },
 ];

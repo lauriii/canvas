@@ -380,6 +380,21 @@ describe('props in code editor', () => {
         selectCodeComponentProperty('props')(store.getState())[1].name,
       ).toEqual('Alpha');
     });
+
+    it('color prop default values', async () => {
+      await addProp('Color', 'Primary Color');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('textbox', { name: 'Prop name' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('combobox', { name: 'Color Source' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /#FFFFFF/i }),
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('prop types', () => {
