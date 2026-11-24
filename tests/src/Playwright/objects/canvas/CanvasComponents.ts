@@ -447,7 +447,67 @@ export function CanvasComponentsMixin<
       ).toHaveText(expectedLabel);
     }
 
+    /**
+     * Reorders a multivalue row programmatically through Drupal's tableDrag.
+     *
+     * Uses the same calls a real drag would trigger, and commits identically.
+     * Use reorderMultiValuePropWithPointer() to exercise real drag and drop.
+     */
     async reorderMultiValueProp(propName: string, from: number, to: number) {
+      const field = this.page
+        .locator('[data-canvas-multiple-values="true"]')
+        .filter({
+          has: this.page.getByRole('heading', { name: propName }),
+        });
+      await expect(field).toBeVisible();
+      await field.scrollIntoViewIfNeeded();
+
+      const rows = field.locator('tr.draggable');
+      const labels = field.locator('[data-canvas-multivalue-label="true"]');
+      const movedLabel = await labels.nth(from).innerText();
+
+      await field.evaluate(
+        (el, { from, to }) => {
+          const table = el.querySelector<HTMLTableElement>(
+            'table.field-multiple-table',
+          );
+          const td = table && (window as any).Drupal?.tableDrag?.[table.id];
+          if (!table || !td) {
+            throw new Error(
+              'No tableDrag instance found for multivalue field.',
+            );
+          }
+          const draggableRows = [
+            ...table.querySelectorAll<HTMLTableRowElement>(
+              'tbody tr.draggable',
+            ),
+          ].filter((row) => !row.hasAttribute('data-canvas-optimistic'));
+          if (!draggableRows[from] || !draggableRows[to]) {
+            throw new Error(`Invalid row indices: ${from} -> ${to}.`);
+          }
+          td.rowObject = new td.row(
+            draggableRows[from],
+            'keyboard',
+            td.indentEnabled,
+            td.maxDepth,
+            true,
+          );
+          td.rowObject.swap(to < from ? 'before' : 'after', draggableRows[to]);
+          td.dropRow(new Event('programmatic'), td);
+        },
+        { from, to },
+      );
+
+      await expect(
+        rows.nth(to).locator('[data-canvas-multivalue-label="true"]'),
+      ).toHaveText(movedLabel);
+    }
+
+    async reorderMultiValuePropWithPointer(
+      propName: string,
+      from: number,
+      to: number,
+    ) {
       const field = this.page
         .locator('[data-canvas-multiple-values="true"]')
         .filter({
@@ -514,6 +574,8 @@ export function CanvasComponentsMixin<
           .locator('[data-canvas-multivalue-label="true"]'),
       ).toHaveText('Empty');
 
+      // eslint-disable-next-line playwright/no-networkidle
+      await this.page.waitForLoadState('networkidle');
       if (propValue) {
         await this.editMultiValueProp(
           propName,
