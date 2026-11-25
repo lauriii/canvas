@@ -203,16 +203,24 @@ class PageRegionValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
- * Tests invalid component tree.
- */
-  #[DataProvider('providerInvalidComponentTree')]
-  public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
-    \assert($this->entity instanceof PageRegion);
-    $this->entity->setComponentTree($component_tree);
-    $this->assertValidationErrors($expected_messages);
+   * Tests invalid component tree.
+   *
+   * @see ::assertCaseValidationErrors()
+   */
+  public function testInvalidComponentTree(): void {
+    $original_entity = clone $this->entity;
+    foreach (self::invalidComponentTreeCases() as $case => ['component_tree' => $component_tree, 'expected_messages' => $expected_messages]) {
+      $this->entity = clone $original_entity;
+      \assert($this->entity instanceof PageRegion);
+      $this->entity->setComponentTree($component_tree);
+      $this->assertCaseValidationErrors($case, $expected_messages);
+    }
   }
 
-  public static function providerInvalidComponentTree(): \Generator {
+  /**
+   * Cases for testInvalidComponentTree().
+   */
+  public static function invalidComponentTreeCases(): \Generator {
     yield "using EntityFieldPropSource" => [
       'component_tree' => [
         [

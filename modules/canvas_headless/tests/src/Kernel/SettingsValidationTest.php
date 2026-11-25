@@ -6,7 +6,6 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -67,32 +66,36 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    * value whose host PHP and the browser read differently would send the
    * assertion to the browser's reading. Syntactically valid URIs are not
    * enough.
+   *
+   * The cases run in one test, as each Kernel test pays seconds for its
+   * setUp(), while validating one URL takes milliseconds.
    */
-  #[DataProvider('providerFrontendUrls')]
-  public function testFrontendUrlRestriction(string $frontend_url, bool $valid): void {
-    $violations = $this->validate([
-      'frontends' => [['url' => $frontend_url, 'components' => []]],
-      'assertion_expiration' => 60,
-    ]);
+  public function testFrontendUrlRestriction(): void {
+    foreach (self::frontendUrlCases() as $case => [$frontend_url, $valid]) {
+      $violations = $this->validate([
+        'frontends' => [['url' => $frontend_url, 'components' => []]],
+        'assertion_expiration' => 60,
+      ]);
 
-    if ($valid) {
-      $this->assertSame([], $violations);
-    }
-    else {
-      // Some cases additionally violate the uri primitive type; the
-      // restriction must reject them all regardless.
-      $this->assertSame(['frontends.0.url'], \array_keys($violations));
-      $this->assertContains(self::MESSAGE, $violations['frontends.0.url']);
+      if ($valid) {
+        $this->assertSame([], $violations, "Case \"$case\" must validate.");
+      }
+      else {
+        // Some cases additionally violate the uri primitive type; the
+        // restriction must reject them all regardless.
+        $this->assertSame(['frontends.0.url'], \array_keys($violations), "Case \"$case\" must fail on frontends.0.url only.");
+        $this->assertContains(self::MESSAGE, $violations['frontends.0.url'], "Case \"$case\" must fail with the restriction message.");
+      }
     }
   }
 
   /**
-   * Data provider of frontend URL cases.
+   * Cases for testFrontendUrlRestriction().
    *
    * @return array<string, array{string, bool}>
    *   URL and whether it must validate.
    */
-  public static function providerFrontendUrls(): array {
+  public static function frontendUrlCases(): array {
     return [
       'plain https' => ['https://example.com', TRUE],
       'http with port' => ['http://localhost:3000', TRUE],

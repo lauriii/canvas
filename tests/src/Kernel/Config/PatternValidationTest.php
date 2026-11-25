@@ -21,7 +21,6 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\TestTools\Random;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -241,17 +240,24 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
   /**
    * Tests invalid component tree.
    *
+   * @see ::assertCaseValidationErrors()
    * @legacy-covers \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeMeetsRequirementsConstraint
    */
-  #[DataProvider('providerInvalidComponentTree')]
-  public function testInvalidComponentTree(array $component_tree, array $expected_messages): void {
-    \assert($this->entity instanceof Pattern);
-    $component_tree = self::populateActiveComponentVersionPlaceholders($component_tree);
-    $this->entity->setComponentTree($component_tree);
-    $this->assertValidationErrors($expected_messages);
+  public function testInvalidComponentTree(): void {
+    $original_entity = clone $this->entity;
+    foreach (self::invalidComponentTreeCases() as $case => ['component_tree' => $component_tree, 'expected_messages' => $expected_messages]) {
+      $this->entity = clone $original_entity;
+      \assert($this->entity instanceof Pattern);
+      $component_tree = self::populateActiveComponentVersionPlaceholders($component_tree);
+      $this->entity->setComponentTree($component_tree);
+      $this->assertCaseValidationErrors($case, $expected_messages);
+    }
   }
 
-  public static function providerInvalidComponentTree(): \Generator {
+  /**
+   * Cases for testInvalidComponentTree().
+   */
+  public static function invalidComponentTreeCases(): \Generator {
     yield "using EntityFieldPropSource" => [
       'component_tree' => [
         [

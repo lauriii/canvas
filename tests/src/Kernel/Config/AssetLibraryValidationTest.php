@@ -88,18 +88,21 @@ class AssetLibraryValidationTest extends BetterConfigEntityValidationTestBase {
   /**
    * Tests different permutations of entity values.
    *
-   * @param array $shape
-   *   Array of entity values.
-   * @param array $expected_errors
-   *   Expected validation errors.
+   * @see ::assertCaseValidationErrors()
    */
-  #[DataProvider('providerTestEntityShapes')]
-  public function testEntityShapes(array $shape, array $expected_errors): void {
-    $this->entity = AssetLibrary::create($shape);
-    $this->assertValidationErrors($expected_errors);
+  public function testEntityShapes(): void {
+    foreach (self::entityShapesCases() as $case => [$shape, $expected_errors]) {
+      $this->entity = AssetLibrary::create($shape);
+      $this->assertCaseValidationErrors($case, $expected_errors);
+    }
   }
 
-  public static function providerTestEntityShapes(): array {
+  /**
+   * Cases for testEntityShapes().
+   *
+   * Each case is an array of entity values and the expected validation errors.
+   */
+  public static function entityShapesCases(): array {
     return [
       'Valid: no JS or CSS' => [
         [

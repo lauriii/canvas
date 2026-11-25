@@ -254,17 +254,25 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   }
 
   /**
- * Tests invalid component tree.
- */
-  #[DataProvider('providerComponentTree')]
-  public function testComponentTree(array $component_tree, array $expected_messages): void {
-    $component_tree = self::populateActiveComponentVersionPlaceholders($component_tree);
-    \assert($this->entity instanceof ContentTemplate);
-    $this->entity->setComponentTree($component_tree);
-    $this->assertValidationErrors($expected_messages);
+   * Tests invalid component tree.
+   *
+   * @see ::assertCaseValidationErrors()
+   */
+  public function testComponentTree(): void {
+    $original_entity = clone $this->entity;
+    foreach (self::componentTreeCases() as $case => ['component_tree' => $component_tree, 'expected_messages' => $expected_messages]) {
+      $this->entity = clone $original_entity;
+      $component_tree = self::populateActiveComponentVersionPlaceholders($component_tree);
+      \assert($this->entity instanceof ContentTemplate);
+      $this->entity->setComponentTree($component_tree);
+      $this->assertCaseValidationErrors($case, $expected_messages);
+    }
   }
 
-  public static function providerComponentTree(): \Generator {
+  /**
+   * Cases for testComponentTree().
+   */
+  public static function componentTreeCases(): \Generator {
     yield "VALID: missing `component_tree` property" => [
       'component_tree' => [],
       'expected_messages' => [],
