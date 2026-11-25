@@ -97,6 +97,41 @@ describe('Primary panel', () => {
         );
       });
 
+    // Components using container queries are previewed at the full <iframe>
+    // width, inside a container. Other components keep the compact preview.
+    const assertPreviewWrapper = (componentId, display, containerType) => {
+      const iframeSelector = `iframe[data-preview-component-id="${componentId}"]`;
+      cy.get(
+        `.primaryPanelContent [data-canvas-component-id="${componentId}"]`,
+      ).scrollIntoView();
+      cy.get(`.primaryPanelContent [data-canvas-component-id="${componentId}"]`)
+        .should('be.visible')
+        .realHover();
+      cy.waitForElementInIframe('#component-wrapper', iframeSelector);
+      cy.getIframeBody(iframeSelector)
+        .find('#component-wrapper')
+        .should(($wrapper) => {
+          const style = $wrapper[0].ownerDocument.defaultView.getComputedStyle(
+            $wrapper[0],
+          );
+          expect(style.display).to.equal(display);
+          expect(style.containerType).to.equal(containerType);
+        });
+    };
+    // "Grid Container" is a query container.
+    assertPreviewWrapper(
+      'sdc.canvas_test_sdc.grid-container',
+      'block',
+      'inline-size',
+    );
+    // "Section" has @container rules but no container of its own.
+    assertPreviewWrapper(
+      'sdc.canvas_test_sdc.my-section',
+      'block',
+      'inline-size',
+    );
+    assertPreviewWrapper('sdc.canvas_test_sdc.image', 'inline-block', 'normal');
+
     // Hover over "My First Code Component" and a preview should appear and
     // result in an accurate preview.
     cy.get(`${codeComponentSelect}`).should('exist').realHover();

@@ -39,3 +39,9 @@
   height: auto;
   border-radius: 10px;
 }
+
+@container (max-width: 600px) {
+  .my-section__wrapper {
+    flex-direction: column;
+  }
+}
