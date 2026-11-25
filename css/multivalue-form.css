@@ -215,3 +215,30 @@
   margin: 0;
   padding: 0;
 }
+
+/* Reorder highlighter: tabledrag moves the dragged row live, so the row marked
+ * `.drag` is selected element. */
+.multivalue-container table tbody tr.drag,
+.multivalue-container table tbody tr.drag:hover,
+.multivalue-container table tbody tr.drag:focus-within {
+  position: relative;
+  background-color: #E6F2FF;
+  box-shadow:
+    inset 0 1px 0 #0090FF,
+    inset 0 -1px 0 #0090FF,
+    inset 1px 0 1px #0090FF,
+    inset -1px 0 1px #0090FF;
+}
+
+
+/* Keep the last dropped row from retaining Claro/core highlight colors. */
+.multivalue-container table tbody tr.drag-previous,
+.multivalue-container table tbody tr.drag-previous:hover {
+  background-color: transparent;
+}
+
+body:is(.drag, .drag-y),
+body:is(.drag, .drag-y) .multivalue-container .canvas-drag-handle a.tabledrag-handle,
+body:is(.drag, .drag-y) [data-canvas-row-count] .canvas-drag-handle a.tabledrag-handle {
+  cursor: grabbing;
+}
