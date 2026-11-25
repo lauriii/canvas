@@ -15,7 +15,6 @@ use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -56,7 +55,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Data provider for testing authentication provider logic on all Canvas routes.
+   * Cases for testApplies(), covering all Canvas routes.
    *
    * @return array<int, array{
    *   0: string,
@@ -67,7 +66,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
    *   - Index 1: Route parameters
    *   - Index 2: Expected result of applies() method
    */
-  public static function dataProviderRoutes(): array {
+  public static function routeCases(): array {
     $generate_per_config_entity_type_test_case = function (string $config_entity_type_id, bool $expected_applies): array {
       return [
         ['canvas.api.config.delete', ['canvas_config_entity_type_id' => $config_entity_type_id], $expected_applies],
@@ -134,11 +133,15 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
   /**
    * Tests whether the authentication provider applies to a route.
    *
+   * The cases run in one test, as each Kernel test pays ~3s for its setUp(),
+   * while checking one route takes milliseconds.
+   *
    * @legacy-covers ::applies
    */
-  #[DataProvider('dataProviderRoutes')]
-  public function testApplies(string $route_name, array $parameters, bool $expected_apply): void {
-    $this->assertApplies($route_name, $parameters, $expected_apply);
+  public function testApplies(): void {
+    foreach (self::routeCases() as [$route_name, $parameters, $expected_apply]) {
+      $this->assertApplies($route_name, $parameters, $expected_apply);
+    }
   }
 
   /**
@@ -173,6 +176,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
    *   Whether the provider should apply when a bearer token is present.
    */
   private function assertApplies(string $route_name, array $parameters, bool $expected_apply): void {
+    $case = \sprintf('%s %s', $route_name, \json_encode($parameters));
     $route = new Route($this->container->get(RouteProviderInterface::class)->getRouteByName($route_name)->getPath());
     $request = new Request();
     $request->attributes->set(RouteObjectInterface::ROUTE_NAME, $route_name);
@@ -181,14 +185,14 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
 
     $this->assertFalse(
       $this->authProvider->applies($request),
-      'The authentication provider should NOT apply without an access token.'
+      "$case: the authentication provider should NOT apply without an access token."
     );
 
     $request->headers->set('Authorization', 'Bearer token-123');
-    $this->assertEquals(
-      $this->authProvider->applies($request),
+    $this->assertSame(
       $expected_apply,
-      $expected_apply ? 'The authentication provider should apply' : 'The authentication provider should NOT apply'
+      $this->authProvider->applies($request),
+      $expected_apply ? "$case: the authentication provider should apply." : "$case: the authentication provider should NOT apply."
     );
   }
 

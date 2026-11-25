@@ -944,39 +944,52 @@ class ComponentValidationTest extends BetterConfigEntityValidationTestBase {
   /**
    * Tests invalid prop field definition expression.
    *
+   * @see ::assertCaseValidationErrors()
    * @see `type:canvas.json_schema_props`
    * @legacy-covers \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase
    */
-  #[TestWith(["ℹ︎non_existing_field_type␟value", NULL])]
-  #[TestWith(["ℹ︎string␟non_existing_field_property", NULL])]
-  #[TestWith(["nonsense", "<em class=\"placeholder\">nonsense</em> is not a valid prop expression."])]
-  #[TestWith(["oops_lost_the_prefix_field_type␟value", "<em class=\"placeholder\">oops_lost_the_prefix_field_type␟value</em> is not a valid prop expression."])]
-  #[TestWith(["ℹ︎string␞this_is_not_a_delta", "<em class=\"placeholder\">ℹ︎string␞this_is_not_a_delta</em> is not a valid prop expression."])]
-  #[TestWith(["ℹ︎␜entity:node␝title␞␟value", "The expression is valid, but not one of the allowed types: <em class=\"placeholder\">&quot;FieldTypePropExpression&quot;, &quot;FieldTypeObjectPropsExpression&quot;, &quot;ReferenceFieldTypePropExpression&quot;</em>."])]
-  public function testInvalidPropFieldDefinitionExpression(string $expression, ?string $expected_message): void {
-    $expected_validation_errors = \is_string($expected_message)
-      ? ['versioned_properties.active.settings.prop_field_definitions.text.expression' => $expected_message]
-      : [];
+  public function testInvalidPropFieldDefinitionExpression(): void {
+    $original_entity = clone $this->entity;
+    foreach (self::invalidPropFieldDefinitionExpressionCases() as $case => [$expression, $expected_message]) {
+      $this->entity = clone $original_entity;
+      $expected_validation_errors = \is_string($expected_message)
+        ? ['versioned_properties.active.settings.prop_field_definitions.text.expression' => $expected_message]
+        : [];
 
-    \assert($this->entity instanceof Component);
-    $settings = $this->entity->getSettings();
-    $settings['prop_field_definitions']['text']['expression'] = $expression;
+      \assert($this->entity instanceof Component);
+      $settings = $this->entity->getSettings();
+      $settings['prop_field_definitions']['text']['expression'] = $expression;
 
-    // When the settings change, the version will also change.
-    $source = \Drupal::service(ComponentSourceManager::class)
-      ->createInstance(SingleDirectoryComponent::SOURCE_PLUGIN_ID, [
-        'local_source_id' => $this->entity->get('source_local_id'),
-        ...$settings,
-      ]);
-    \assert($source instanceof ComponentSourceInterface);
-    $this->entity
-      ->createVersion($source->generateVersionHash())
-      ->setSettings($settings);
+      // When the settings change, the version will also change.
+      $source = \Drupal::service(ComponentSourceManager::class)
+        ->createInstance(SingleDirectoryComponent::SOURCE_PLUGIN_ID, [
+          'local_source_id' => $this->entity->get('source_local_id'),
+          ...$settings,
+        ]);
+      \assert($source instanceof ComponentSourceInterface);
+      $this->entity
+        ->createVersion($source->generateVersionHash())
+        ->setSettings($settings);
 
-    $this->assertValidationErrors([
-      // Because ::preSave() did not get executed. Irrelevant for this test.
-      'versioned_properties.active' => "'fallback_metadata' is a required key because versioned_properties.%key is active (see config schema type canvas.component.versioned.active.*).",
-    ] + $expected_validation_errors);
+      $this->assertCaseValidationErrors($case, [
+        // Because ::preSave() did not get executed. Irrelevant for this test.
+        'versioned_properties.active' => "'fallback_metadata' is a required key because versioned_properties.%key is active (see config schema type canvas.component.versioned.active.*).",
+      ] + $expected_validation_errors);
+    }
+  }
+
+  /**
+   * Cases for testInvalidPropFieldDefinitionExpression().
+   *
+   * Each case is an expression and its expected validation error, if any.
+   */
+  public static function invalidPropFieldDefinitionExpressionCases(): \Generator {
+    yield ["ℹ︎non_existing_field_type␟value", NULL];
+    yield ["ℹ︎string␟non_existing_field_property", NULL];
+    yield ["nonsense", "<em class=\"placeholder\">nonsense</em> is not a valid prop expression."];
+    yield ["oops_lost_the_prefix_field_type␟value", "<em class=\"placeholder\">oops_lost_the_prefix_field_type␟value</em> is not a valid prop expression."];
+    yield ["ℹ︎string␞this_is_not_a_delta", "<em class=\"placeholder\">ℹ︎string␞this_is_not_a_delta</em> is not a valid prop expression."];
+    yield ["ℹ︎␜entity:node␝title␞␟value", "The expression is valid, but not one of the allowed types: <em class=\"placeholder\">&quot;FieldTypePropExpression&quot;, &quot;FieldTypeObjectPropsExpression&quot;, &quot;ReferenceFieldTypePropExpression&quot;</em>."];
   }
 
 }

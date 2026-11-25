@@ -177,7 +177,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $this->generateComponentConfig();
 
     // ⚠️ It is impossible to create ineligible JavaScriptComponent config entities!
-    // @see \Drupal\Tests\canvas\Kernel\Config\JavaScriptComponentValidationTest::providerTestEntityShapes()
+    // @see \Drupal\Tests\canvas\Kernel\Config\JavaScriptComponentValidationTest::entityShapesCases()
     self::assertSame([], $this->findIneligibleComponents(JsComponent::SOURCE_PLUGIN_ID, 'canvas_test_code_components'));
     $expected_js_component_ids = \array_keys(self::getExpectedSettings());
     $js_components = $this->findCreatedComponentConfigEntities(JsComponent::SOURCE_PLUGIN_ID, 'canvas_test_code_components');

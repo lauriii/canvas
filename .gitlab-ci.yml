@@ -196,6 +196,16 @@ workflow:
 default:
   image: *image-canvas
   interruptible: true
+  # Retries jobs that fail for an infrastructure reason. Jobs that define their
+  # own `retry` do not inherit this, so they merge this anchor instead. See
+  # docs/testing/gitlab-ci.md#automatic-job-retries.
+  retry: &retry-infrastructure
+    max: 2
+    when:
+      - runner_system_failure
+      - runner_external_dependency_failure
+    # Composer exits with code 100 on network errors.
+    exit_codes: 100
 
 renovate:
   stage: validate
@@ -419,7 +429,8 @@ phpunit (11.3 sqlite):
     - *manual-rule
   parallel:
     matrix:
-      # The KUBERNETES_CPU_REQUEST and DRUPAL_TEST_CONCURRENCY values match core.
+      # The KUBERNETES_CPU_REQUEST and DRUPAL_TEST_CONCURRENCY values match core,
+      # except for PHPUnit-Kernel's DRUPAL_TEST_CONCURRENCY.
       - PHPUNIT_TESTSUITE: 'PHPUnit-Unit'
         KUBERNETES_CPU_REQUEST: "4"
         DRUPAL_TEST_CONCURRENCY: '24'
@@ -427,7 +438,8 @@ phpunit (11.3 sqlite):
         CI_PARALLEL_NODE_INDEX: ['1', '2', '3', '4']
         CI_PARALLEL_NODE_TOTAL: '4'
         KUBERNETES_CPU_REQUEST: "10"
-        DRUPAL_TEST_CONCURRENCY: '20'
+        # One worker per requested CPU.
+        DRUPAL_TEST_CONCURRENCY: '10'
       - PHPUNIT_TESTSUITE: 'PHPUnit-Functional'
         KUBERNETES_CPU_REQUEST: "20"
         DRUPAL_TEST_CONCURRENCY: '14'
@@ -627,8 +639,8 @@ cypress E2E:
     # If no auto-retry was attempted, use the original exit code.
     - exit $EXIT_CODE
   retry:
-    max: 2
-    exit_codes: 112
+    <<: *retry-infrastructure
+    exit_codes: [100, 112]
 
 cypress unit:
   extends: .cypress-base

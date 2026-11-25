@@ -29,6 +29,24 @@ Canvas's development-only OpenAPI request and response validation requires
 assertions to be enabled in web requests, not just in the CLI running PHPUnit.
 This adjustment only affects the CI test installation, not production sites.
 
+## Automatic job retries
+
+The `default` section of [.gitlab-ci.yml](../../.gitlab-ci.yml) retries a failed
+job up to two times when:
+
+- the runner fails (`runner_system_failure`), for example when Kubernetes
+  terminates the pod because its node shuts down;
+- the runner cannot reach an external dependency, such as the image registry
+  (`runner_external_dependency_failure`);
+- the script exits with code `100`, which Composer uses for network errors, for
+  example a timeout while downloading from Packagist.
+
+GitLab retries a job when either `retry:when` or `retry:exit_codes` matches. Do
+not add `script_failure` to `retry:when`, because that retries every failed test.
+Jobs that exceed their timeout are not retried. A job with its own `retry`
+does not inherit these values, so it reuses them through the
+`*retry-infrastructure` YAML anchor.
+
 ## Cypress E2E parallelization
 
 The `cypress E2E` job runs the specs in `ui/tests/e2e/` across several parallel

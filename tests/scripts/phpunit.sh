@@ -71,6 +71,8 @@ Options passed through to phpunit directly (single-file mode):
 Environment:
   Copy .env.defaults to .env and edit to override environment variables
   such as SIMPLETEST_BASE_URL, SIMPLETEST_DB, DRUPAL_TEST_CONCURRENCY.
+  DRUPAL_TEST_CONCURRENCY defaults to the number of CPUs available: the
+  container's CPU quota if it has one, otherwise the online CPUs.
 
 With DDEV:
   ddev exec -d /var/www/html/modules/contrib/canvas composer run phpunit
@@ -113,6 +115,30 @@ if [ -n "$PHPUNIT_DIRECT_FILE" ]; then
   exec php "$DRUPAL_WEB_ROOT/vendor/bin/phpunit" --configuration "$(pwd)" "$PHPUNIT_DIRECT_FILE" "${PASSTHROUGH_ARGS[@]}"
 fi
 
+# Prints the number of CPUs this process may use: the cgroup CPU quota when a
+# container sets one, otherwise the number of online CPUs. Inside a container,
+# getconf reports the host's CPUs, not the container's share.
+available_cpus() {
+  local cpus quota period
+  cpus=$(getconf _NPROCESSORS_ONLN)
+  if [ -r /sys/fs/cgroup/cpu.max ]; then
+    # cgroup v2: "<quota> <period>", or "max <period>" without a quota.
+    read -r quota period < /sys/fs/cgroup/cpu.max
+  elif [ -r /sys/fs/cgroup/cpu/cpu.cfs_quota_us ] && [ -r /sys/fs/cgroup/cpu/cpu.cfs_period_us ]; then
+    # cgroup v1: a quota of -1 means no quota.
+    quota=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us)
+    period=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us)
+  fi
+  if [[ "$quota" =~ ^[0-9]+$ ]] && [[ "$period" =~ ^[0-9]+$ ]] && [ "$period" -gt 0 ]; then
+    # Round up, and never exceed the online CPUs.
+    quota=$(( (quota + period - 1) / period ))
+    [ "$quota" -ge 1 ] && [ "$quota" -lt "$cpus" ] && cpus=$quota
+  fi
+  echo "$cpus"
+}
+
+CONCURRENCY="${DRUPAL_TEST_CONCURRENCY:-$(available_cpus)}"
+
 DRUPAL_VERSION=$(sed -n "s/.*const VERSION = '\([^']*\)'.*/\1/p" "$DRUPAL_WEB_ROOT/core/lib/Drupal.php")
 DRUPAL_MINOR=$(echo "$DRUPAL_VERSION" | cut -d. -f1,2)
 
@@ -123,7 +149,7 @@ RUN_TESTS_ARGS=(
   --dburl "$SIMPLETEST_DB"
   --sqlite "/tmp/run-tests.sqlite"
   # @see https://stackoverflow.com/a/64571679
-  --concurrency "${DRUPAL_TEST_CONCURRENCY:-$(getconf _NPROCESSORS_ONLN)}"
+  --concurrency "$CONCURRENCY"
   --color
   --verbose
   --xml "$(pwd)/test-results"
@@ -164,7 +190,7 @@ if [[ "$SIMPLETEST_DB" == pgsql://* ]]; then
   PGPASSWORD="$DB_PASS" psql "${PSQL_ARGS[@]}" -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 fi
 
-echo "Running with ${DRUPAL_TEST_CONCURRENCY:-$(getconf _NPROCESSORS_ONLN)} parallel workers"
+echo "Running with $CONCURRENCY parallel workers"
 
 if [ -z "$DRUPAL_TEST_WEBSERVER_USER" ]; then
   "${RUN_TESTS_ARGS[@]}"

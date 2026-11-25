@@ -11,10 +11,32 @@ use Drupal\Core\Config\Schema\SchemaCheckTrait;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
 use Drupal\KernelTests\Core\Config\ConfigEntityValidationTestBase;
+use PHPUnit\Framework\ExpectationFailedException;
 
 abstract class BetterConfigEntityValidationTestBase extends ConfigEntityValidationTestBase {
 
   use SchemaCheckTrait;
+
+  /**
+   * Asserts the validation errors of one case of a test that loops over cases.
+   *
+   * Some tests loop over their cases instead of using a data provider: each
+   * Kernel test runs in its own process and pays ~5s for its setUp(), while
+   * validating one case takes milliseconds.
+   *
+   * @param string|int $case
+   *   The case's key, shown in the failure message.
+   * @param array<string, string|string[]> $expected_messages
+   *   The expected validation errors.
+   */
+  protected function assertCaseValidationErrors(string|int $case, array $expected_messages): void {
+    try {
+      $this->assertValidationErrors($expected_messages);
+    }
+    catch (ExpectationFailedException $e) {
+      throw new ExpectationFailedException(\sprintf('Case "%s": %s', $case, $e->getMessage()), $e->getComparisonFailure(), $e);
+    }
+  }
 
   /**
    * Asserts validation errors and zero schema incompleteness errors.
