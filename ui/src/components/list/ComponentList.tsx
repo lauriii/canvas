@@ -66,7 +66,7 @@ const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
     if (!headlessSettings) {
       return null;
     }
-    const activeFrontend = configuredFrontends?.find(
+    const activeFrontend = configuredFrontends?.frontends.find(
       (frontend) =>
         normalizeFrontendUrl(frontend.url) === headlessSettings.frontendUrl,
     );

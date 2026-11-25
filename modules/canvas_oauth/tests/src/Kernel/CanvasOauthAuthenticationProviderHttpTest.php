@@ -17,11 +17,15 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Routing\RouteBuilderInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Core\Url;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\simple_oauth\Entity\Oauth2Scope;
 use Drupal\simple_oauth\Exception\OAuthUnauthorizedHttpException;
 use Drupal\simple_oauth\Oauth2ScopeInterface;
+use Drupal\simple_oauth\Oauth2ScopeProviderInterface;
 use Drupal\Tests\canvas\Kernel\Traits\MockFileUploadTrait;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -34,6 +38,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
@@ -367,6 +373,105 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
   }
 
   /**
+   * Enables Headless and installs the OAuth scopes used by the CLI.
+   */
+  private function setUpHeadless(): void {
+    $this->enableModules(['custom_elements', 'canvas_headless']);
+    $this->installConfig(['canvas_oauth', 'canvas_headless']);
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
+  }
+
+  /**
+   * Tests that only the three frontend management routes allow OAuth.
+   */
+  public function testHeadlessRouteAuthentication(): void {
+    $this->setUpHeadless();
+    $routes = $this->container->get(RouteProviderInterface::class);
+    foreach (['canvas_headless.frontends.get', 'canvas_headless.frontends.post', 'canvas_headless.frontends.delete'] as $name) {
+      self::assertSame(['canvas_oauth', 'cookie'], $routes->getRouteByName($name)->getOption('_auth'));
+    }
+    foreach (['canvas_headless.frontends.patch', 'canvas_headless.assertion', 'canvas_headless.renew', 'canvas_headless.component_sync.start', 'canvas_headless.component_sync.complete', 'canvas_headless.component_sync.fail'] as $name) {
+      self::assertSame(['cookie'], $routes->getRouteByName($name)->getOption('_auth'));
+    }
+  }
+
+  /**
+   * Tests item mutations with OAuth without browser CSRF credentials.
+   */
+  public function testHeadlessMutations(): void {
+    $this->setUpHeadless();
+    $access_token = $this->requestInstalledScopeToken('canvas:headless:frontends');
+    foreach (['POST' => 'changed', 'DELETE' => 'removed'] as $method => $outcome) {
+      $request = self::createRequest('canvas_headless.frontends.' . strtolower($method), [], $method, ['url' => 'https://frontend.example']);
+      $request->headers->set('Authorization', 'Bearer ' . $access_token);
+      $response = $this->request($request);
+      self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+      self::assertTrue(json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR)[$outcome]);
+    }
+    // Frontend removal is not token revocation: the same token still lists.
+    $request = self::createRequest('canvas_headless.frontends.get', [], 'GET', []);
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertSame([], json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR)['frontends']);
+  }
+
+  /**
+   * Tests that an unrelated scope cannot add or remove a frontend.
+   */
+  #[DataProvider('headlessMutationMethods')]
+  public function testHeadlessUnrelatedScopeCannotMutate(string $method): void {
+    $this->setUpHeadless();
+    $access_token = $this->requestInstalledScopeToken('canvas:js_component');
+    $request = self::createRequest('canvas_headless.frontends.' . strtolower($method), [], $method, ['url' => 'https://frontend.example']);
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $request->headers->set('X-Canvas-CLI', '1');
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->request($request);
+  }
+
+  /**
+   * Lists item-mutation HTTP methods.
+   *
+   * @return array<string, array{string}>
+   *   Method cases.
+   */
+  public static function headlessMutationMethods(): array {
+    return ['add' => ['POST'], 'remove' => ['DELETE']];
+  }
+
+  /**
+   * Tests a valid unrelated scope cannot list frontends.
+   */
+  public function testHeadlessUnrelatedScopeCannotList(): void {
+    $this->setUpHeadless();
+    $access_token = $this->requestInstalledScopeToken('canvas:js_component');
+    $request = self::createRequest('canvas_headless.frontends.get', [], 'GET', []);
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $request->headers->set('X-Canvas-CLI', '1');
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->request($request);
+  }
+
+  /**
+   * Tests browser mutations still require the CSRF request header.
+   */
+  #[DataProvider('headlessMutationMethods')]
+  public function testHeadlessBrowserCsrf(string $method): void {
+    $this->setUpHeadless();
+    $user = $this->createUser(['administer canvas headless frontends']);
+    $this->setCurrentUser($user);
+    $request = self::createRequest('canvas_headless.frontends.' . strtolower($method), [], $method, ['url' => 'https://frontend.example']);
+    $request->setSession(new Session(new MockArraySessionStorage()));
+    $request->getSession()->set('uid', $user->id());
+    $session_options = $this->container->get(SessionConfigurationInterface::class)->getOptions($request);
+    $request->cookies->set($session_options['name'], 'test-session');
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->expectExceptionMessage('X-CSRF-Token');
+    $this->request($request);
+  }
+
+  /**
    * Data provider for the routes of interface translation lookups.
    *
    * @return array<string, array{
@@ -610,7 +715,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
       $method,
       content: json_encode($data, flags: \JSON_THROW_ON_ERROR),
     );
-    if (\in_array($method, ['POST', 'PATCH'], TRUE)) {
+    if (\in_array($method, ['POST', 'PATCH'], TRUE) || ($method === 'DELETE' && $data !== [])) {
       $request->headers->set('Content-Type', 'application/json');
     }
     return $request;
@@ -627,7 +732,27 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    *   The access token.
    */
   private function requestAccessToken(array $permissions): string {
-    $scopes = $this->createScopes($permissions);
+    return $this->requestAccessTokenForScopes($this->createScopes($permissions));
+  }
+
+  /**
+   * Requests a client credentials token for an installed scope by name.
+   */
+  private function requestInstalledScopeToken(string $name): string {
+    $provider = $this->container->get('simple_oauth.oauth2_scope.provider');
+    self::assertInstanceOf(Oauth2ScopeProviderInterface::class, $provider);
+    $scope = $provider->loadByName($name);
+    self::assertNotNull($scope);
+    return $this->requestAccessTokenForScopes([$scope]);
+  }
+
+  /**
+   * Requests a client credentials token for the given scopes.
+   *
+   * @param \Drupal\simple_oauth\Oauth2ScopeInterface[] $scopes
+   *   The scopes to enable on the consumer and request in the token.
+   */
+  private function requestAccessTokenForScopes(array $scopes): string {
     $client = $this->createClient($scopes);
     $parameters = [
       'grant_type' => 'client_credentials',

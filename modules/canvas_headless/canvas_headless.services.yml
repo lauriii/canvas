@@ -46,6 +46,7 @@ services:
     decoration_on_invalid: ignore
     arguments:
       $inner: '@Drupal\canvas_headless\Access\NodePreviewAccessCheck.inner'
+  Drupal\canvas_headless\FrontendManager: {}
   Drupal\canvas_headless\ExternalComponentSync: {}
   Drupal\canvas_headless\Controller\ExternalComponentSyncController: {}
   Drupal\canvas_headless\CanvasContentSerializer: {}

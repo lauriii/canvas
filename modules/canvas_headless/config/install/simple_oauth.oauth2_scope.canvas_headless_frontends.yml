@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_headless
+id: canvas_headless_frontends
+name: 'canvas:headless:frontends'
+description: 'Drupal Canvas: Administer headless frontends'
+grant_types:
+  authorization_code:
+    status: true
+    description: 'Authorization code access for headless frontend administration'
+  refresh_token:
+    status: true
+    description: 'Refresh token access for headless frontend administration'
+  client_credentials:
+    status: true
+    description: 'Client credentials access for headless frontend administration'
+umbrella: false
+parent: null
+granularity_id: permission
+granularity_configuration:
+  permission: 'administer canvas headless frontends'

@@ -51,6 +51,27 @@ export interface ApiOptions {
   tokenEndpoint?: string;
 }
 
+export interface StoredFrontend {
+  url: string;
+  components: string[];
+}
+
+export interface FrontendsResponse {
+  frontends: StoredFrontend[];
+  frontendUrlsHash: string;
+}
+
+interface FrontendAdditionResponse {
+  url: string;
+  changed: boolean;
+}
+
+export interface FrontendRemovalResponse {
+  url: string;
+  removed: boolean;
+  newDefault?: string | null;
+}
+
 export class CodeComponentMetadataOperationUnsupportedError extends Error {}
 
 export class CodeComponentMetadataValidationUnavailableError extends Error {}
@@ -394,6 +415,47 @@ export class ApiService {
 
   getAccessToken(): string | null {
     return this.accessToken;
+  }
+
+  /** Returns configured frontends without probing or synchronizing them. */
+  async listFrontends(): Promise<FrontendsResponse> {
+    try {
+      const response = await this.client.get<FrontendsResponse>(
+        '/canvas/api/v0/headless/frontends',
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /** Registers and optionally selects a default in one server-side operation. */
+  async addFrontend(
+    url: string,
+    makeDefault: boolean,
+  ): Promise<FrontendAdditionResponse> {
+    try {
+      const response = await this.client.post<FrontendAdditionResponse>(
+        '/canvas/api/v0/headless/frontends',
+        { url, default: makeDefault },
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /** Removes a frontend and reports any change to the default. */
+  async removeFrontend(url: string): Promise<FrontendRemovalResponse> {
+    try {
+      const response = await this.client.delete<FrontendRemovalResponse>(
+        '/canvas/api/v0/headless/frontends',
+        { data: { url } },
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
   }
 
   async validateCodeComponentPayload(component: Component): Promise<void> {
@@ -1615,11 +1677,16 @@ export function isUserAuthenticated(siteUrl: string): boolean {
 /**
  * Ensures siteUrl is configured, then prompts for client credentials only
  * when the user has no stored OAuth token and no CANVAS_ACCESS_TOKEN set.
+ * Frontend-management commands can skip unrelated component compatibility.
  */
-export async function ensureAuthConfig(): Promise<void> {
+export async function ensureAuthConfig(
+  options: { componentCompatibility?: boolean } = {},
+): Promise<void> {
   await ensureConfig(['siteUrl']);
   if (!isUserAuthenticated(getConfig().siteUrl!)) {
     await ensureConfig(['clientId', 'clientSecret', 'scope']);
   }
-  await applyPageVariantCompatibility(getConfig().siteUrl);
+  if (options.componentCompatibility !== false) {
+    await applyPageVariantCompatibility(getConfig().siteUrl);
+  }
 }

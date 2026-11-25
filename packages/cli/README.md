@@ -850,6 +850,9 @@ npx canvas login [options]
 - `--site-url <url>`: Canvas site URL (prompted if not provided)
 - `--client-id <id>`: OAuth client ID for the consumer configured in Drupal
   admin
+- `--scope <scopes>`: Space-separated OAuth scopes to authorize instead of
+  discovered scopes or the default component scopes. For browser login, each
+  requested scope must have the Authorization Code grant enabled in Drupal.
 - `--port <number>`: Local callback port (default: `4444`). The consumer's
   redirect URI must match: `http://localhost:<port>/callback`.
 
@@ -933,3 +936,81 @@ from
 and validates authored pages, content templates, and page templates. With
 `--fix` option specified, also applies automatic fixes available for some
 validation rules.
+
+---
+
+### Headless frontend management
+
+Enable `canvas_headless` and `canvas_oauth` on the Drupal site. On existing
+sites, run database updates to install `canvas:headless:frontends`. All three
+commands use this scope, which maps to `administer canvas headless frontends`.
+If your OAuth consumer restricts scopes for the Client Credentials grant,
+include `canvas:headless:frontends` in its allowed scopes.
+
+For browser login, authorize a new token after changing scopes. If discovery
+does not advertise the scope, request it explicitly. If
+`/.well-known/oauth-protected-resource` returns 404 or does not provide the
+client ID, also pass `--client-id <id>`.
+
+```bash
+npx canvas login --site-url https://drupal.example.com --scope canvas:headless:frontends
+```
+
+`login --scope` replaces the requested scope list, so include any other scopes
+you need in the same quoted, space-separated value. With client credentials,
+override the default scope with `--scope` or `CANVAS_SCOPE`.
+
+---
+
+### `headless:add`
+
+Register an absolute HTTP(S) frontend URL without a trailing slash. Adding an
+existing URL leaves the list unchanged unless you use `--default` to move it to
+the first position. Registration does not synchronize components; see
+[headless setup](https://git.drupalcode.org/project/canvas/-/tree/1.x/modules/canvas_headless#setup).
+
+**Usage:**
+
+```bash
+npx canvas headless:add <url> [--default]
+```
+
+**Example:**
+
+```bash
+npx canvas headless:add http://localhost:3000 --default
+```
+
+---
+
+### `headless:remove`
+
+Remove a frontend registration without deleting components or content. Removing
+the default makes the next frontend the default. Removing an unregistered URL
+succeeds without changes.
+
+**Usage:**
+
+```bash
+npx canvas headless:remove [url] [-y, --yes]
+```
+
+Omit the URL to select one or more frontends interactively. The CLI removes
+selected URLs one at a time and stops on the first failure; earlier removals
+remain applied. For scripts, pass both the URL and `--yes` to skip confirmation:
+
+```bash
+npx canvas headless:remove https://app.example.com --yes
+```
+
+---
+
+### `headless:list`
+
+List registered frontend URLs in order. The first is marked `(default)`.
+
+**Usage:**
+
+```bash
+npx canvas headless:list
+```

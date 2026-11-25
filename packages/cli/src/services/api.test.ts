@@ -41,6 +41,47 @@ describe('api service', () => {
   });
 
   describe('create', () => {
+    it('uses item frontend operations without whole-list replacement', async () => {
+      const endpoint = 'https://canvas-mock/canvas/api/v0/headless/frontends';
+      const snapshot = {
+        frontends: [{ url: 'https://app.example', components: ['js.hero'] }],
+        frontendUrlsHash: 'test-hash',
+      };
+      server.use(
+        http.get(endpoint, () => HttpResponse.json(snapshot)),
+        http.post(endpoint, async ({ request }) => {
+          expect(await request.json()).toEqual({
+            url: 'https://app.example',
+            default: true,
+          });
+          return HttpResponse.json({
+            url: 'https://app.example',
+            changed: true,
+          });
+        }),
+        http.delete(endpoint, async ({ request }) => {
+          expect(await request.json()).toEqual({
+            url: 'https://app.example',
+          });
+          return HttpResponse.json({
+            url: 'https://app.example',
+            removed: true,
+            newDefault: null,
+          });
+        }),
+      );
+      const client = await ApiService.create(mockConfig);
+      expect(await client.listFrontends()).toEqual(snapshot);
+      expect(await client.addFrontend('https://app.example', true)).toEqual({
+        url: 'https://app.example',
+        changed: true,
+      });
+      expect(await client.removeFrontend('https://app.example')).toEqual({
+        url: 'https://app.example',
+        removed: true,
+        newDefault: null,
+      });
+    });
     it('should initialize with access token', async () => {
       const client = await ApiService.create(mockConfig);
       expect(client).toBeDefined();

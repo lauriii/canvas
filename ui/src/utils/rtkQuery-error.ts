@@ -108,7 +108,7 @@ export const normalizeError = (
  * slot-field name, say — and must not reach the global error screen, which
  * would replace the editor while the dialog is open.
  */
-const LOCALLY_HANDLED_ENDPOINTS = new Set(['createSlotField']);
+const LOCALLY_HANDLED_ENDPOINTS = new Set(['createSlotField', 'setFrontends']);
 
 /**
  * Middleware to handle RTK Query errors

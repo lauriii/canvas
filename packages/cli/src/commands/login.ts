@@ -30,6 +30,7 @@ interface LoginOptions {
   siteUrl?: string;
   port?: string;
   clientId?: string;
+  scope?: string;
 }
 
 interface LogoutOptions {
@@ -69,6 +70,10 @@ export function loginCommand(program: Command): void {
       `Local callback port (default: ${String(DEFAULT_CALLBACK_PORT)})`,
     )
     .option('--client-id <id>', 'OAuth client ID (overrides auto-discovery)')
+    .option(
+      '--scope <scopes>',
+      'OAuth scopes to authorize (overrides discovery)',
+    )
     .action(async (options: LoginOptions) => {
       printCommandIntro('login');
 
@@ -104,9 +109,10 @@ export function loginCommand(program: Command): void {
       const state = generateState();
 
       const scope =
-        discovered.scopesSupported !== undefined
+        options.scope ??
+        (discovered.scopesSupported !== undefined
           ? discovered.scopesSupported.join(' ')
-          : getDefaultScope(false);
+          : getDefaultScope(false));
 
       // Build authorization URL.
       const authUrl = new URL(discovered.authorizationEndpoint);
