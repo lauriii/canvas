@@ -1,6 +1,7 @@
 
 .grid-container {
   display: grid !important;
+  container-type: inline-size;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   .empty-slot {

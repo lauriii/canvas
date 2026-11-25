@@ -59,6 +59,90 @@ function makeAssetPathsAbsolute(
   });
 }
 
+// Whether a selector matches anything inside the wrapper. Pseudo-elements are
+// stripped, as they never match an element.
+function matchesInside(wrapper: HTMLElement, selector: string): boolean {
+  try {
+    return (
+      wrapper.querySelector(selector.replace(/::[\w-]+(\([^)]*\))?/g, '')) !==
+      null
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Whether the previewed component relies on CSS container queries: it either
+// is (or contains) a query container, or it has @container rules that apply to
+// it. Only rules matching an element inside the wrapper count, so unrelated
+// @container rules in the global theme CSS don't affect other components.
+function usesContainerQueries(wrapper: HTMLElement): boolean {
+  const view = wrapper.ownerDocument.defaultView;
+  if (!view) {
+    return false;
+  }
+
+  const elements = wrapper.querySelectorAll('*');
+  for (const element of elements) {
+    if (view.getComputedStyle(element).containerType !== 'normal') {
+      return true;
+    }
+  }
+
+  // The rules belong to the <iframe>'s realm, so use its constructors for the
+  // instanceof checks.
+  const { CSSContainerRule, CSSStyleRule } = view as typeof window;
+  const walk = (rules: CSSRuleList, parentSelector: string | null): boolean => {
+    for (const rule of rules) {
+      if (rule instanceof CSSContainerRule) {
+        // A @container nested inside a style rule applies to that rule's
+        // elements.
+        if (parentSelector && matchesInside(wrapper, parentSelector)) {
+          return true;
+        }
+        for (const child of rule.cssRules) {
+          if (
+            child instanceof CSSStyleRule &&
+            matchesInside(wrapper, child.selectorText)
+          ) {
+            return true;
+          }
+        }
+      }
+      if ('cssRules' in rule) {
+        const selector =
+          rule instanceof CSSStyleRule ? rule.selectorText : parentSelector;
+        if (walk((rule as CSSGroupingRule).cssRules, selector)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  for (const sheet of wrapper.ownerDocument.styleSheets) {
+    try {
+      if (walk(sheet.cssRules, null)) {
+        return true;
+      }
+    } catch {
+      // Cross-origin stylesheets can't be read.
+    }
+  }
+  return false;
+}
+
+// A container-query component has no intrinsic width: in the shrink-to-fit
+// wrapper a query container collapses to the wrapper's min-width, and a
+// component querying an ancestor finds no container at all. Render those at
+// the full <iframe> width, inside a container.
+function applyContainerQuerySupport(wrapper: HTMLElement) {
+  if (usesContainerQueries(wrapper)) {
+    wrapper.style.display = 'block';
+    wrapper.style.containerType = 'inline-size';
+  }
+}
+
 const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   componentListItem,
 }) => {
@@ -187,6 +271,7 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
         clearInterval(hydrationIntervalId.current!);
         hydrationIntervalId.current = null;
         // Run scaling logic again
+        applyContainerQuerySupport(currentWrapper);
         const offsetWidth = currentWrapper.scrollWidth;
         const offsetHeight = currentWrapper.scrollHeight;
         applyScaling(
@@ -225,8 +310,10 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
     ) as HTMLDivElement;
 
     if (iframe) {
-      const componentWrapper =
-        iframe.contentDocument!.querySelector('#component-wrapper');
+      const componentWrapper = iframe.contentDocument!.querySelector(
+        '#component-wrapper',
+      ) as HTMLElement;
+      applyContainerQuerySupport(componentWrapper);
 
       const offsetWidth = componentWrapper!.scrollWidth;
       const offsetHeight = componentWrapper!.scrollHeight;
