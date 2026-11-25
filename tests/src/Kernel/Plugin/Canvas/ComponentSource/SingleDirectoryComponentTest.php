@@ -464,6 +464,37 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
   }
 
   /**
+   * An optional prop emptied to `''` renders; a required one fails validation.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3592347
+   * @see \Drupal\canvas\Validation\EmptyOptionalPropsComponentValidator
+   * @legacy-covers ::renderComponent
+   */
+  public function testRenderComponentWithEmptyOptionalProp(): void {
+    $this->generateComponentConfig();
+    $component = Component::load('sdc.canvas_test_sdc.my-cta');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    $source = $component->getComponentSource();
+    \assert($source instanceof SingleDirectoryComponent);
+    $render = function (array $props) use ($source): string {
+      $build = $source->renderComponent(
+        [JsonSchemaPropsComponentSourceBase::EXPLICIT_INPUT_NAME => \array_map(fn ($value) => new EvaluationResult($value), $props)],
+        $source->getSlotDefinitions(),
+        'test-uuid',
+      );
+      return (string) $this->renderer->renderInIsolation($build);
+    };
+
+    // `''` violates the optional `target` prop's `enum`.
+    self::assertStringContainsString('href="https://www.drupal.org"', $render(['text' => 'Press', 'href' => 'https://www.drupal.org', 'target' => '']));
+
+    // `''` violates the required `href` prop's `format: uri`.
+    $this->expectException(RuntimeError::class);
+    $this->expectExceptionMessage('[canvas_test_sdc:my-cta/href] Invalid URL format. The provided value is: "".');
+    $render(['text' => 'Press', 'href' => '']);
+  }
+
+  /**
    * Tests rendering an SDC component.
    *
    * @param array<ComponentConfigEntityId> $component_ids

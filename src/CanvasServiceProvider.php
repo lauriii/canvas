@@ -11,6 +11,7 @@ use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSyn
 use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
 use Drupal\canvas\CoreBugFix\TypedConfigManagerWithCachePollutionFix;
 use Drupal\canvas\Plugin\ComponentPluginManager;
+use Drupal\canvas\Validation\EmptyOptionalPropsComponentValidator;
 use Drupal\canvas\Validation\JitSafeRegexValidator;
 use Drupal\canvas\Validation\JsonSchema\CanvasColorStringConstraint;
 use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
@@ -79,6 +80,8 @@ class CanvasServiceProvider extends ServiceProviderBase {
     $container->setDefinition(Validator::class, new Definition(Validator::class, [
       new Reference(Factory::class),
     ]));
+    // @see \Drupal\canvas\Validation\EmptyOptionalPropsComponentValidator
+    $validator->setClass(EmptyOptionalPropsComponentValidator::class);
     // Clear existing calls.
     $validator->setMethodCalls();
     $validator->addMethodCall(
