@@ -60,9 +60,11 @@ canvas_headless.renew:
 
 # Frontend list management for the Canvas UI's headless frontends screen.
 # GET returns the ordered list; PATCH replaces it wholesale, which matches
-# the screen's model of managing the whole list at once. Cookie-only
-# authentication and the CSRF request header follow the assertion route
-# above: only a Drupal session may change which sites the editor embeds.
+# the screen's model of managing the whole list at once. Like the assertion
+# route above, PATCH requires cookie authentication and the CSRF request header.
+# PATCH also checks the URL-list hash to prevent stale saves. When enabled,
+# canvas_oauth allows OAuth on GET, POST, and DELETE. Cookie-authenticated
+# writes still require the CSRF request header.
 canvas_headless.frontends.get:
   path: '/canvas/api/v0/headless/frontends'
   defaults:
@@ -73,6 +75,7 @@ canvas_headless.frontends.get:
   options:
     no_cache: TRUE
     _auth: ['cookie']
+    canvas_external_api: true
 
 canvas_headless.frontends.patch:
   path: '/canvas/api/v0/headless/frontends'
@@ -85,6 +88,32 @@ canvas_headless.frontends.patch:
   options:
     no_cache: TRUE
     _auth: ['cookie']
+
+canvas_headless.frontends.post:
+  path: '/canvas/api/v0/headless/frontends'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\FrontendsController::post'
+  methods: [POST]
+  requirements:
+    _permission: 'administer canvas headless frontends'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    no_cache: TRUE
+    _auth: ['cookie']
+    canvas_external_api: true
+
+canvas_headless.frontends.delete:
+  path: '/canvas/api/v0/headless/frontends'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\FrontendsController::delete'
+  methods: [DELETE]
+  requirements:
+    _permission: 'administer canvas headless frontends'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    no_cache: TRUE
+    _auth: ['cookie']
+    canvas_external_api: true
 
 # The browser coordinates component synchronization because it can reach the
 # same frontend URL it embeds. Drupal issues the proof-by-redemption assertion,

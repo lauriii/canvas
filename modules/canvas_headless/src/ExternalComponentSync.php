@@ -53,6 +53,7 @@ final class ExternalComponentSync {
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly TypedConfigManagerInterface $typedConfigManager,
     PropShapeRepositoryInterface $propShapeRepository,
+    private readonly FrontendManager $frontends,
   ) {
     $this->jsComponentDiscovery = new JsComponentDiscovery(
       $propShapeRepository,
@@ -137,7 +138,7 @@ final class ExternalComponentSync {
         }
       }
 
-      $this->replaceFrontendComponentList($frontend, $result['components']);
+      $this->frontends->replaceComponents($frontend, $result['components']);
     }
     finally {
       $this->lock->release(self::LOCK_KEY);
@@ -261,41 +262,6 @@ final class ExternalComponentSync {
     }
     $component->save();
     return ['status' => $outcome, 'componentId' => $component_id];
-  }
-
-  /**
-   * Replaces the synchronized component IDs for one configured frontend.
-   *
-   * @param \Drupal\canvas_headless\FrontendUrl $frontend
-   *   The configured frontend.
-   * @param list<string> $component_ids
-   *   The synchronized Canvas component IDs.
-   */
-  private function replaceFrontendComponentList(FrontendUrl $frontend, array $component_ids): void {
-    $settings = $this->configFactory->getEditable('canvas_headless.settings');
-    $frontends = $settings->get('frontends');
-    if (!\is_array($frontends)) {
-      return;
-    }
-
-    $updated = FALSE;
-    foreach ($frontends as &$stored_frontend) {
-      if (!\is_array($stored_frontend)) {
-        continue;
-      }
-      $stored_url = FrontendUrl::fromConfig((string) ($stored_frontend['url'] ?? ''));
-      if ($stored_url?->baseUrl !== $frontend->baseUrl) {
-        continue;
-      }
-      $stored_frontend['components'] = $component_ids;
-      $updated = TRUE;
-      break;
-    }
-    unset($stored_frontend);
-
-    if ($updated) {
-      $settings->set('frontends', $frontends)->save();
-    }
   }
 
   /**

@@ -7,6 +7,7 @@ import packageJson from '../package.json';
 import { agentsContextCommand } from './commands/agents-context';
 import { buildCommand } from './commands/build';
 import { deprecatedDownloadUploadCommands } from './commands/deprecated-commands';
+import { headlessCommands } from './commands/headless';
 import { loginCommand, logoutCommand } from './commands/login';
 import { pullCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
@@ -36,6 +37,7 @@ program
 // Register commands
 loginCommand(program);
 logoutCommand(program);
+headlessCommands(program);
 pullCommand(program);
 agentsContextCommand(program);
 pushCommand(program);
@@ -49,7 +51,15 @@ program.hook('preAction', async (command, actionCommand) => {
   // Skip canvas.config.json migration for commands that do not use a component
   // directory and have no need for legacy config migration.
   if (
-    ['login', 'logout', 'download', 'upload'].includes(actionCommand.name())
+    [
+      'login',
+      'logout',
+      'download',
+      'upload',
+      'headless:add',
+      'headless:remove',
+      'headless:list',
+    ].includes(actionCommand.name())
   ) {
     return;
   }

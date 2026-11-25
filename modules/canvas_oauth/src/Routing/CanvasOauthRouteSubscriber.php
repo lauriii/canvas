@@ -43,6 +43,11 @@ class CanvasOauthRouteSubscriber extends RouteSubscriberBase {
     );
 
     foreach ($collection->all() as $route_id => $route) {
+      // Headless management explicitly retains cookie authentication only,
+      // adding Canvas OAuth for the marked read and item-mutation routes.
+      if (str_starts_with($route_id, 'canvas_headless.frontends.') && $route->getOption(self::ROUTE_OPTION_EXTERNAL_API)) {
+        $route->setOption('_auth', ['canvas_oauth', 'cookie']);
+      }
       if (str_starts_with($route_id, 'canvas.') && $route->getOption(self::ROUTE_OPTION_EXTERNAL_API)) {
         // @see \Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider
         $route->setOption('_auth', ['canvas_oauth', ...$providers]);

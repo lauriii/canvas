@@ -5,7 +5,7 @@ info:
   description: API Spec for the Canvas Headless submodule
   version: 0.x
 
-# All routes except the public content endpoint require Drupal session
+# All routes except the public content endpoints default to Drupal session
 # authentication. The session cookie name is site-specific, so represent the
 # complete Cookie header rather than declaring a fixed cookie name.
 security:
@@ -393,6 +393,10 @@ paths:
   /canvas/api/v0/headless/frontends:
     get:
       summary: Get configured headless frontends
+      description: Requires headless preview access or frontend administration. Does not synchronize components or check connectivity.
+      security:
+        - DrupalSessionCookie: []
+        - CanvasBearer: []
       responses:
         '200':
           description: Ordered frontend list.
@@ -407,6 +411,9 @@ paths:
       description: |
         Replaces the entire ordered list of configured frontend URLs.
         Cookie authentication and an X-CSRF-Token request header are required.
+        Requires frontend administration and the loaded frontendUrlsHash.
+        A stale hash is rejected; association-only updates do not change it.
+        The request contains only URLs; the response includes stored associations.
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
       requestBody:
@@ -414,7 +421,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FrontendsPayload'
+              $ref: '#/components/schemas/FrontendsUpdate'
       responses:
         '200':
           description: Updated frontend list.
@@ -430,12 +437,93 @@ paths:
                 $ref: '#/components/schemas/ErrorMessage'
         '403':
           $ref: '#/components/responses/DrupalErrorResponse'
+        '409':
+          description: The ordered URL list changed. Refresh and reapply the edit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '503':
+          description: Another frontend configuration write is in progress.
         '422':
           description: Invalid or duplicate frontend URL.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
+
+    post:
+      summary: Register a frontend or make it the default
+      description: Requires frontend administration. Canonical duplicates succeed without changes. Default selection preserves associations and other entries' relative order. Browser requests require the CSRF header.
+      security:
+        - DrupalSessionCookie: []
+        - CanvasBearer: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                default:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Canonical URL and registration outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendAdditionResponse'
+        '400':
+          description: Invalid request shape.
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '422':
+          description: Invalid frontend URL.
+        '503':
+          description: Another frontend configuration write is in progress.
+    delete:
+      summary: Remove a frontend
+      description: Requires frontend administration. Missing URLs succeed without changes. Removal drops only the registration and associations, not components, content, or tokens. Browser requests require the CSRF header.
+      security:
+        - DrupalSessionCookie: []
+        - CanvasBearer: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Canonical URL, removal outcome, and the new default if it changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendRemovalResponse'
+        '400':
+          description: Invalid request shape.
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '422':
+          description: Invalid frontend URL.
+        '503':
+          description: Another frontend configuration write is in progress.
 
   /canvas/api/v0/headless/components/sync/start:
     post:
@@ -889,7 +977,7 @@ components:
     FrontendEntry:
       type: object
       additionalProperties: false
-      required: [url]
+      required: [url, components]
       properties:
         url:
           type: string
@@ -903,12 +991,59 @@ components:
     FrontendsPayload:
       type: object
       additionalProperties: false
-      required: [frontends]
+      required: [frontends, frontendUrlsHash]
       properties:
+        frontendUrlsHash:
+          type: string
+          description: Hash of ordered frontend URLs, required for whole-list PATCH.
         frontends:
           type: array
           items:
             $ref: '#/components/schemas/FrontendEntry'
+
+    FrontendsUpdate:
+      type: object
+      additionalProperties: false
+      required: [frontends, frontendUrlsHash]
+      properties:
+        frontendUrlsHash:
+          type: string
+          description: Hash returned with the ordered frontend list before editing.
+        frontends:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [url]
+            properties:
+              url:
+                type: string
+                format: uri
+                description: Absolute HTTP(S) URL without trailing slash.
+
+    FrontendAdditionResponse:
+      type: object
+      additionalProperties: false
+      required: [url, changed]
+      properties:
+        url:
+          type: string
+        changed:
+          type: boolean
+
+    FrontendRemovalResponse:
+      type: object
+      additionalProperties: false
+      required: [url, removed]
+      properties:
+        url:
+          type: string
+        removed:
+          type: boolean
+        newDefault:
+          type: [string, 'null']
+          format: uri
+          description: Present only when the default was removed. Null if no frontend remains.
 
     SyncFrontendRequest:
       type: object
@@ -1096,6 +1231,10 @@ components:
         type: string
 
   securitySchemes:
+    CanvasBearer:
+      type: http
+      scheme: bearer
+      description: Canvas OAuth token with the canvas:headless:frontends scope for listing and managing frontend registrations.
     DrupalSessionCookie:
       type: apiKey
       in: header

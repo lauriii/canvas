@@ -155,12 +155,15 @@ describe('ComponentList', () => {
       frontendUrl: 'https://frontend.example/app',
     });
     queryMocks.frontends.mockReturnValue({
-      data: [
-        {
-          url: 'HTTPS://FRONTEND.EXAMPLE:443/app',
-          components: ['js.external'],
-        },
-      ],
+      data: {
+        frontendUrlsHash: 'initial',
+        frontends: [
+          {
+            url: 'HTTPS://FRONTEND.EXAMPLE:443/app',
+            components: ['js.external'],
+          },
+        ],
+      },
       error: undefined,
       isLoading: false,
     });
@@ -183,7 +186,10 @@ describe('ComponentList', () => {
       frontendUrl: 'https://frontend.example',
     });
     queryMocks.frontends.mockReturnValue({
-      data: [{ url: 'https://frontend.example', components: [] }],
+      data: {
+        frontendUrlsHash: 'initial',
+        frontends: [{ url: 'https://frontend.example', components: [] }],
+      },
       error: undefined,
       isLoading: false,
     });

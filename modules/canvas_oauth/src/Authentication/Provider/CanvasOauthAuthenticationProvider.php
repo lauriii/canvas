@@ -63,6 +63,9 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
     // Special case: named external API routes that are not covered by the
     // config or content entity checks below.
     $named_routes = [
+      'canvas_headless.frontends.get',
+      'canvas_headless.frontends.post',
+      'canvas_headless.frontends.delete',
       'canvas.api.artifacts.upload',
       'canvas.api.code_component.validate',
       'canvas.api.config.page_region.gone.collection',

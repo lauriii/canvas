@@ -253,6 +253,22 @@ describe('loginCommand', () => {
     );
   });
 
+  it('requests the frontend management scope when discovery does not advertise it', async () => {
+    setupHappyPath({ scopesSupported: undefined });
+    await makeProgram().parseAsync([
+      'node',
+      'canvas',
+      'login',
+      '--site-url',
+      SITE_URL,
+      '--scope',
+      'canvas:headless:frontends',
+    ]);
+    const message = vi.mocked(p.log.info).mock.calls[0][0] as string;
+    const url = new URL(message.match(/https?:\/\/\S+/)?.[0] ?? '');
+    expect(url.searchParams.get('scope')).toBe('canvas:headless:frontends');
+  });
+
   it('falls back to getDefaultScope when scopesSupported is absent', async () => {
     setupHappyPath({ scopesSupported: undefined });
     vi.mocked(getDefaultScope).mockReturnValue(

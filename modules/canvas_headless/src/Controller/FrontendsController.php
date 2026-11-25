@@ -4,37 +4,40 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_headless\Controller;
 
-use Drupal\canvas_headless\FrontendUrl;
+use Drupal\canvas_headless\FrontendManager;
 use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Manages the list of headless frontends for the Canvas UI.
+ * Manages the list of headless frontends for the Canvas UI and CLI.
  *
- * The list lives in the canvas_headless.settings simple configuration; its
+ * The list lives in the canvas_headless.settings simple configuration. Its
  * order is the display order, and the first entry is the editor's default
- * preview frontend. PATCH replaces the whole list: the screen manages the
- * list as one unit (add, remove, reorder), so item-level operations would
- * only add failure modes.
+ * preview frontend.
+ *
+ * The UI uses PATCH to add, remove, or reorder entries as one list. The
+ * request includes a hash of the ordered URLs to reject stale saves. The
+ * CLI uses POST and DELETE to change one URL without replacing the rest
+ * of the list.
  */
 final class FrontendsController implements ContainerInjectionInterface {
 
   public function __construct(
-    private readonly ConfigFactoryInterface $configFactory,
+    private readonly FrontendManager $frontends,
   ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get(ConfigFactoryInterface::class));
+    return new static($container->get(FrontendManager::class));
   }
 
   /**
@@ -46,97 +49,55 @@ final class FrontendsController implements ContainerInjectionInterface {
   }
 
   /**
-   * Returns the ordered list of frontends.
+   * Returns the ordered list of frontends and its URL-list hash.
    */
   public function get(): JsonResponse {
-    return new JsonResponse(['frontends' => $this->currentList()]);
+    return new JsonResponse($this->frontends->get());
   }
 
   /**
-   * Replaces the list of frontends.
+   * Replaces the list only when the client has the current URL-list hash.
    */
   public function patch(Request $request): JsonResponse {
     $payload = json_decode($request->getContent(), TRUE);
-    if (!\is_array($payload) || !\array_key_exists('frontends', $payload) || !\is_array($payload['frontends']) || !\array_is_list($payload['frontends'])) {
-      return new JsonResponse(['error' => 'The request body must contain a "frontends" list.'], Response::HTTP_BAD_REQUEST);
+    if (!\is_array($payload) || !\is_array($payload['frontends'] ?? NULL) || !\array_is_list($payload['frontends']) || !\is_string($payload['frontendUrlsHash'] ?? NULL)) {
+      return new JsonResponse(['error' => 'The request body must contain a "frontends" list and a "frontendUrlsHash" string.'], Response::HTTP_BAD_REQUEST);
     }
-
-    $existing_frontends = [];
-    foreach ($this->currentList() as $frontend) {
-      $configured_frontend = FrontendUrl::fromConfig($frontend['url']);
-      $existing_frontends[$configured_frontend === NULL ? $frontend['url'] : $configured_frontend->baseUrl] = $frontend;
-    }
-
-    $frontends = [];
-    $seen_origins = [];
-    foreach ($payload['frontends'] as $delta => $item) {
-      $url = \is_array($item) ? ($item['url'] ?? NULL) : NULL;
-      if (!\is_string($url)) {
-        return new JsonResponse(['error' => \sprintf('Frontend %d must be an object with a "url" string.', $delta)], Response::HTTP_UNPROCESSABLE_ENTITY);
-      }
-      // FrontendUrl accepts exactly the set of URLs the config schema
-      // accepts, so a list that passes here also passes validation on save.
-      $frontend = FrontendUrl::fromConfig($url);
-      if ($frontend === NULL) {
-        return new JsonResponse(['error' => \sprintf('"%s" is not a valid frontend URL. It must be an absolute http:// or https:// URL with no credentials, query, fragment, dot path segments, or trailing slash.', $url)], Response::HTTP_UNPROCESSABLE_ENTITY);
-      }
-      // Two entries for the same base URL would be the same frontend listed
-      // twice; the canonical form catches spellings that differ only in
-      // case.
-      if (isset($seen_origins[$frontend->baseUrl])) {
-        return new JsonResponse(['error' => \sprintf('"%s" is already in the list.', $url)], Response::HTTP_UNPROCESSABLE_ENTITY);
-      }
-      $seen_origins[$frontend->baseUrl] = TRUE;
-      $frontends[] = [
-        'url' => $url,
-        'components' => $this->normalizeComponentIds($existing_frontends[$frontend->baseUrl]['components'] ?? []),
-      ];
-    }
-
-    $this->configFactory->getEditable('canvas_headless.settings')
-      ->set('frontends', $frontends)
-      ->save();
-
-    return new JsonResponse(['frontends' => $this->currentList()]);
+    return self::respond(fn() => $this->frontends->replace($payload['frontends'], $payload['frontendUrlsHash']));
   }
 
   /**
-   * Reads the stored list, normalized for the response.
-   *
-   * @return array<int, array{url: string, components: list<string>}>
-   *   The ordered frontends.
+   * Registers a frontend, optionally making it the default atomically.
    */
-  private function currentList(): array {
-    $stored = $this->configFactory->get('canvas_headless.settings')->get('frontends');
-    if (!\is_array($stored)) {
-      return [];
+  public function post(Request $request): JsonResponse {
+    $payload = json_decode($request->getContent(), TRUE);
+    if (!\is_array($payload) || !\is_string($payload['url'] ?? NULL) || (\array_key_exists('default', $payload) && !\is_bool($payload['default']))) {
+      return new JsonResponse(['error' => 'The request body must contain a "url" string and an optional "default" boolean.'], Response::HTTP_BAD_REQUEST);
     }
-    $frontends = [];
-    foreach ($stored as $item) {
-      if (\is_array($item) && \is_string($item['url'] ?? NULL)) {
-        $frontends[] = [
-          'url' => $item['url'],
-          'components' => $this->normalizeComponentIds($item['components'] ?? []),
-        ];
-      }
-    }
-    return $frontends;
+    return self::respond(fn() => $this->frontends->add($payload['url'], $payload['default'] ?? FALSE));
   }
 
   /**
-   * Normalizes a list of Canvas component IDs.
-   *
-   * @param mixed $components
-   *   The stored component IDs.
-   *
-   * @return list<string>
-   *   The normalized component IDs.
+   * Removes a frontend and reports the outcome.
    */
-  private static function normalizeComponentIds(mixed $components): array {
-    if (!\is_array($components)) {
-      return [];
+  public function delete(Request $request): JsonResponse {
+    $payload = json_decode($request->getContent(), TRUE);
+    if (!\is_array($payload) || \count($payload) !== 1 || !\is_string($payload['url'] ?? NULL)) {
+      return new JsonResponse(['error' => 'The request body must contain only a "url" string.'], Response::HTTP_BAD_REQUEST);
     }
-    return array_values(array_filter($components, \is_string(...)));
+    return self::respond(fn() => $this->frontends->remove($payload['url']));
+  }
+
+  /**
+   * Converts validation, conflict, and lock failures into JSON responses.
+   */
+  private static function respond(callable $operation): JsonResponse {
+    try {
+      return new JsonResponse($operation());
+    }
+    catch (HttpExceptionInterface $exception) {
+      return new JsonResponse(['error' => $exception->getMessage()], $exception->getStatusCode(), $exception->getHeaders());
+    }
   }
 
 }

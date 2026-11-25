@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\simple_oauth\Entity\Oauth2Scope;
 
 /**
  * @file
@@ -46,5 +49,17 @@ function canvas_headless_post_update_0001_assign_existing_external_components():
 
   if ($updated) {
     $settings->set('frontends', $frontends)->save();
+  }
+}
+
+/**
+ * Provisions the management scope for headless frontend CLI commands.
+ */
+function canvas_headless_post_update_0002_frontend_oauth_scopes(): void {
+  if (Oauth2Scope::load('canvas_headless_frontends') === NULL) {
+    $defaults = new FileStorage(\Drupal::service(ModuleExtensionList::class)->getPath('canvas_headless') . '/config/install');
+    $definition = $defaults->read('simple_oauth.oauth2_scope.canvas_headless_frontends');
+    \assert(\is_array($definition));
+    Oauth2Scope::create($definition)->save();
   }
 }

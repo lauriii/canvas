@@ -6,6 +6,7 @@ import { Box, Button, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
 
 import Dialog from '@/components/Dialog';
 import ErrorCard from '@/components/error/ErrorCard';
+import ConflictWarning from '@/features/editor/ConflictWarning';
 import {
   useGetFrontendsQuery,
   useSetFrontendsMutation,
@@ -26,9 +27,11 @@ import type {
 import styles from './HeadlessFrontends.module.css';
 
 const HeadlessFrontendsPage = () => {
-  const { data: storedFrontends, isLoading, error } = useGetFrontendsQuery();
+  const { data: snapshot, isLoading, error } = useGetFrontendsQuery();
+  const storedFrontends = snapshot?.frontends;
   const [setFrontends, { isLoading: isSaving }] = useSetFrontendsMutation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [hasConflict, setHasConflict] = useState(false);
   const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(false);
   const [frontendToRemove, setFrontendToRemove] =
     useState<HeadlessFrontend | null>(null);
@@ -55,16 +58,23 @@ const HeadlessFrontendsPage = () => {
   const hasFrontends = frontends.length > 0;
 
   const saveList = async (list: HeadlessFrontend[]) => {
-    const storedFrontendsByUrl = new Map(
-      (storedFrontends ?? []).map((frontend) => [frontend.url, frontend]),
-    );
-    const savedFrontends = await setFrontends(
-      list.map((frontend) => ({
-        url: frontend.url,
-        components: storedFrontendsByUrl.get(frontend.url)?.components ?? [],
-      })),
-    ).unwrap();
-    setCanvasHeadlessFrontends(savedFrontends.map((frontend) => frontend.url));
+    if (!snapshot || isSaving || hasConflict) {
+      throw new Error('The frontend list is not ready to save.');
+    }
+    try {
+      const saved = await setFrontends({
+        frontendUrlsHash: snapshot.frontendUrlsHash,
+        frontends: list.map(({ url }) => ({ url })),
+      }).unwrap();
+      setCanvasHeadlessFrontends(
+        saved.frontends.map((frontend) => frontend.url),
+      );
+    } catch (error) {
+      if (isFrontendConflict(error)) {
+        setHasConflict(true);
+      }
+      throw error;
+    }
   };
 
   const handleAdd = async (url: string) => {
@@ -72,8 +82,9 @@ const HeadlessFrontendsPage = () => {
   };
 
   const handleReorder = (oldIndex: number, newIndex: number) => {
-    void saveList(arrayMove(frontends, oldIndex, newIndex)).catch(() => {
-      toast.error('The frontend order could not be saved. Please try again.');
+    void saveList(arrayMove(frontends, oldIndex, newIndex)).catch((error) => {
+      if (!isFrontendConflict(error))
+        toast.error('The frontend order could not be saved. Please try again.');
     });
   };
 
@@ -86,14 +97,19 @@ const HeadlessFrontendsPage = () => {
       // from a fresh check.
       setStatuses(({ [frontendToRemove?.url ?? '']: _, ...rest }) => rest);
       setFrontendToRemove(null);
-    } catch {
-      toast.error('The frontend could not be removed. Please try again.');
+    } catch (error) {
+      if (!isFrontendConflict(error))
+        toast.error('The frontend could not be removed. Please try again.');
     }
   };
 
   const handleStatusChange = (id: string, status: ConnectionStatus) => {
     setStatuses((current) => ({ ...current, [id]: status }));
   };
+
+  if (hasConflict) {
+    return <ConflictWarning />;
+  }
 
   return (
     <Box
@@ -203,3 +219,12 @@ const HeadlessFrontendsPage = () => {
 };
 
 export default HeadlessFrontendsPage;
+
+function isFrontendConflict(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    error.status === 409
+  );
+}

@@ -28,6 +28,11 @@ hooks, and configuration may change without a deprecation path.
 
 Opening an entity in the Canvas editor then loads the first frontend in the list with an active draft session.
 
+To manage frontend URLs from the command line, enable `canvas_oauth` and follow the
+[CLI frontend management guide](../../packages/cli/README.md#headless-frontend-management).
+Registering a URL does not synchronize its components. For users with both permissions listed above, the Canvas editor synchronizes
+the active frontend when the frontend selector loads and when the user switches to another frontend.
+
 In cloned environments, regenerate the Simple OAuth keypair per environment; with shared keys, preview credentials
 minted on one clone would redeem on another.
 

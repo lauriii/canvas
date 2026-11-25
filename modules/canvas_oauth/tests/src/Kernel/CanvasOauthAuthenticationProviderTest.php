@@ -138,6 +138,41 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
    */
   #[DataProvider('dataProviderRoutes')]
   public function testApplies(string $route_name, array $parameters, bool $expected_apply): void {
+    $this->assertApplies($route_name, $parameters, $expected_apply);
+  }
+
+  /**
+   * Tests that the provider handles only headless frontend management routes.
+   */
+  public function testAppliesToHeadlessRoutes(): void {
+    $this->enableModules(['custom_elements', 'canvas_headless']);
+    $this->authProvider = $this->container->get(CanvasOauthAuthenticationProvider::class);
+    foreach ([
+      'frontends.get' => TRUE,
+      'frontends.post' => TRUE,
+      'frontends.delete' => TRUE,
+      'frontends.patch' => FALSE,
+      'assertion' => FALSE,
+      'renew' => FALSE,
+      'component_sync.start' => FALSE,
+      'component_sync.complete' => FALSE,
+      'component_sync.fail' => FALSE,
+    ] as $route => $expected_apply) {
+      $this->assertApplies('canvas_headless.' . $route, [], $expected_apply);
+    }
+  }
+
+  /**
+   * Checks provider applicability with and without a bearer token.
+   *
+   * @param string $route_name
+   *   The route name.
+   * @param array<string, string> $parameters
+   *   The route parameters.
+   * @param bool $expected_apply
+   *   Whether the provider should apply when a bearer token is present.
+   */
+  private function assertApplies(string $route_name, array $parameters, bool $expected_apply): void {
     $route = new Route($this->container->get(RouteProviderInterface::class)->getRouteByName($route_name)->getPath());
     $request = new Request();
     $request->attributes->set(RouteObjectInterface::ROUTE_NAME, $route_name);

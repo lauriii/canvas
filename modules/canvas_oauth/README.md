@@ -156,6 +156,13 @@ the resource, for example `administer code components` for code components and g
 
 ## 4. Supported endpoints
 
+With `canvas_headless` enabled, `GET`, `POST`, and `DELETE` on
+`/canvas/api/v0/headless/frontends` also support Canvas OAuth. Mutations require
+`administer canvas headless frontends`; listing permits that permission or
+`access canvas headless preview`. See the
+[headless OpenAPI contract](../canvas_headless/openapi.yml) and the
+[CLI authentication instructions](../../packages/cli/README.md#headless-frontend-management).
+
 → See more details in [Canvas' OpenAPI spec](https://git.drupalcode.org/project/canvas/-/blob/1.x/openapi.yml).
 
 | Method                   | Endpoint                                                |

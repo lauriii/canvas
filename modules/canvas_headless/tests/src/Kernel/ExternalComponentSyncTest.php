@@ -16,6 +16,7 @@ use Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext;
 use Drupal\canvas_headless\CanvasContentSerializer;
 use Drupal\canvas_headless\CanvasCustomElement;
 use Drupal\canvas_headless\ExternalComponentSync;
+use Drupal\canvas_headless\FrontendManager;
 use Drupal\canvas_headless\FrontendUrl;
 use Drupal\canvas_headless\JsonRender\CanvasJsonRenderNormalizer;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
@@ -121,6 +122,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       $this->container->get(ComponentSourceManager::class),
       $this->container->get(TypedConfigManagerInterface::class),
       $this->container->get(PropShapeRepositoryInterface::class),
+      $this->container->get(FrontendManager::class),
     );
     $logs = new class() extends AbstractLogger {
       /**
@@ -673,6 +675,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       $this->container->get(ComponentSourceManager::class),
       $this->container->get(TypedConfigManagerInterface::class),
       $this->container->get(PropShapeRepositoryInterface::class),
+      $this->container->get(FrontendManager::class),
     );
 
     $payload_a = self::sharedMetadataPayload('Original name', 'integer');
@@ -756,6 +759,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       $this->container->get(ComponentSourceManager::class),
       $this->container->get(TypedConfigManagerInterface::class),
       $this->container->get(PropShapeRepositoryInterface::class),
+      $this->container->get(FrontendManager::class),
     );
     $payload = static fn (array $extra): array => [
       'version' => 1,
