@@ -205,6 +205,11 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     useEffect(() => {
       whichActiveRef.current = whichActive;
       activeSrcDocumentRef.current = swappedSrcDocumentRef.current;
+      // Mark the now-active iframe as initialized.
+      const activeIFrame = iFrameRefs.current[whichActive];
+      if (activeIFrame && activeIFrame.srcdoc) {
+        activeIFrame.dataset.testCanvasContentInitialized = 'true';
+      }
       setIsReloading(false);
     }, [getIFrames, setIsReloading, whichActive]);
 
