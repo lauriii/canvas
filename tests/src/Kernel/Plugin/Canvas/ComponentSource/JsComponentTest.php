@@ -1029,6 +1029,74 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   /**
+   * An optional prop emptied to `''` renders, and reaches the component as is.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3592347
+   * @legacy-covers ::renderComponent
+   */
+  public function testRenderComponentWithEmptyOptionalProp(): void {
+    JavaScriptComponent::create([
+      'machineName' => 'full_url',
+      'name' => 'Full URL',
+      'status' => TRUE,
+      'props' => [
+        'link' => [
+          'type' => 'string',
+          'format' => 'uri',
+          'title' => 'Link',
+          'examples' => ['https://example.com'],
+        ],
+      ],
+      'required' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ])->save();
+    $source = Component::load('js.full_url')?->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+
+    // `''` violates `format: uri`, but the prop is optional.
+    $inputs = [JsComponent::EXPLICIT_INPUT_NAME => ['link' => new EvaluationResult('')]];
+    $build = $source->renderComponent($inputs, $source->getSlotDefinitions(), 'test-uuid');
+    self::assertSame('', $build['#props']['link'] ?? NULL);
+  }
+
+  /**
+   * A required prop emptied to `''` still fails validation when rendering.
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3592347
+   * @see \Drupal\canvas\Validation\EmptyOptionalPropsComponentValidator
+   * @legacy-covers ::renderComponent
+   */
+  public function testRenderComponentWithEmptyRequiredProp(): void {
+    JavaScriptComponent::create([
+      'machineName' => 'required_full_url',
+      'name' => 'Required full URL',
+      'status' => TRUE,
+      'props' => [
+        'link' => [
+          'type' => 'string',
+          'format' => 'uri',
+          'title' => 'Link',
+          'examples' => ['https://example.com'],
+        ],
+      ],
+      'required' => ['link'],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ])->save();
+    $source = Component::load('js.required_full_url')?->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+
+    // `''` violates `format: uri`, and the prop is required.
+    $inputs = [JsComponent::EXPLICIT_INPUT_NAME => ['link' => new EvaluationResult('')]];
+    $this->expectException(InvalidComponentException::class);
+    $this->expectExceptionMessage('Invalid URL format. The provided value is: "".');
+    $source->renderComponent($inputs, $source->getSlotDefinitions(), 'test-uuid');
+  }
+
+  /**
    * Strings passed to `t()` and `formatPlural()` reach `useTranslation()`.
    *
    * @legacy-covers ::renderComponent
