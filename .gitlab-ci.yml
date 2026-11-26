@@ -38,6 +38,8 @@ variables:
   # test expectations unnecessarily.
   DRUPAL_CORE: 11.3.22
   DRUPAL_CORE_NEXT_MINOR: 11.4.13
+  # @todo Remove `DRUPAL_CORE_NEXT_NEXT_MINOR` in https://git.drupalcode.org/project/canvas/-/work_items/3592438: without the Drupal 11.3 jobs, `DRUPAL_CORE` is 11.4 and `DRUPAL_CORE_NEXT_MINOR` is 11.5.
+  DRUPAL_CORE_NEXT_NEXT_MINOR: 11.5.0-beta1
 
   DRUPAL_TEST_WEBSERVER_USER: www-data
 
@@ -549,6 +551,31 @@ phpunit (11.4 mysql):
   extends: phpunit (11.3 mysql)
   variables:
     DRUPAL_CORE: $DRUPAL_CORE_NEXT_MINOR
+
+# @todo Remove `allow_failure` after the known Drupal 11.5 failures are fixed: they are listed in https://git.drupalcode.org/project/canvas/-/work_items/3592437
+phpunit (11.5 sqlite):
+  extends: phpunit (11.3 sqlite)
+  allow_failure: true
+  variables:
+    DRUPAL_CORE: $DRUPAL_CORE_NEXT_NEXT_MINOR
+
+phpunit (11.5 mariadb):
+  extends: phpunit (11.3 mariadb)
+  allow_failure: true
+  variables:
+    DRUPAL_CORE: $DRUPAL_CORE_NEXT_NEXT_MINOR
+
+phpunit (11.5 pgsql):
+  extends: phpunit (11.3 pgsql)
+  allow_failure: true
+  variables:
+    DRUPAL_CORE: $DRUPAL_CORE_NEXT_NEXT_MINOR
+
+phpunit (11.5 mysql):
+  extends: phpunit (11.3 mysql)
+  allow_failure: true
+  variables:
+    DRUPAL_CORE: $DRUPAL_CORE_NEXT_NEXT_MINOR
 
 vitest:
   stage: test
