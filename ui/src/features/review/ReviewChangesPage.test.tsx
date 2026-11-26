@@ -31,7 +31,6 @@ const mocks = vi.hoisted(() => ({
   publishPendingChanges: vi.fn(),
   pageComparisonProps: [] as any[],
   refetch: vi.fn(),
-  devConflictDetectionMode: true,
 }));
 
 vi.mock('@/app/hooks', () => ({
@@ -101,10 +100,6 @@ vi.mock('@/features/versionComparison/PageVersionComparison', async () => {
     },
   };
 });
-
-vi.mock('@/features/conflict/conflictUtils', () => ({
-  isConflictUxEnabled: () => mocks.devConflictDetectionMode,
-}));
 
 vi.mock('@/services/pendingChangesApi', () => ({
   useGetAllPendingChangesQuery: () => ({
@@ -202,13 +197,12 @@ describe('ReviewChangesPage', () => {
     mocks.discardChange.mockResolvedValue(undefined);
     mocks.refetch.mockResolvedValue(undefined);
     mocks.pageComparisonProps = [];
-    mocks.devConflictDetectionMode = true;
   });
 
   it('renders the selected Page change with review labels', () => {
     renderReviewPage();
 
-    expect(screen.getByText('Review')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument();
     expect(screen.getByText('Homepage')).toBeInTheDocument();
     expect(screen.getByTestId('page-version-comparison')).toHaveTextContent(
       'Old version / New version / canvas_page:1',
@@ -303,7 +297,7 @@ describe('ReviewChangesPage', () => {
     );
   });
 
-  it('uses the breadcrumb links for review navigation', async () => {
+  it('goes back to the reviewed page when opened without an origin', async () => {
     const user = userEvent.setup();
     renderReviewPage({
       initialPath: '/review/canvas_page/2',
@@ -313,12 +307,27 @@ describe('ReviewChangesPage', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: 'Review' }));
+    await user.click(screen.getByRole('button', { name: 'Go back' }));
 
-    expect(await screen.findByText('Homepage')).toBeInTheDocument();
-    expect(screen.getByText('Review 1 of 2')).toBeInTheDocument();
+    expect(await screen.findByText('Editor entity')).toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole('button', { name: 'Canvas' }));
+  it('goes back to the page the review was opened from', async () => {
+    const user = userEvent.setup();
+    renderReviewPage({
+      initialPath: '/review/canvas_page/2',
+      state: {
+        selectedPointers: ['canvas_page:1:en', 'canvas_page:2:en'],
+        reviewPointers: ['canvas_page:1:en', 'canvas_page:2:en'],
+        returnTo: '/editor',
+      },
+    });
+
+    // Navigating within the review keeps the origin.
+    await user.click(screen.getByRole('button', { name: /Previous/ }));
+    expect(await screen.findByText('Review 1 of 2')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Go back' }));
 
     expect(await screen.findByText('Editor')).toBeInTheDocument();
   });
@@ -399,16 +408,5 @@ describe('ReviewChangesPage', () => {
     expect(screen.getByTestId('page-version-comparison')).toHaveTextContent(
       'canvas_page:2',
     );
-  });
-
-  it('redirects to the editor when conflict detection mode is disabled', async () => {
-    mocks.devConflictDetectionMode = false;
-
-    renderReviewPage();
-
-    expect(await screen.findByText('Editor')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('page-version-comparison'),
-    ).not.toBeInTheDocument();
   });
 });

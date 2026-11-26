@@ -506,11 +506,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     bool $auto_saved,
     string $expected_title,
   ): void {
-    // The `autoSaved` query argument and `updated` response property are gated
-    // behind the `canvas_dev_cd` module.
-    // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591732
-    $this->enableModules(['canvas_dev_cd']);
-
     $this->setUpCurrentUser(permissions: [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
     $autoSaveManager = $this->container->get(AutoSaveManager::class);
     \assert($autoSaveManager instanceof AutoSaveManager);

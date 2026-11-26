@@ -27,6 +27,7 @@ export const getReviewRouteStatePointers = (
   selectedPointers?: string[];
   reviewPointers?: string[];
   reviewComplete?: boolean;
+  returnTo?: string;
 } => {
   if (!state || typeof state !== 'object') {
     return {};
@@ -42,6 +43,12 @@ export const getReviewRouteStatePointers = (
       ? candidate.reviewPointers
       : undefined,
     reviewComplete: candidate.reviewComplete === true,
+    // Where the review was opened from, for the breadcrumb and close button.
+    returnTo:
+      typeof candidate.returnTo === 'string' &&
+      candidate.returnTo.startsWith('/')
+        ? candidate.returnTo
+        : undefined,
   };
 };
 

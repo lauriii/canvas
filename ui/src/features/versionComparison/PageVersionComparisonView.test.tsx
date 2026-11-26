@@ -136,13 +136,12 @@ describe('PageVersionComparisonView', () => {
     expect(screen.getByText('Updated 8/20/26 at 8:10 PM')).toBeInTheDocument();
   });
 
-  it('only renders the visual comparison tab', () => {
+  it('only renders the changes tab when version data is provided', () => {
     render(<ComparisonHarness />);
 
     expect(screen.getByRole('tab', { name: /Visual/ })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Text/ })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('tab', { name: /Props/ }),
+      screen.queryByRole('tab', { name: /Changes/ }),
     ).not.toBeInTheDocument();
   });
 
