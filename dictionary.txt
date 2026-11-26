@@ -120,6 +120,7 @@ Linkit
 linksets
 lockdown
 Mautic
+manypkg
 maxage
 metacharacter
 metatag

@@ -31,6 +31,13 @@ If a merge request touches package files but should not trigger a release
 npx changeset --empty
 ```
 
+Only public packages get changesets. Private packages (`"private": true` in
+`package.json`) are never versioned, so a changeset that names one is never
+consumed and breaks the `version packages` CI job. If a merge request only
+changes private packages, add an empty changeset. `npm run lint:changesets`
+(part of `npm run lint`) fails on changesets that name a private or unknown
+package.
+
 ## Summary format
 
 Each changeset becomes one bullet point in the `CHANGELOG.md` of every
