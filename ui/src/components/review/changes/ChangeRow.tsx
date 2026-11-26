@@ -58,7 +58,6 @@ const ChangeRow = ({
   const conflictUxEnabled = isConflictUxEnabled();
   const hasConflict = conflictUxEnabled && !!change.hasConflict;
   const canViewChange =
-    conflictUxEnabled &&
     !!onViewClick &&
     !hasConflict &&
     (isViewChangeAvailable ? isViewChangeAvailable(change) : true);

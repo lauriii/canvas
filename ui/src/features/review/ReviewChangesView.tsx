@@ -2,7 +2,6 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CheckCircledIcon,
-  Cross2Icon,
 } from '@radix-ui/react-icons';
 import {
   Badge,
@@ -24,9 +23,7 @@ const REVIEW_COMPLETE_LABEL = 'All changes reviewed';
 export interface ReviewChangesViewProps {
   label: string;
   comparison: ReactNode;
-  onClose: () => void;
-  onNavigateToCanvas: () => void;
-  onNavigateToReview: () => void;
+  onBack: () => void;
   reviewIndex: number;
   reviewTotal: number;
   selectedVersion: PageVersionSelection;
@@ -43,9 +40,7 @@ export interface ReviewChangesViewProps {
 export const ReviewChangesView = ({
   label,
   comparison,
-  onClose,
-  onNavigateToCanvas,
-  onNavigateToReview,
+  onBack,
   reviewIndex,
   reviewTotal,
   selectedVersion,
@@ -59,12 +54,7 @@ export const ReviewChangesView = ({
   onApplyVersionSelection,
 }: ReviewChangesViewProps) => (
   <div className={styles.page} data-testid="review-changes-page">
-    <ReviewHeader
-      label={label}
-      onClose={onClose}
-      onNavigateToCanvas={onNavigateToCanvas}
-      onNavigateToReview={onNavigateToReview}
-    />
+    <ReviewHeader label={label} onBack={onBack} />
     <div className={styles.content}>{comparison}</div>
     <ReviewFooter
       reviewIndex={reviewIndex}
@@ -82,61 +72,34 @@ export const ReviewChangesView = ({
   </div>
 );
 
-export const ReviewLoadingState = ({
-  onClose,
-  onNavigateToCanvas = onClose,
-  onNavigateToReview = onClose,
-}: {
-  onClose: () => void;
-  onNavigateToCanvas?: () => void;
-  onNavigateToReview?: () => void;
-}) => (
+export const ReviewLoadingState = ({ onBack }: { onBack: () => void }) => (
   <div className={styles.page} data-testid="review-changes-page">
-    <ReviewHeader
-      label="Loading"
-      onClose={onClose}
-      onNavigateToCanvas={onNavigateToCanvas}
-      onNavigateToReview={onNavigateToReview}
-    />
+    <ReviewHeader label="Loading" onBack={onBack} />
     <Flex align="center" justify="center" className={styles.emptyState}>
       <Spinner />
     </Flex>
   </div>
 );
 
+// Review is an overlay on the editor, not a separate place, so the header has
+// a back button (as extension pages do) instead of a breadcrumb.
 const ReviewHeader = ({
   label,
-  onClose,
-  onNavigateToCanvas,
-  onNavigateToReview,
+  onBack,
 }: {
   label: string;
-  onClose: () => void;
-  onNavigateToCanvas: () => void;
-  onNavigateToReview: () => void;
+  onBack: () => void;
 }) => (
   <div className={styles.header}>
-    <Flex align="center" gap="1" minWidth="0">
-      <button
-        type="button"
-        className={styles.breadcrumbLink}
-        onClick={onNavigateToCanvas}
+    <Flex align="center" gap="2" minWidth="0">
+      <IconButton
+        variant="ghost"
+        color="gray"
+        aria-label="Go back"
+        onClick={onBack}
       >
-        Canvas
-      </button>
-      <Text size="1" color="gray">
-        /
-      </Text>
-      <button
-        type="button"
-        className={styles.breadcrumbLink}
-        onClick={onNavigateToReview}
-      >
-        Review
-      </button>
-      <Text size="1" color="gray">
-        /
-      </Text>
+        <ArrowLeftIcon />
+      </IconButton>
       <Text size="1" className={styles.breadcrumbLabel}>
         {label}
       </Text>
@@ -146,15 +109,6 @@ const ReviewHeader = ({
         </Badge>
       )}
     </Flex>
-    <IconButton
-      variant="ghost"
-      color="gray"
-      highContrast
-      aria-label="Close"
-      onClick={onClose}
-    >
-      <Cross2Icon />
-    </IconButton>
   </div>
 );
 
@@ -248,8 +202,6 @@ export const ReviewCompleteState = ({
   onClose,
   onPrevious,
   canPrevious = false,
-  onNavigateToCanvas = onClose,
-  onNavigateToReview = onPrevious ?? onClose,
 }: {
   selectedCount: number;
   isPublishing: boolean;
@@ -257,16 +209,9 @@ export const ReviewCompleteState = ({
   onClose: () => void;
   onPrevious?: () => void;
   canPrevious?: boolean;
-  onNavigateToCanvas?: () => void;
-  onNavigateToReview?: () => void;
 }) => (
   <div className={styles.page} data-testid="review-complete-state">
-    <ReviewHeader
-      label={REVIEW_COMPLETE_LABEL}
-      onClose={onClose}
-      onNavigateToCanvas={onNavigateToCanvas}
-      onNavigateToReview={onNavigateToReview}
-    />
+    <ReviewHeader label={REVIEW_COMPLETE_LABEL} onBack={onClose} />
     <Flex
       direction="column"
       align="center"
