@@ -53,7 +53,6 @@ const openPublishReview = async (page: Page) => {
 
 test.describe('Review selected changes', () => {
   test.use({
-    modules: ['canvas_dev_cd'],
     enableTestExtensions: true,
   });
 
@@ -173,12 +172,12 @@ test.describe('Review selected changes', () => {
   });
 });
 
-test.describe('Review selected changes disabled', () => {
+test.describe('Review a single change', () => {
   test.use({
     enableTestExtensions: true,
   });
 
-  test('hides side-by-side review actions and redirects direct review visits when conflict detection is disabled', async ({
+  test('opens a change from its menu and goes back to the editor', async ({
     page,
     drupal,
     canvas,
@@ -186,29 +185,26 @@ test.describe('Review selected changes disabled', () => {
     await drupal.login({ username: 'editor', password: 'editor' });
 
     const canvasPage = await canvas.createCanvas({
-      title: 'Review flag off page',
+      title: 'Review menu page',
     });
     await waitForPendingChange(page, canvasPage.entity_id);
+    const editorUrl = page.url();
 
     const review = await openPublishReview(page);
-
-    await review.getByLabel('Select change Review flag off page').click();
-    await expect(review.getByText('1 of 1 changes selected')).toBeVisible();
-    await expect(
-      review.getByRole('button', { name: 'Review selected changes' }),
-    ).toBeHidden();
-
     const reviewRow = review
       .getByTestId('pending-change-row')
-      .filter({ hasText: 'Review flag off page' });
+      .filter({ hasText: 'Review menu page' });
     await reviewRow.getByRole('button', { name: 'More options' }).click();
-    await expect(
-      page.getByRole('menuitem', { name: 'Review changes' }),
-    ).toBeHidden();
+    await page.getByRole('menuitem', { name: 'Review changes' }).click();
 
-    await page.goto(`/canvas/review/canvas_page/${canvasPage.entity_id}`);
+    await expect(page).toHaveURL(
+      new RegExp(`/canvas/review/canvas_page/${canvasPage.entity_id}$`),
+    );
+    await expect(page.getByTestId('review-changes-page')).toBeVisible();
+    // The publish panel closes instead of covering the review.
+    await expect(review).toBeHidden();
 
-    await expect(page).toHaveURL(/\/canvas\/editor$/);
-    await expect(page.getByTestId('review-changes-page')).toBeHidden();
+    await page.getByRole('button', { name: 'Go back' }).click();
+    await expect(page).toHaveURL(editorUrl);
   });
 });

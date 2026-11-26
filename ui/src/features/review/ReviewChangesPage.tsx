@@ -3,7 +3,6 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 
 import { useAppDispatch } from '@/app/hooks';
 import { usePublishPendingChanges } from '@/components/review/usePublishPendingChanges';
-import { isConflictUxEnabled } from '@/features/conflict/conflictUtils';
 import {
   findReviewIndex,
   getReviewQueue,
@@ -39,14 +38,7 @@ const getPendingChangeFromEntry = (
   pointer,
 });
 
-const ReviewChangesPage = () =>
-  isConflictUxEnabled() ? (
-    <EnabledReviewChangesPage />
-  ) : (
-    <Navigate to="/editor" replace />
-  );
-
-const EnabledReviewChangesPage = () => {
+const ReviewChangesPage = () => {
   const { entityType, entityId } = useParams<{
     entityType?: string;
     entityId?: string;
@@ -145,14 +137,12 @@ const EnabledReviewChangesPage = () => {
   const navigationSelectedPointers = hasInitializedSelection
     ? selectedPointers
     : defaultSelectedPointers;
+  const returnTo = routeState.returnTo;
+  const navigateBack = (fallback = '/editor') => navigate(returnTo ?? fallback);
   const routeStateForNavigation = {
     selectedPointers: navigationSelectedPointers,
     reviewPointers,
-  };
-  const navigateToReviewOverview = () => {
-    navigate('/review', {
-      state: routeStateForNavigation,
-    });
+    returnTo,
   };
   const navigateToReviewEntry = (entry: (typeof reviewQueue)[number]) => {
     navigate(getReviewRouteFromEntry(entry), {
@@ -164,13 +154,7 @@ const EnabledReviewChangesPage = () => {
     (!entityType && !entityId && reviewQueue.length === 0);
 
   if (pendingChangesSnapshot === undefined) {
-    return (
-      <ReviewLoadingState
-        onClose={() => navigate('/editor')}
-        onNavigateToCanvas={() => navigate('/editor')}
-        onNavigateToReview={() => navigate('/review')}
-      />
-    );
+    return <ReviewLoadingState onBack={() => navigateBack()} />;
   }
 
   if (!entityType || !entityId) {
@@ -183,16 +167,14 @@ const EnabledReviewChangesPage = () => {
           onPublish={async () => {
             const didPublish = await publishPendingChanges(selectedChanges);
             if (didPublish) {
-              navigate('/editor');
+              navigateBack();
             }
           }}
-          onClose={() => navigate('/editor')}
+          onClose={() => navigateBack()}
           onPrevious={() =>
             previousEntry && navigateToReviewEntry(previousEntry)
           }
           canPrevious={!!previousEntry}
-          onNavigateToCanvas={() => navigate('/editor')}
-          onNavigateToReview={navigateToReviewOverview}
         />
       );
     }
@@ -201,10 +183,7 @@ const EnabledReviewChangesPage = () => {
       <Navigate
         to={getReviewRouteFromEntry(reviewQueue[0])}
         replace
-        state={{
-          selectedPointers: navigationSelectedPointers,
-          reviewPointers,
-        }}
+        state={routeStateForNavigation}
       />
     );
   }
@@ -214,10 +193,7 @@ const EnabledReviewChangesPage = () => {
       <Navigate
         to={getReviewRouteFromEntry(reviewQueue[0])}
         replace
-        state={{
-          selectedPointers: navigationSelectedPointers,
-          reviewPointers,
-        }}
+        state={routeStateForNavigation}
       />
     ) : (
       <Navigate
@@ -226,6 +202,7 @@ const EnabledReviewChangesPage = () => {
         state={{
           selectedPointers,
           reviewComplete: true,
+          returnTo,
         }}
       />
     );
@@ -314,7 +291,7 @@ const EnabledReviewChangesPage = () => {
     if (selectedVersion === 'new') {
       const didPublish = await publishPendingChanges(selectedChanges);
       if (didPublish) {
-        navigate('/editor');
+        navigateBack();
       }
     }
   };
@@ -340,13 +317,11 @@ const EnabledReviewChangesPage = () => {
           }
         />
       }
-      onClose={() =>
-        navigate(
+      onBack={() =>
+        navigateBack(
           `/editor/${activeChange.entity_type}/${activeChange.entity_id}`,
         )
       }
-      onNavigateToCanvas={() => navigate('/editor')}
-      onNavigateToReview={navigateToReviewOverview}
       reviewIndex={currentIndex}
       reviewTotal={reviewQueue.length}
       selectedVersion={selectedVersion}
