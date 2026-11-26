@@ -136,14 +136,29 @@ describe('PageVersionComparisonView', () => {
     expect(screen.getByText('Updated 8/20/26 at 8:10 PM')).toBeInTheDocument();
   });
 
-  it('only renders the visual comparison tab', () => {
+  it('only renders the changes tab when version data is provided', () => {
     render(<ComparisonHarness />);
 
     expect(screen.getByRole('tab', { name: /Visual/ })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Text/ })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('tab', { name: /Props/ }),
+      screen.queryByRole('tab', { name: /Changes/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the number of changes on the changes tab', () => {
+    const data = (title: string) => ({
+      layout: [],
+      model: {},
+      entity_form_fields: { 'title[0][value]': title },
+    });
+    renderComparison({
+      publishedVersion: { ...publishedVersion, data: data('Old') },
+      newVersion: { ...newVersion, data: data('New') },
+    });
+
+    expect(
+      screen.getByRole('tab', { name: /^Changes 1 / }),
+    ).toBeInTheDocument();
   });
 
   it('applies the selected card style when a version is selected', async () => {
