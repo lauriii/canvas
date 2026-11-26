@@ -148,7 +148,9 @@ npx changeset
 
 The `changesets` CI job fails if a merge request changes package files without
 adding one. For changes that must not be released, add an empty changeset with
-`npx changeset --empty`.
+`npx changeset --empty`. Changesets must only name public packages:
+`changeset version` skips private packages, so such a changeset is never
+consumed. `npm run lint:changesets` enforces this.
 
 ### 2. The version merge request
 

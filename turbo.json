@@ -83,6 +83,7 @@
       "persistent": true
     },
     // Root lint tasks are declared so `turbo run` can execute them.
+    "//#lint:changesets": {},
     "//#lint:cspell": {},
     "//#lint:eslint": {},
     "//#lint:openapi": {},
