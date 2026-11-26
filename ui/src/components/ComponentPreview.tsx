@@ -298,18 +298,19 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
     }, 5000);
   }
 
-  const iframeOnLoadHandler = () => {
-    const iframe = window.document.querySelector(
-      'iframe[data-preview-component-id]',
-    ) as HTMLIFrameElement;
-    const tooltipElement = document.querySelector(
+  const iframeOnLoadHandler = (
+    event: React.SyntheticEvent<HTMLIFrameElement>,
+  ) => {
+    // Use the <iframe> that fired the event, and the tooltip around it. The
+    // preview of the previously hovered item may still be in the DOM while its
+    // tooltip animates closed, so a document-wide lookup can find that one.
+    const iframe = event.currentTarget;
+    const tooltipElement = iframe.closest<HTMLDivElement>(
       '.canvas-previewTooltip',
-    ) as HTMLDivElement;
-    const scalingElement = document.querySelector(
-      '.canvas-scaled',
-    ) as HTMLDivElement;
+    );
+    const scalingElement = iframe.closest<HTMLDivElement>('.canvas-scaled');
 
-    if (iframe) {
+    if (tooltipElement && scalingElement) {
       const componentWrapper = iframe.contentDocument!.querySelector(
         '#component-wrapper',
       ) as HTMLElement;
