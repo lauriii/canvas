@@ -267,9 +267,12 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       themeTokens ?? null,
     );
     const slotNames = getSlotNamesForPreview(slots);
+    // Like production: theme defaults, then site colors, then overrides and
+    // drafts, which win over site colors that share a variable.
     const previewGlobalColorCss = [
       buildTokenStyles(themeTokens, { includeDeclared: true }),
       buildColorStyles(brandKitColors ?? []),
+      buildTokenStyles(themeTokens, { includeDeclared: false }),
     ].join('\n');
     const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);
     const previewGlobalFontPreloads = getFontPreloadDefinitions(

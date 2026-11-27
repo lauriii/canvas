@@ -37,8 +37,14 @@ final class DesignTokenStagedValueConstraintValidator extends ConstraintValidato
     if (!\is_array($value)) {
       return;
     }
-    foreach ($value['actions'] ?? [] as $delta => $action) {
+    $actions = $value['actions'] ?? [];
+    foreach ($actions as $delta => $action) {
       if (($action['name'] ?? NULL) !== BrandKitTokens::CONFIG_ACTION) {
+        continue;
+      }
+      // The server sets `base` only on drafts with a single action.
+      if (\count($actions) !== 1) {
+        $this->context->buildViolation($constraint->singleActionMessage)->atPath("actions.$delta")->addViolation();
         continue;
       }
       $at = "actions.$delta.input";
@@ -60,7 +66,9 @@ final class DesignTokenStagedValueConstraintValidator extends ConstraintValidato
         $this->context->buildViolation($constraint->disabledMessage)->atPath($at)->addViolation();
         continue;
       }
-      $type = $this->tokens->listedType($path);
+      // An override the theme no longer declares can still be reset.
+      $type = $this->tokens->listedType($path)
+        ?? ($input['value'] === NULL && \is_string($input['type'] ?? NULL) && $this->tokens->isResettableUnlisted($path, $input['type']) ? $input['type'] : NULL);
       if ($type === NULL || !BrandKitTokens::isStorablePath($path)) {
         $this->context->buildViolation($constraint->notListedMessage)->atPath("$at.path")->addViolation();
         continue;

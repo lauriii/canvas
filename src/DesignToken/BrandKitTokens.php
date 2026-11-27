@@ -329,6 +329,21 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
   }
 
   /**
+   * Whether an unlisted token may be reset: only Canvas's own override.
+   *
+   * Overrides left behind after a theme switch, or after the theme stopped
+   * declaring the path, can only be reset. No other value can be written.
+   */
+  public function isResettableUnlisted(string $path, string $type): bool {
+    $entity = $this->findByPath($path);
+    return $this->listedType($path) === NULL
+      && $entity !== NULL
+      && self::isManaged($entity)
+      && $entity->get('type') === $type
+      && \array_key_exists(self::ROOT, self::scopes($entity));
+  }
+
+  /**
    * The type of a listed token, or NULL when the path is not listed.
    */
   public function listedType(string $path): ?string {
@@ -386,13 +401,14 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
         !self::isManaged($entity) => $this->t('Set by another module'),
         default => $this->t('No longer defined by the theme'),
       };
-      $tokens[] = self::token($path, $type, $value, NULL, $value !== NULL, NULL) + [
+      // Overrides of "Other values" take effect only while the feature is on.
+      $tokens[] = self::token($path, $type, $value, NULL, $enabled && $value !== NULL, $drafts[$path] ?? NULL) + [
         'name' => self::displayName(self::lastSegment($path)),
         'description' => NULL,
         'provider' => NULL,
         'groupPath' => [],
         'editable' => FALSE,
-        'resettable' => $enabled && $value !== NULL && self::isManaged($entity),
+        'resettable' => $enabled && $this->isResettableUnlisted($path, $type),
         'reason' => (string) $reason,
       ];
     }

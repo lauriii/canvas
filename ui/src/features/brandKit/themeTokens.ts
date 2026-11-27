@@ -53,6 +53,15 @@ export const tokenValueToCss = (
   if (value === null || value === undefined || !isKnownTokenType(type)) {
     return null;
   }
+  // Values other tools stored may be malformed: never let one break the UI.
+  try {
+    return serialize(type, value);
+  } catch {
+    return null;
+  }
+};
+
+const serialize = (type: ThemeTokenType, value: unknown): string | null => {
   switch (type) {
     case 'color':
       return getCssColorValue(value as BrandKitColorValue);

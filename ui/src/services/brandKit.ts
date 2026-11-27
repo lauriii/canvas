@@ -58,6 +58,9 @@ const patchColors = (mutate: (colors: BrandKitColor[]) => void) =>
  */
 const latestColorWrites = new Map<string, symbol>();
 
+/** The latest pending style guide write per token path. */
+const latestTokenWrites = new Map<string, symbol>();
+
 /**
  * A single component instance using a specific color.
  */
@@ -292,6 +295,11 @@ export const brandKitApi = createApi({
       }),
       async onQueryStarted({ token, value }, { dispatch, queryFulfilled }) {
         const hadDraft = token.draft !== null;
+        // Like latestColorWrites: an older response or failure must never
+        // replace or undo a newer edit of the same token.
+        const write = Symbol();
+        latestTokenWrites.set(token.path, write);
+        const isLatest = () => latestTokenWrites.get(token.path) === write;
         // Show the edit in the previews before the request completes.
         const optimistic = dispatch(
           patchThemeToken(token.path, (t) => {
@@ -300,11 +308,13 @@ export const brandKitApi = createApi({
         );
         try {
           const { data } = await queryFulfilled;
-          dispatch(
-            patchThemeToken(token.path, (t) => {
-              t.draft = data.draft;
-            }),
-          );
+          if (isLatest()) {
+            dispatch(
+              patchThemeToken(token.path, (t) => {
+                t.draft = data.draft;
+              }),
+            );
+          }
           if (hadDraft !== (data.draft !== null)) {
             dispatch(
               pendingChangesApi.util.invalidateTags([
@@ -313,7 +323,20 @@ export const brandKitApi = createApi({
             );
           }
         } catch {
-          optimistic.undo();
+          if (isLatest()) {
+            optimistic.undo();
+          } else {
+            // A newer edit is in flight: refetch to learn what was saved.
+            dispatch(
+              brandKitApi.util.invalidateTags([
+                { type: 'BrandKits', id: BRAND_KIT_ID },
+              ]),
+            );
+          }
+        } finally {
+          if (isLatest()) {
+            latestTokenWrites.delete(token.path);
+          }
         }
       },
     }),

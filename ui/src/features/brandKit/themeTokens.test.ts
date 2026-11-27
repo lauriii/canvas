@@ -55,6 +55,8 @@ describe('tokenValueToCss', () => {
       }),
     ).toBe('700 32px/1.2 Inter, sans-serif');
     expect(tokenValueToCss('shadow', {})).toBeNull();
+    // A malformed value another tool stored never throws.
+    expect(tokenValueToCss('typography', { fontWeight: 700 })).toBeNull();
   });
 });
 

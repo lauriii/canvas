@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -308,7 +308,12 @@ const TokenRow = ({
   token: BrandKitThemeToken;
   enabled: boolean;
 }) => {
-  const [stage] = useStageThemeTokenMutation();
+  const [stageMutation] = useStageThemeTokenMutation();
+  // Pending edits are debounced per row: a reset cancels them, and closing
+  // the panel saves them.
+  const { stage, cancel } = useDebouncedStage((value: unknown) =>
+    stageMutation({ token, value }),
+  );
   const canEdit =
     enabled && token.editable && EDITABLE_TYPES.includes(token.type);
   const status =
@@ -355,7 +360,10 @@ const TokenRow = ({
                 (token.draft?.value != null ||
                   (token.resettable && token.draft === null)) && (
                   <DropdownMenu.Item
-                    onSelect={() => stage({ token, value: null })}
+                    onSelect={() => {
+                      cancel();
+                      stageMutation({ token, value: null });
+                    }}
                   >
                     Reset to default
                   </DropdownMenu.Item>
@@ -375,14 +383,14 @@ const TokenRow = ({
         <ColorEditor
           token={token}
           value={effective as BrandKitColorValue | null}
-          onChange={(hex) => stage({ token, value: hexToColorValue(hex) })}
+          onChange={(hex) => stage(hexToColorValue(hex))}
         />
       )}
       {canEdit && token.type === 'fontFamily' && (
         <FontStackEditor
           token={token}
           value={(effective as string[] | null) ?? []}
-          onChange={(value) => stage({ token, value })}
+          onChange={stage}
         />
       )}
       {!canEdit && <ReadOnlyValue token={token} enabled={enabled} />}
@@ -433,15 +441,36 @@ const ReadOnlyValue = ({
   );
 };
 
-/** Debounces staging, so typing and dragging do not stage every value. */
+/**
+ * Debounces staging, so typing and dragging do not stage every value.
+ *
+ * A pending edit is staged when the row unmounts, so closing the panel never
+ * loses it, and `cancel()` drops it, so it cannot overwrite a reset.
+ */
 const useDebouncedStage = <T,>(onChange: (value: T) => void) => {
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const pending = useRef<{ value: T } | null>(null);
   const latest = useRef(onChange);
   latest.current = onChange;
-  useEffect(() => () => clearTimeout(timer.current), []);
-  return (value: T) => {
+  const flush = useCallback(() => {
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => latest.current(value), DEBOUNCE_MS);
+    const next = pending.current;
+    pending.current = null;
+    if (next) {
+      latest.current(next.value);
+    }
+  }, []);
+  useEffect(() => flush, [flush]);
+  return {
+    stage: (value: T) => {
+      pending.current = { value };
+      clearTimeout(timer.current);
+      timer.current = setTimeout(flush, DEBOUNCE_MS);
+    },
+    cancel: () => {
+      clearTimeout(timer.current);
+      pending.current = null;
+    },
   };
 };
 
@@ -457,13 +486,12 @@ const ColorEditor = ({
   const hex = value ? getColorHex(value) : '#000000';
   const [input, setInput] = useState(hex);
   useEffect(() => setInput(hex), [hex]);
-  const stage = useDebouncedStage(onChange);
   const valid = hexToColorValue(input) !== null;
 
   const update = (next: string) => {
     setInput(next);
     if (hexToColorValue(next)) {
-      stage(next);
+      onChange(next);
     }
   };
 
@@ -511,12 +539,11 @@ const FontStackEditor = ({
   const serialized = value.join('\n');
   useEffect(() => setFamilies(serialized.split('\n')), [serialized]);
   const [newFamily, setNewFamily] = useState('');
-  const stage = useDebouncedStage(onChange);
 
   const update = (next: string[]) => {
     setFamilies(next);
     if (next.length > 0 && next.every(isValidFontFamily)) {
-      stage(next);
+      onChange(next);
     }
   };
   const move = (index: number, by: number) => {

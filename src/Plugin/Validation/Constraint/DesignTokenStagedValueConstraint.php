@@ -29,5 +29,6 @@ final class DesignTokenStagedValueConstraint extends SymfonyConstraint {
   public string $shapeMessage = 'Expected exactly path, type, value and base.';
   public string $typeMessage = 'The theme defines this design value as @type.';
   public string $changedElsewhereMessage = 'Changed elsewhere since you edited it.';
+  public string $singleActionMessage = 'A style guide draft must have exactly one action.';
 
 }

@@ -297,6 +297,43 @@ final class BrandKitTokensTest extends CanvasKernelTestBase {
     self::assertSame(200, $this->makePublishAllRequest()->getStatusCode());
     self::assertNull($this->tokens->findByPath('spacing.md'));
 
+    // An override the theme no longer declares can be reset, and nothing else.
+    $this->tokens->setRootValue('spacing.md', ['value' => 4, 'unit' => 'px']);
+    $this->config('system.theme')->set('default', 'stark')->save();
+    $this->tokens->resetIndex();
+    $other = \array_column($this->tokens->themeTokens(), NULL, 'path')['spacing.md'];
+    self::assertTrue($other['resettable']);
+    self::assertTrue($other['overridden']);
+    try {
+      $this->stage('spacing.md', 'dimension', ['value' => 8, 'unit' => 'px']);
+      self::fail('Expected a value for an unlisted path to be rejected.');
+    }
+    catch (ConstraintViolationException $e) {
+      self::assertSame('actions.0.input.path', $e->getConstraintViolationList()->get(0)->getPropertyPath());
+    }
+    self::assertSame(['value' => NULL], $this->stage('spacing.md', 'dimension', NULL));
+    self::assertSame(['value' => NULL], \array_column($this->tokens->themeTokens(), NULL, 'path')['spacing.md']['draft']);
+    self::assertSame(200, $this->makePublishAllRequest()->getStatusCode());
+    self::assertNull($this->tokens->findByPath('spacing.md'));
+
+    // While off, "Other values" overrides are not in effect.
+    $this->tokens->setRootValue('color.semantic.primary', '#ff0000');
+    $this->tokens->setEnabled(FALSE);
+    self::assertFalse(\array_column($this->tokens->themeTokens(), NULL, 'path')['color.semantic.primary']['overridden']);
+    $this->tokens->setEnabled(TRUE);
+
+    // A token action must be the only action of its draft.
+    $staged = StagedConfigUpdate::create([
+      'id' => BrandKitTokens::stagedUpdateId('color.semantic.primary'),
+      'label' => 'x',
+      'target' => DesignTokenValue::TARGET,
+      'actions' => [
+        ['name' => BrandKitTokens::CONFIG_ACTION, 'input' => ['path' => 'color.semantic.primary', 'type' => 'color', 'value' => NULL, 'base' => NULL]],
+        ['name' => 'simpleConfigUpdate', 'input' => ['label' => 'x']],
+      ],
+    ]);
+    self::assertSame('actions.0', $staged->getTypedData()->validate()->get(0)->getPropertyPath());
+
     // The action is pinned to the brand kit.
     $this->expectException(ConfigActionException::class);
     $this->container->get('plugin.manager.config_action')->applyAction(BrandKitTokens::CONFIG_ACTION, 'system.site', ['path' => 'spacing.md', 'type' => 'dimension', 'value' => NULL]);
