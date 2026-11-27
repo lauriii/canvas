@@ -4,6 +4,8 @@ import path from 'path';
 import { exec, getRootDir } from '@drupal-canvas/test-utils';
 import { type Drupal } from '@drupal/playwright';
 
+import { createUser } from './utils/createUser.js';
+
 /**
  * Config objects Canvas excludes from strict config schema validation in tests.
  *
@@ -81,7 +83,7 @@ export async function setupSite({
         'create url aliases',
       ],
     });
-    await drupal.createUser({
+    await createUser(drupal, {
       email: `editor@example.com`,
       username: 'editor',
       password: 'editor',
