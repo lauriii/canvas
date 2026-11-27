@@ -14,6 +14,13 @@
  *   (`runner_system_failure`) or a job that exceeded its timeout
  *   (`job_execution_timeout`). Retried jobs are included. The runner and the
  *   runner manager (the host process that ran the job) are recorded too.
+ * - Every Playwright job attempt is read from its log, where the `list`
+ *   reporter prints one line per test result with its duration. This works
+ *   for jobs that were killed before they wrote a report, for example by the
+ *   job timeout. From these lines, the script records how slow the job was
+ *   compared to the usual duration of its tests, the tests that hit the test
+ *   timeout, and the tests that failed. A slow runner makes tests time out
+ *   that pass on a normal runner.
  *
  * The script:
  * 1. Fetches the previously published CSV files, so the record keeps history
@@ -28,12 +35,15 @@
  *      job and records the number of tests that ran and the flaky tests;
  *    - for Playwright jobs that ran more than once, reads the failed tests
  *      from each attempt's log and records the tests that no longer fail in
- *      the last attempt.
+ *      the last attempt;
+ *    - reads the test results from the log of each Playwright job attempt,
+ *      and records its slowdown, its timed-out tests and its failed tests.
  * 4. Lists the merge requests merged into the default branch in the same
  *    window, to show next to the flaky tests per day.
  * 5. Writes `flaky-tests.csv`, `test-runs.csv`, `infrastructure-failures.csv`,
- *    `merged-merge-requests.csv`, `scanned-pipelines.csv` and a summary
- *    `index.html` to the output directory.
+ *    `playwright-jobs.csv`, `test-durations.csv`, `merged-merge-requests.csv`,
+ *    `scanned-pipelines.csv` and a summary `index.html` to the output
+ *    directory.
  *
  * Environment variables (all set by GitLab CI, except where noted):
  * - CI_API_V4_URL, CI_PROJECT_ID, CI_DEFAULT_BRANCH
@@ -97,6 +107,26 @@ export const MERGED_MERGE_REQUESTS_COLUMNS = [
 
 export const SCANNED_PIPELINES_COLUMNS = ['pipeline_id', 'updated_at'];
 
+export const PLAYWRIGHT_JOBS_COLUMNS = [
+  'job_created_at',
+  'pipeline_id',
+  'pipeline_ref',
+  'pipeline_source',
+  'job_id',
+  'job_name',
+  'job_url',
+  'status',
+  'failure_reason',
+  'runner_manager_system_id',
+  'runner_version',
+  'results',
+  'slowdown',
+  'timed_out_tests',
+  'failed_tests',
+];
+
+export const TEST_DURATIONS_COLUMNS = ['project', 'file', 'title', 'durations'];
+
 export const TEST_RUNS_COLUMNS = [
   'pipeline_created_at',
   'pipeline_id',
@@ -130,6 +160,24 @@ const CHART_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const INFRASTRUCTURE_FAILURES_FILE = 'infrastructure-failures.csv';
 const TEST_RUNS_FILE = 'test-runs.csv';
+const PLAYWRIGHT_JOBS_FILE = 'playwright-jobs.csv';
+const TEST_DURATIONS_FILE = 'test-durations.csv';
+// The Playwright test timeout, from `timeout` in playwright.config.ts.
+const TEST_TIMEOUT_MS = 120_000;
+// The `list` reporter rounds durations, so `2.0m` can be slightly below the
+// timeout.
+const TIMED_OUT_MS = TEST_TIMEOUT_MS * 0.95;
+// The passing durations kept per test, newest last. Their median is the
+// test's usual duration.
+const DURATION_SAMPLES = 20;
+// A test's usual duration needs this many samples.
+const MIN_DURATION_SAMPLES = 3;
+// A job's slowdown needs this many tests with a usual duration.
+const MIN_SLOWDOWN_TESTS = 3;
+// Jobs at least this much slower than usual are listed as slow.
+const SLOW_JOB_FACTOR = 1.5;
+// Separates test titles in the `timed_out_tests` and `failed_tests` columns.
+const TITLE_SEPARATOR = ' | ';
 const REPORT_JOB_NAME = 'playwright-reports';
 const REPORT_ARTIFACT_PATH = 'test-results/playwright.json';
 // Failures caused by the job's own commands. Every other failure reason is
@@ -301,6 +349,123 @@ export function findTestsPassingOnJobRetry(summaries) {
     }
   }
   return [...recovered.values()];
+}
+
+// A result line of the `list` reporter, for example
+// `  ✘  18 [chromium] › tests/src/Playwright/tests/a.spec.ts:566:3 › Suite ›
+// Title (retry #1) (2.0m)`. GitLab may prefix each line with a timestamp.
+const LIST_RESULT_LINE =
+  /([✓✘])\s+\d+ \[([^\]]+)\] › (\S+?):(\d+):\d+ › (.+?)(?: \(retry #(\d+)\))? \((\d+(?:\.\d+)?)(ms|s|m|h)\)\s*$/;
+const DURATION_UNIT_MS = { ms: 1, s: 1000, m: 60_000, h: 3_600_000 };
+// The `list` reporter prints paths from the project root; the JSON report
+// prints them from the Playwright test directory.
+const TEST_DIRECTORY_PREFIX = 'tests/src/Playwright/';
+
+/**
+ * Reads the test results that the `list` reporter printed to a job log.
+ *
+ * @returns {Array<{passed: boolean, project: string, file: string, line: number, title: string, retry: number, durationMs: number}>}
+ *   One entry per attempt of each test, in log order.
+ */
+export function parseListResults(log) {
+  const results = [];
+  for (const line of stripAnsi(log).split('\n')) {
+    const match = line.match(LIST_RESULT_LINE);
+    if (!match) {
+      continue;
+    }
+    const [, mark, project, path, testLine, title, retry, amount, unit] =
+      match;
+    results.push({
+      passed: mark === '✓',
+      project,
+      file: path.startsWith(TEST_DIRECTORY_PREFIX)
+        ? path.slice(TEST_DIRECTORY_PREFIX.length)
+        : path,
+      line: Number(testLine),
+      title,
+      retry: Number(retry ?? 0),
+      durationMs: Math.round(Number(amount) * DURATION_UNIT_MS[unit]),
+    });
+  }
+  return results;
+}
+
+const testKey = (test) =>
+  `${test.project}\u0000${test.file}\u0000${test.title}`;
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/**
+ * Summarizes the test results of one Playwright job attempt.
+ *
+ * @param {Array<object>} results
+ *   The results from parseListResults().
+ * @param {Map<string, number[]>} durations
+ *   Recent passing durations in milliseconds per test, keyed by testKey().
+ *
+ * @returns {{results: number, slowdown: number|null, timedOutTests: string[], failedTests: string[]}}
+ *   - `slowdown`: the median, over the tests that passed on their first
+ *     attempt, of their duration divided by their usual duration. NULL when
+ *     too few tests have a usual duration.
+ *   - `timedOutTests`: tests with an attempt that hit the test timeout.
+ *   - `failedTests`: tests whose last attempt in the log failed.
+ */
+export function summarizeJobResults(results, durations) {
+  const ratios = [];
+  const timedOut = new Set();
+  const lastPassed = new Map();
+  for (const result of results) {
+    const key = testKey(result);
+    lastPassed.set(key, result);
+    if (!result.passed && result.durationMs >= TIMED_OUT_MS) {
+      timedOut.add(result.title);
+    }
+    const samples = durations.get(key) ?? [];
+    if (
+      result.passed &&
+      result.retry === 0 &&
+      samples.length >= MIN_DURATION_SAMPLES
+    ) {
+      ratios.push(result.durationMs / median(samples));
+    }
+  }
+  return {
+    results: results.length,
+    slowdown:
+      ratios.length >= MIN_SLOWDOWN_TESTS
+        ? Math.round(median(ratios) * 100) / 100
+        : null,
+    timedOutTests: [...timedOut],
+    failedTests: [...lastPassed.values()]
+      .filter((result) => !result.passed)
+      .map((result) => result.title),
+  };
+}
+
+/**
+ * Adds the durations of tests that passed on their first attempt to the
+ * recent durations per test, keeping the newest DURATION_SAMPLES.
+ */
+export function addDurations(durations, results) {
+  for (const result of results) {
+    if (!result.passed || result.retry !== 0) {
+      continue;
+    }
+    const key = testKey(result);
+    durations.set(
+      key,
+      [...(durations.get(key) ?? []), result.durationMs].slice(
+        -DURATION_SAMPLES,
+      ),
+    );
+  }
 }
 
 function stripAnsi(text) {
@@ -500,7 +665,12 @@ export function runnerLabel(row) {
   return `${row.runner_manager_system_id}${version}`;
 }
 
-function infrastructureFailuresSection(rows, scope) {
+function infrastructureFailuresSection(rows, scope, playwrightJobs = []) {
+  const slowdownByJob = new Map(
+    playwrightJobs
+      .filter((job) => job.slowdown !== '')
+      .map((job) => [String(job.job_id), job.slowdown]),
+  );
   const countTable = (heading, counts) => `<table>
 <thead><tr><th class="num">Jobs</th><th>${heading}</th></tr></thead>
 <tbody>
@@ -513,7 +683,7 @@ ${counts.map(([label, count]) => `<tr><td class="num">${count}</td><td>${escapeH
     .map(
       (row) => `<tr>
   <td><a href="${escapeHtml(row.job_url)}">${escapeHtml(row.job_created_at.slice(0, 16).replace('T', ' '))}</a></td>
-  <td><div>${escapeHtml(row.job_name)}</div><div class="muted">${escapeHtml(row.pipeline_ref)} · ${escapeHtml(row.failure_reason)} · ${escapeHtml(runnerLabel(row))}</div><div class="error">${escapeHtml(row.message)}</div></td>
+  <td><div>${escapeHtml(row.job_name)}</div><div class="muted">${escapeHtml(row.pipeline_ref)} · ${escapeHtml(row.failure_reason)} · ${escapeHtml(runnerLabel(row))}${slowdownByJob.has(String(row.job_id)) ? ` · ${formatSlowdown(slowdownByJob.get(String(row.job_id)))} slower than usual` : ''}</div><div class="error">${escapeHtml(row.message)}</div></td>
 </tr>`,
     )
     .join('\n');
@@ -544,6 +714,90 @@ ${recent}
 </tbody>
 </table>`
     : '<p>No infrastructure failures recorded.</p>'
+}`;
+}
+
+export function formatSlowdown(slowdown) {
+  return slowdown === '' || slowdown === null || slowdown === undefined
+    ? '–'
+    : `${Number(slowdown).toFixed(1)}×`;
+}
+
+const splitTitles = (value) => (value ? value.split(TITLE_SEPARATOR) : []);
+
+function playwrightJobsSection(rows, scope) {
+  const measured = rows.filter((row) => row.slowdown !== '');
+  const isSlow = (row) =>
+    row.slowdown !== '' && Number(row.slowdown) >= SLOW_JOB_FACTOR;
+  const byRunner = [...Map.groupBy(rows, runnerLabel)]
+    .map(([runner, jobs]) => {
+      const slowdowns = jobs
+        .filter((job) => job.slowdown !== '')
+        .map((job) => Number(job.slowdown));
+      return {
+        runner,
+        jobs: jobs.length,
+        slowdown: slowdowns.length ? median(slowdowns) : null,
+        slow: jobs.filter(isSlow).length,
+        timedOut: jobs.filter((job) => job.timed_out_tests).length,
+      };
+    })
+    .sort((a, b) => b.slow - a.slow || b.jobs - a.jobs);
+  const timedOutTests = [];
+  for (const row of rows) {
+    for (const title of splitTitles(row.timed_out_tests)) {
+      timedOutTests.push({ title, slow: isSlow(row) });
+    }
+  }
+  const byTimedOutTest = [...Map.groupBy(timedOutTests, (test) => test.title)]
+    .map(([title, tests]) => ({
+      title,
+      count: tests.length,
+      slow: tests.filter((test) => test.slow).length,
+    }))
+    .sort((a, b) => b.count - a.count);
+  const slowJobs = rows
+    .filter(isSlow)
+    .sort((a, b) => b.job_created_at.localeCompare(a.job_created_at))
+    .slice(0, 100)
+    .map(
+      (row) => `<tr>
+  <td><a href="${escapeHtml(row.job_url)}">${escapeHtml(row.job_created_at.slice(0, 16).replace('T', ' '))}</a></td>
+  <td class="num">${formatSlowdown(row.slowdown)}</td>
+  <td><div>${escapeHtml(row.job_name)}</div><div class="muted">${escapeHtml(describeRef(row.pipeline_ref))} · ${escapeHtml(row.status)}${row.failure_reason ? ` (${escapeHtml(row.failure_reason)})` : ''} · ${escapeHtml(runnerLabel(row))}</div>${splitTitles(row.timed_out_tests).map((title) => `<div class="error">Timed out: ${escapeHtml(title)}</div>`).join('')}${splitTitles(row.failed_tests).map((title) => `<div class="error">Failed: ${escapeHtml(title)}</div>`).join('')}</td>
+</tr>`,
+    )
+    .join('\n');
+  return `<h2>Playwright job speed</h2>
+<p class="muted">Every Playwright job attempt in pipelines of ${escapeHtml(scope)}, read from the test results in its log, so jobs killed before they wrote a report are included. <em>Slowdown</em> is the median, over the tests that passed on their first attempt, of the test's duration divided by its usual duration (the median of its last ${DURATION_SAMPLES} passing durations). A job at ${formatSlowdown(2)} took twice as long as usual. A test <em>timed out</em> when an attempt took the full test timeout of ${TEST_TIMEOUT_MS / 1000}s; on a slow runner, tests time out that pass on a normal runner. ${measured.length} of ${rows.length} job(s) have a slowdown. <a href="${PLAYWRIGHT_JOBS_FILE}">Download CSV</a> (one row per job attempt).</p>
+${
+  rows.length
+    ? `<div class="grid">
+<table>
+<thead><tr><th>Runner</th><th class="num">Jobs</th><th class="num">Median slowdown</th><th class="num">Slow jobs</th><th class="num">Jobs with timeouts</th></tr></thead>
+<tbody>
+${byRunner.map((runner) => `<tr><td>${escapeHtml(runner.runner)}</td><td class="num">${runner.jobs}</td><td class="num">${formatSlowdown(runner.slowdown)}</td><td class="num">${runner.slow}</td><td class="num">${runner.timedOut}</td></tr>`).join('\n')}
+</tbody>
+</table>
+<table>
+<thead><tr><th class="num">Times</th><th class="num">In slow jobs</th><th>Timed-out test</th></tr></thead>
+<tbody>
+${byTimedOutTest.length ? byTimedOutTest.map((test) => `<tr><td class="num">${test.count}</td><td class="num">${test.slow}</td><td>${escapeHtml(test.title)}</td></tr>`).join('\n') : '<tr><td colspan="3">No tests timed out.</td></tr>'}
+</tbody>
+</table>
+</div>
+<h3>Slow jobs (${formatSlowdown(SLOW_JOB_FACTOR)} or more), latest ${Math.min(rows.filter(isSlow).length, 100)}</h3>
+${
+  slowJobs
+    ? `<table>
+<thead><tr><th>Started</th><th class="num">Slowdown</th><th>Job</th></tr></thead>
+<tbody>
+${slowJobs}
+</tbody>
+</table>`
+    : '<p>No slow jobs recorded.</p>'
+}`
+    : '<p>No Playwright jobs recorded.</p>'
 }`;
 }
 
@@ -1020,7 +1274,13 @@ ${tableRows}
  * Renders the summary page for all records.
  */
 export function toHtml(
-  { flakyTests, testRuns, infrastructureFailures, mergedMergeRequests },
+  {
+    flakyTests,
+    testRuns,
+    infrastructureFailures,
+    mergedMergeRequests,
+    playwrightJobs = [],
+  },
   { generatedAt, scope },
 ) {
   return `<!doctype html>
@@ -1074,7 +1334,8 @@ ${chartSection(
   }),
 )}
 ${flakyTestsSection(flakyTests, testRuns, scope)}
-${infrastructureFailuresSection(infrastructureFailures, scope)}
+${infrastructureFailuresSection(infrastructureFailures, scope, playwrightJobs)}
+${playwrightJobsSection(playwrightJobs, scope)}
 </body>
 </html>
 `;
@@ -1203,6 +1464,16 @@ async function main(outputDirectory) {
   const scannedPipelines = new Map(
     previousScannedPipelines.map((row) => [row.pipeline_id, row.updated_at]),
   );
+  const previousPlaywrightJobs = await fetchPreviousRows(PLAYWRIGHT_JOBS_FILE);
+  const knownPlaywrightJobs = new Set(
+    previousPlaywrightJobs.map((row) => String(row.job_id)),
+  );
+  const durations = new Map(
+    (await fetchPreviousRows(TEST_DURATIONS_FILE)).map((row) => [
+      testKey(row),
+      row.durations.split(' ').filter(Boolean).map(Number),
+    ]),
+  );
   const flakyTestKey = (row) =>
     [row.pipeline_id, row.project, row.file, row.title].join('\u0000');
   const knownFlakyTests = new Set(previousFlakyTests.map(flakyTestKey));
@@ -1220,13 +1491,17 @@ async function main(outputDirectory) {
   const scope = 'all branches and merge requests';
   console.log(`Scanning pipelines updated since ${since}: ${scope}.`);
 
-  const pipelines = await paginate(
-    `${projectPath}/pipelines?updated_after=${encodeURIComponent(since)}`,
-  );
+  // Oldest first, so the usual test durations are built up in order.
+  const pipelines = (
+    await paginate(
+      `${projectPath}/pipelines?updated_after=${encodeURIComponent(since)}`,
+    )
+  ).sort((a, b) => a.id - b.id);
   console.log(`${pipelines.length} pipeline(s) to scan.`);
 
   const newFlakyTests = [];
   const newInfrastructureFailures = [];
+  const newPlaywrightJobs = [];
   const addFlakyTests = (pipeline, job, tests, detection) => {
     for (const test of tests) {
       const row = {
@@ -1253,7 +1528,12 @@ async function main(outputDirectory) {
   };
   let skipped = 0;
   for (const pipeline of pipelines) {
-    if (scannedPipelines.get(String(pipeline.id)) === pipeline.updated_at) {
+    // A record from before the Playwright jobs were recorded scans every
+    // pipeline once. The other records skip rows they already have.
+    if (
+      previousPlaywrightJobs.length &&
+      scannedPipelines.get(String(pipeline.id)) === pipeline.updated_at
+    ) {
       skipped++;
       continue;
     }
@@ -1346,6 +1626,46 @@ async function main(outputDirectory) {
       );
     }
 
+    // Each Playwright job attempt, including attempts killed by a timeout.
+    for (const job of jobs
+      .filter((candidate) => PLAYWRIGHT_JOB_NAME.test(candidate.name))
+      .sort((a, b) => a.id - b.id)) {
+      if (knownPlaywrightJobs.has(String(job.id))) {
+        continue;
+      }
+      const log = await fetchJobLog(job);
+      if (log === null) {
+        continue;
+      }
+      const results = parseListResults(log);
+      const summary = summarizeJobResults(results, durations);
+      // Measured before its own durations are added.
+      addDurations(durations, results);
+      knownPlaywrightJobs.add(String(job.id));
+      if (summary.slowdown !== null || summary.timedOutTests.length) {
+        console.log(
+          `Pipeline ${pipeline.id}: ${job.name} ran at ${formatSlowdown(summary.slowdown)} the usual test duration on runner manager ${job.runner_manager?.system_id ?? '(unknown)'}; ${summary.timedOutTests.length} test(s) timed out.`,
+        );
+      }
+      newPlaywrightJobs.push({
+        job_created_at: job.created_at,
+        pipeline_id: pipeline.id,
+        pipeline_ref: pipeline.ref,
+        pipeline_source: pipeline.source,
+        job_id: job.id,
+        job_name: job.name,
+        job_url: job.web_url,
+        status: job.status,
+        failure_reason: job.failure_reason ?? '',
+        runner_manager_system_id: job.runner_manager?.system_id ?? '',
+        runner_version: job.runner_manager?.version ?? '',
+        results: summary.results,
+        slowdown: summary.slowdown ?? '',
+        timed_out_tests: summary.timedOutTests.join(TITLE_SEPARATOR),
+        failed_tests: summary.failedTests.join(TITLE_SEPARATOR),
+      });
+    }
+
     if (FINISHED_PIPELINE_STATUSES.includes(pipeline.status)) {
       scannedPipelines.set(String(pipeline.id), pipeline.updated_at);
     }
@@ -1389,6 +1709,9 @@ async function main(outputDirectory) {
   const testRuns = [...testRunsByPipeline.values()].sort(
     byDate('pipeline_created_at'),
   );
+  const playwrightJobs = [...previousPlaywrightJobs, ...newPlaywrightJobs].sort(
+    byDate('job_created_at'),
+  );
 
   mkdirSync(outputDirectory, { recursive: true });
   // Pipelines last updated before the window are never listed again.
@@ -1417,13 +1740,33 @@ async function main(outputDirectory) {
     toCsv(INFRASTRUCTURE_FAILURES_COLUMNS, infrastructureFailures),
   );
   writeFileSync(
+    join(outputDirectory, PLAYWRIGHT_JOBS_FILE),
+    toCsv(PLAYWRIGHT_JOBS_COLUMNS, playwrightJobs),
+  );
+  writeFileSync(
+    join(outputDirectory, TEST_DURATIONS_FILE),
+    toCsv(
+      TEST_DURATIONS_COLUMNS,
+      [...durations].sort().map(([key, samples]) => {
+        const [project, file, title] = key.split('\u0000');
+        return { project, file, title, durations: samples.join(' ') };
+      }),
+    ),
+  );
+  writeFileSync(
     join(outputDirectory, MERGED_MERGE_REQUESTS_FILE),
     toCsv(MERGED_MERGE_REQUESTS_COLUMNS, mergedMergeRequests),
   );
   writeFileSync(
     join(outputDirectory, 'index.html'),
     toHtml(
-      { flakyTests, testRuns, infrastructureFailures, mergedMergeRequests },
+      {
+        flakyTests,
+        testRuns,
+        infrastructureFailures,
+        mergedMergeRequests,
+        playwrightJobs,
+      },
       { generatedAt: new Date().toISOString(), scope },
     ),
   );
@@ -1432,6 +1775,9 @@ async function main(outputDirectory) {
   );
   console.log(
     `Recorded ${newInfrastructureFailures.length} new infrastructure failure(s), ${infrastructureFailures.length} in total.`,
+  );
+  console.log(
+    `Recorded ${newPlaywrightJobs.length} new Playwright job attempt(s), ${playwrightJobs.length} in total.`,
   );
   console.log(
     `Recorded ${newMergedMergeRequests.length} new merged merge request(s), ${mergedMergeRequests.length} in total.`,

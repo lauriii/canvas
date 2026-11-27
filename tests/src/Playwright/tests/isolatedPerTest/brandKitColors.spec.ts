@@ -54,26 +54,14 @@ async function openColorPropPopover(
   await expect(page.locator(PROP.popover.open)).toBeVisible();
 }
 
-/**
- * Fills an input field and verifies the value was actually set.
- * Uses expect().toPass() for automatic retries if the value doesn't stick
- * (e.g., due to React controlled input timing issues).
- */
-async function fillInput(locator: Locator, value: string): Promise<void> {
-  await expect(async () => {
-    await locator.fill(value);
-    await expect(locator).toHaveValue(value, { timeout: 300 });
-  }).toPass({ timeout: 5000 });
-}
-
 async function setFreeformColor(
   page: Page,
   rgba: { r: number; g: number; b: number; a: number },
 ): Promise<void> {
-  await fillInput(page.locator(PROP.popover.rgba.r), String(rgba.r));
-  await fillInput(page.locator(PROP.popover.rgba.g), String(rgba.g));
-  await fillInput(page.locator(PROP.popover.rgba.b), String(rgba.b));
-  await fillInput(page.locator(PROP.popover.rgba.a), String(rgba.a));
+  await page.locator(PROP.popover.rgba.r).fill(String(rgba.r));
+  await page.locator(PROP.popover.rgba.g).fill(String(rgba.g));
+  await page.locator(PROP.popover.rgba.b).fill(String(rgba.b));
+  await page.locator(PROP.popover.rgba.a).fill(String(rgba.a));
   await page.keyboard.press('Escape');
 }
 
@@ -333,7 +321,7 @@ test.describe('brand kit colors', () => {
 
     await expect(page.locator(SEL.form.save)).toBeDisabled();
     // Confirm duplicate CSS variable prevention in edit mode.
-    await fillInput(page.locator(SEL.form.variable), 'brand-green');
+    await page.locator(SEL.form.variable).fill('brand-green');
     await expect(page.locator(SEL.form.save)).toBeEnabled();
     await page.locator(SEL.form.save).click();
     await expect(
@@ -344,7 +332,7 @@ test.describe('brand kit colors', () => {
     ).toContainText('already in use');
 
     // Set a unique variable name and continue editing.
-    await fillInput(page.locator(SEL.form.variable), 'brand-yellow');
+    await page.locator(SEL.form.variable).fill('brand-yellow');
     await expect(
       page.locator('[data-testid="color-variable-edit-info"]'),
     ).toBeVisible();
@@ -359,15 +347,15 @@ test.describe('brand kit colors', () => {
     // The CSS variable error should be hidden.
     await expect(page.locator('[data-testid="color-error-card"]')).toBeHidden();
     // Test validation: enter out-of-range RGB value should disable save
-    await fillInput(page.locator(SEL.form.rgba.r), '999');
+    await page.locator(SEL.form.rgba.r).fill('999');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Fix to valid value and continue
-    await fillInput(page.locator(SEL.form.rgba.r), '255');
+    await page.locator(SEL.form.rgba.r).fill('255');
     await expect(page.locator(SEL.form.save)).toBeEnabled();
 
-    await fillInput(page.locator(SEL.form.rgba.g), '255');
-    await fillInput(page.locator(SEL.form.rgba.b), '0');
+    await page.locator(SEL.form.rgba.g).fill('255');
+    await page.locator(SEL.form.rgba.b).fill('0');
     // Assert preview swatch updates to yellow before saving
     await expect(page.locator(SEL.form.prevSwatch)).toHaveAttribute(
       'style',
@@ -386,7 +374,7 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.menu.rename).click();
     await expect(page.locator(SEL.renameInput)).toBeVisible();
     await expect(page.locator(SEL.menu.rename)).toBeHidden();
-    await fillInput(page.locator(SEL.renameInput), 'Brand Yellow');
+    await page.locator(SEL.renameInput).fill('Brand Yellow');
     await page.locator(SEL.renameInput).press('Enter');
     await expect(page.locator(SEL.row('Brand Yellow'))).toBeVisible();
     await expect(page.locator(SEL.row('Brand Blue'))).toBeHidden();
@@ -396,7 +384,7 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.newFolderBtn).click();
     await expect(page.locator(SEL.folderNew.content)).toBeVisible();
     await expect(page.locator(SEL.newFolderBtn)).toBeHidden();
-    await fillInput(page.locator(SEL.folderNew.nameInput), 'Color Pocket');
+    await page.locator(SEL.folderNew.nameInput).fill('Color Pocket');
     await page.locator(SEL.folderNew.nameInput).press('Enter');
     await expect(page.locator(SEL.folder('Color Pocket'))).toBeVisible();
 
@@ -433,20 +421,24 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.folder('Color Pocket')).hover();
     await page.locator(SEL.folderMenuOpen('Color Pocket')).click();
     await page.locator(SEL.folderMenu.addColor).click();
-    await fillInput(page.locator(SEL.form.name), 'New Blue');
+    // Wait for the folder menu to finish closing. While it animates out, a
+    // pointerleave on its item under the mouse makes Radix focus the menu,
+    // which blurs (and so resets) a numeric color input filled meanwhile.
+    await expect(page.getByRole('menu')).toBeHidden();
+    await page.locator(SEL.form.name).fill('New Blue');
 
     // Test validation: negative alpha value should disable save
-    await fillInput(page.locator(SEL.form.rgba.a), '-0.5');
+    await page.locator(SEL.form.rgba.a).fill('-0.5');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Fix alpha and continue with blue color
-    await fillInput(page.locator(SEL.form.rgba.a), '1');
+    await page.locator(SEL.form.rgba.a).fill('1');
     await expect(page.locator(SEL.form.save)).toBeEnabled();
 
     // Enter blue in RGBA (starting mode assumed to be RGBA)
-    await fillInput(page.locator(SEL.form.rgba.r), '0');
-    await fillInput(page.locator(SEL.form.rgba.g), '0');
-    await fillInput(page.locator(SEL.form.rgba.b), '255');
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('0');
+    await page.locator(SEL.form.rgba.b).fill('255');
 
     // Before saving, switch color modes and assert values translate correctly
     // Switch RGBA → HSLA.
@@ -456,11 +448,11 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(SEL.form.hsla.l)).toHaveValue('50');
 
     // Test HSLA validation: out-of-range hue should disable save
-    await fillInput(page.locator(SEL.form.hsla.h), '500');
+    await page.locator(SEL.form.hsla.h).fill('500');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Fix back to valid hue
-    await fillInput(page.locator(SEL.form.hsla.h), '240');
+    await page.locator(SEL.form.hsla.h).fill('240');
     await expect(page.locator(SEL.form.save)).toBeEnabled();
 
     // Switch HSLA → HEX.
@@ -469,35 +461,25 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(SEL.form.save)).toBeEnabled();
 
     // Test HEX validation: invalid characters should disable save
-    await expect(async () => {
-      await page.locator(SEL.form.hex).click();
-      await page.keyboard.press('ControlOrMeta+A');
-      await page
-        .locator(SEL.form.hex)
-        .pressSequentially('GGGGGG', { delay: 15 });
-      await expect(page.locator(SEL.form.hex)).toHaveValue('GGGGGG', {
-        timeout: 300,
-      });
-    }).toPass({ timeout: 5000 });
+    await page.locator(SEL.form.hex).click();
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.locator(SEL.form.hex).pressSequentially('GGGGGG', { delay: 15 });
+    await expect(page.locator(SEL.form.hex)).toHaveValue('GGGGGG');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Test HEX validation: too short should disable save
-    await expect(async () => {
-      await page.locator(SEL.form.hex).click();
-      await page.keyboard.press('ControlOrMeta+A');
-      await page.locator(SEL.form.hex).pressSequentially('FFF', { delay: 15 });
-      await expect(page.locator(SEL.form.hex)).toHaveValue('FFF', {
-        timeout: 300,
-      });
-    }).toPass({ timeout: 5000 });
+    await page.locator(SEL.form.hex).click();
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.locator(SEL.form.hex).pressSequentially('FFF', { delay: 15 });
+    await expect(page.locator(SEL.form.hex)).toHaveValue('FFF');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Fix to valid hex
-    await fillInput(page.locator(SEL.form.hex), '0000FF');
+    await page.locator(SEL.form.hex).fill('0000FF');
     await expect(page.locator(SEL.form.save)).toBeEnabled();
 
     await page.locator(SEL.form.switchModeFrom('hex')).click();
-    await fillInput(page.locator(SEL.form.rgba.a), '0.9');
+    await page.locator(SEL.form.rgba.a).fill('0.9');
 
     await page.locator(SEL.form.switchFmt).click();
     await expect(page.locator(SEL.form.hsla.h)).toHaveValue('240');
@@ -521,7 +503,7 @@ test.describe('brand kit colors', () => {
     // Add a new color via newBtn with an existing name, confirm validation.
     await page.locator(SEL.newBtn).click();
     await page.locator(SEL.newColorBtn).click();
-    await fillInput(page.locator(SEL.form.name), 'Brand Red');
+    await page.locator(SEL.form.name).fill('Brand Red');
     await page.locator(SEL.form.save).click();
     await expect(page.locator(SEL.form.errorCard)).toBeVisible();
     await expect(page.locator(SEL.form.name)).toBeVisible();
@@ -544,11 +526,11 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.folder('Color Pocket')).hover();
     await page.locator(SEL.folderMenuOpen('Color Pocket')).click();
     await page.locator(SEL.folderMenu.addColor).click();
-    await fillInput(page.locator(SEL.form.name), 'Pocket Cyan');
-    await fillInput(page.locator(SEL.form.rgba.r), '0');
-    await fillInput(page.locator(SEL.form.rgba.g), '255');
-    await fillInput(page.locator(SEL.form.rgba.b), '255');
-    await fillInput(page.locator(SEL.form.rgba.a), '1');
+    await page.locator(SEL.form.name).fill('Pocket Cyan');
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('255');
+    await page.locator(SEL.form.rgba.b).fill('255');
+    await page.locator(SEL.form.rgba.a).fill('1');
     await page.locator(SEL.form.save).click();
     await expect(
       page.locator(SEL.folderRow('Color Pocket', 'Pocket Cyan')),
@@ -558,30 +540,30 @@ test.describe('brand kit colors', () => {
     // Add a new color via newBtn, call it "Groovy Gray", make it gray.
     await page.locator(SEL.newBtn).click();
     await page.locator(SEL.newColorBtn).click();
-    await fillInput(page.locator(SEL.form.name), 'Groovy Gray');
+    await page.locator(SEL.form.name).fill('Groovy Gray');
 
     // Test additional validation scenarios on this new color
     // Start in RGBA, set initial values
-    await fillInput(page.locator(SEL.form.rgba.r), '128');
-    await fillInput(page.locator(SEL.form.rgba.g), '128');
-    await fillInput(page.locator(SEL.form.rgba.b), '128');
+    await page.locator(SEL.form.rgba.r).fill('128');
+    await page.locator(SEL.form.rgba.g).fill('128');
+    await page.locator(SEL.form.rgba.b).fill('128');
 
     // Switch to HSLA and test validation (RGBA → HSLA)
     await page.locator(SEL.form.switchFmt).click();
     await expect(page.locator(SEL.form.hsla.h)).toBeVisible();
 
     // Test saturation > 100 disables save
-    await fillInput(page.locator(SEL.form.hsla.s), '150');
+    await page.locator(SEL.form.hsla.s).fill('150');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Test lightness > 100 disables save
     // Fix saturation first
-    await fillInput(page.locator(SEL.form.hsla.s), '0');
-    await fillInput(page.locator(SEL.form.hsla.l), '200');
+    await page.locator(SEL.form.hsla.s).fill('0');
+    await page.locator(SEL.form.hsla.l).fill('200');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Fix lightness to valid value and save
-    await fillInput(page.locator(SEL.form.hsla.l), '50');
+    await page.locator(SEL.form.hsla.l).fill('50');
     await expect(page.locator(SEL.form.save)).toBeEnabled();
     await page.locator(SEL.form.save).click();
     // Confirm it appears in the top-level list (not inside any folder)
@@ -793,10 +775,10 @@ test.describe('brand kit colors', () => {
     // swatch and the preview should update in real time without a page refresh.
     await canvas.openBrandKitPanel();
     await page.locator(SEL.row('Father Christmas')).click();
-    await fillInput(page.locator(SEL.form.rgba.r), '0');
-    await fillInput(page.locator(SEL.form.rgba.g), '0');
-    await fillInput(page.locator(SEL.form.rgba.b), '128');
-    await fillInput(page.locator(SEL.form.rgba.a), '1');
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('0');
+    await page.locator(SEL.form.rgba.b).fill('128');
+    await page.locator(SEL.form.rgba.a).fill('1');
     await page.locator(SEL.form.save).click();
     await expect(
       page.locator(SEL.rowSwatch('Father Christmas')),
@@ -864,7 +846,7 @@ test.describe('brand kit colors', () => {
       .click();
     const patternNameInput = page.locator('#patternName');
     await expect(patternNameInput).toBeVisible();
-    await fillInput(patternNameInput, 'Brand Red Pattern');
+    await patternNameInput.fill('Brand Red Pattern');
     await page.getByRole('button', { name: 'Add to library' }).click();
     await expect(page.getByText('Add new pattern')).toBeHidden();
     await canvas.openBrandKitPanel();
@@ -912,6 +894,11 @@ test.describe('brand kit colors', () => {
     await patternsTab.getByText('Brand Red Pattern').click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Edit pattern' }).click();
     await expect(page).toHaveURL(/\/canvas\/pattern\//);
+    // The URL changes before the editor loads the pattern. Wait for the top
+    // bar to show it, so the steps below act on the pattern, not the page.
+    await expect(page.getByTestId('canvas-navigation-button')).toContainText(
+      'Brand Red Pattern',
+    );
     await canvas.clickPreviewComponent(
       'js.canvas_test_code_components_color_three_colors',
     );
@@ -977,9 +964,9 @@ test.describe('brand kit colors', () => {
     // Edit "Brand Red" to pure blue (0, 0, 255).
     await page.locator(SEL.row('Brand Red')).click();
     await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
-    await fillInput(page.locator(SEL.form.rgba.r), '0');
-    await fillInput(page.locator(SEL.form.rgba.g), '0');
-    await fillInput(page.locator(SEL.form.rgba.b), '255');
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('0');
+    await page.locator(SEL.form.rgba.b).fill('255');
     await page.locator(SEL.form.save).click();
 
     // This verifies the optimistic UI update by checking that the new color
@@ -1018,10 +1005,10 @@ test.describe('brand kit colors', () => {
 
     await page.locator(SEL.newBtn).click();
     await page.locator(SEL.newColorBtn).click();
-    await fillInput(page.locator(SEL.form.name), 'Impatient Amber');
-    await fillInput(page.locator(SEL.form.rgba.r), '255');
-    await fillInput(page.locator(SEL.form.rgba.g), '191');
-    await fillInput(page.locator(SEL.form.rgba.b), '0');
+    await page.locator(SEL.form.name).fill('Impatient Amber');
+    await page.locator(SEL.form.rgba.r).fill('255');
+    await page.locator(SEL.form.rgba.g).fill('191');
+    await page.locator(SEL.form.rgba.b).fill('0');
     await page.locator(SEL.form.save).click();
 
     // The row is in the list while the request is still open, and the form has
@@ -1066,9 +1053,9 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.row('Brand Green')).click();
     // Brand Green is stored in the HSL color space, so its form opens in HSLA.
     await expect(page.locator(SEL.form.hsla.h)).toBeVisible();
-    await fillInput(page.locator(SEL.form.hsla.h), '300');
-    await fillInput(page.locator(SEL.form.hsla.s), '100');
-    await fillInput(page.locator(SEL.form.hsla.l), '50');
+    await page.locator(SEL.form.hsla.h).fill('300');
+    await page.locator(SEL.form.hsla.s).fill('100');
+    await page.locator(SEL.form.hsla.l).fill('50');
     await page.locator(SEL.form.save).click();
 
     // The rejected value must not survive anywhere in the UI.
