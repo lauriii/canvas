@@ -1,0 +1,157 @@
+/* The popover anchor is an empty inline element next to the prop's linker
+   icon; it must not affect the label layout. */
+.anchor {
+  width: 0;
+  height: 0;
+}
+
+/* Floating panel container, matching the multivalue prop popover styling
+   (see DrupalInputMultivalueForm.module.css .popoverContent). */
+.panel {
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  max-width: calc(100vw - 24px);
+  max-height: min(70vh, 640px);
+  padding: 8px;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: var(--shadow-4);
+  gap: 4px;
+}
+
+.panelHeader {
+  margin-bottom: var(--space-1);
+}
+
+.panelLabel {
+  color: var(--gray-11);
+}
+
+/* Long chains scroll inside the panel while the header, preview row, and
+   footer stay visible. */
+.scrollArea {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.step {
+  margin-block-end: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-2);
+}
+
+.stepHeader {
+  margin-block-end: var(--space-2);
+}
+
+.slotRow {
+  margin-block-end: var(--space-2);
+
+  &:last-child {
+    margin-block-end: 0;
+  }
+}
+
+.requiredIndicator {
+  color: var(--red-9);
+}
+
+/* Field-candidate picker trigger: a full-width button styled like a select
+   trigger, opening the nested field menu. */
+.fieldTrigger {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.fieldTriggerText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fieldTriggerPlaceholder .fieldTriggerText {
+  color: var(--gray-a10);
+}
+
+.fieldTriggerIcon {
+  flex-shrink: 0;
+  color: var(--gray-9);
+}
+
+/* Combine pill editor: an input-like box holding inline text runs and field
+   pills. */
+.combineEditor {
+  margin-block-start: var(--space-1);
+}
+
+.combineParts {
+  min-height: var(--space-6);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  background-color: white;
+}
+
+.combineTextInput {
+  min-width: 1ch;
+  padding: 2px 0;
+  color: inherit;
+  border: none;
+  background: transparent;
+  font: inherit;
+
+  /* Hug the typed text exactly; the size attribute (an average-character
+     estimate that renders too wide) is only the fallback for browsers
+     without field-sizing support. */
+  field-sizing: content;
+
+  &:focus {
+    outline: none;
+  }
+
+  /* The empty editor shows a full-length placeholder; without this the
+     2-character size attribute clips it. */
+  &:placeholder-shown {
+    width: 100%;
+  }
+}
+
+.combinePill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-1);
+  color: var(--blue-11);
+  border-radius: var(--radius-2);
+  background-color: var(--blue-3);
+  font-size: var(--font-size-1);
+  gap: 2px;
+}
+
+.combinePillRemove {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  border: none;
+  background: transparent;
+
+  &:focus-visible {
+    outline: 1px solid var(--blue-9);
+  }
+}
+
+.previewRow {
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-2);
+  border-top: 1px solid var(--gray-4);
+}
+
+.previewValue {
+  overflow-wrap: anywhere;
+}

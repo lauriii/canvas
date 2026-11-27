@@ -25,6 +25,7 @@ import type { ExposedSlotServerDefinition } from '@/features/layout/exposedSlots
 import type {
   ExposedSlotDefinition,
   PerContentTemplateInfo,
+  PropSource,
   RootLayoutModel,
   SlotDefaultContent,
   SlotOverrideState,
@@ -137,6 +138,12 @@ export type PreviewContentEntity = {
 
 export type PreviewContentEntitiesResponse = {
   [key: string]: PreviewContentEntity;
+};
+
+export type PropSourcePreviewResponse = {
+  // The evaluated value. Its type depends on the prop source and the targeted
+  // prop shape.
+  value: unknown;
 };
 
 export type ComponentUsageListResponse = {
@@ -870,6 +877,20 @@ export const componentAndLayoutApi = createApi({
         { type: 'PreviewContentEntities', id: `${entityTypeId}-${bundle}` },
       ],
     }),
+    // Evaluates a candidate prop source (typically an adapted one being
+    // configured in the adapter panel) against a host entity, for live
+    // preview. Responds 422 with `{ errors: string[] }` when the source
+    // cannot be evaluated.
+    previewPropSource: builder.mutation<
+      PropSourcePreviewResponse,
+      { entityTypeId: string; entityId: string; source: PropSource }
+    >({
+      query: ({ entityTypeId, entityId, source }) => ({
+        url: `canvas/api/v0/ui/content_template/prop-source-preview/${entityTypeId}/${entityId}`,
+        method: 'POST',
+        body: { source },
+      }),
+    }),
   }),
 });
 
@@ -902,6 +923,7 @@ export const {
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,
+  usePreviewPropSourceMutation,
   useDeletePageTranslationMutation,
   useGetPreviewAssetsQuery,
 } = componentAndLayoutApi;

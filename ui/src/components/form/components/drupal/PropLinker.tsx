@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { CheckIcon, Link1Icon, LinkNone1Icon } from '@radix-ui/react-icons';
 import { DropdownMenu, Separator } from '@radix-ui/themes';
@@ -10,11 +10,28 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 
+import AdapterConfigPanel from './AdapterConfigPanel';
+import {
+  BRIDGING_ADAPTER_IDS,
+  createStep,
+  createStepWithPrimaryField,
+  getPrimaryInputName,
+  sourceToSteps,
+} from './adapterSource';
+import CandidateTreeMenuItems from './CandidateTreeMenu';
+
 import type {
   BasePropSource,
   ComponentModel,
   EvaluatedComponentModel,
+  PropSource,
 } from '@/features/layout/layoutModelSlice';
+import type {
+  AdapterDefinition,
+  AdapterStep,
+  AdapterSuggestion,
+  SlotCandidate,
+} from './adapterSource';
 
 import styles from './PropLinker.module.css';
 
@@ -23,6 +40,9 @@ export interface LinkSuggestion {
   label: string;
   source?: any;
   items?: LinkSuggestion[];
+  // Present on transform suggestions produced by the adapter suggester; such
+  // items have no `source`.
+  adapter?: AdapterDefinition;
 }
 
 export interface PropLinkerProps {
@@ -52,10 +72,93 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
   const dispatch = useAppDispatch();
   const selectedModel: ComponentModel | EvaluatedComponentModel | boolean =
     model?.[selectedComponentId] || false;
+  const [linkerOpen, setLinkerOpen] = useState(false);
+  const [adapterPanelOpen, setAdapterPanelOpen] = useState(false);
+  const [adapterInitialSteps, setAdapterInitialSteps] = useState<AdapterStep[]>(
+    [],
+  );
+  // Transform suggestions carry an `adapter` key instead of `source`; they
+  // are kept out of the field list and rendered in their own section.
+  const fieldSuggestions = useMemo(
+    () => suggestions.filter((item) => !item.adapter),
+    [suggestions],
+  );
+  const adapterSuggestions = useMemo(
+    () =>
+      suggestions.filter(
+        (item): item is LinkSuggestion & AdapterSuggestion => !!item.adapter,
+      ),
+    [suggestions],
+  );
+  // Inline "transform-enabled" field groups: for each curated bridging adapter
+  // that is present, offer its primary input's shape-matched fields directly.
+  // Picking a field opens the panel pre-bound to that field so the user only
+  // fills the adapter's remaining required inputs (e.g. a fallback default).
+  const bridgingGroups = useMemo(
+    () =>
+      BRIDGING_ADAPTER_IDS.reduce<
+        Array<{ suggestion: AdapterSuggestion; candidates: SlotCandidate[] }>
+      >((acc, adapterId) => {
+        const suggestion = adapterSuggestions.find(
+          (item) => item.adapter.id === adapterId,
+        );
+        if (!suggestion) {
+          return acc;
+        }
+        const primary = getPrimaryInputName(suggestion.adapter);
+        const primarySlot = suggestion.adapter.inputs.find(
+          (input) => input.name === primary,
+        );
+        const candidates = primarySlot?.candidates ?? [];
+        if (candidates.length === 0) {
+          return acc;
+        }
+        acc.push({ suggestion, candidates });
+        return acc;
+      }, []),
+    [adapterSuggestions],
+  );
+  // Bridging candidates are listed inline with the direct field matches:
+  // they are ordinary fields the user recognizes, and picking one opens the
+  // panel to collect only the adapter's remaining inputs (a fallback
+  // default, a date format). Deduplicated against the direct matches and
+  // across the bridging adapters so a field is never listed twice.
+  const inlineBridgingGroups = useMemo(() => {
+    const seen = new Set<string>();
+    const walk = (items: LinkSuggestion[]) => {
+      items.forEach((item) => {
+        if (item.source) {
+          seen.add(JSON.stringify(item.source));
+        }
+        if (item.items) {
+          walk(item.items);
+        }
+      });
+    };
+    walk(fieldSuggestions);
+    return bridgingGroups.map(({ suggestion, candidates }) => ({
+      suggestion,
+      candidates: candidates.filter((candidate) => {
+        const key = JSON.stringify(candidate.source);
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      }),
+    }));
+  }, [bridgingGroups, fieldSuggestions]);
+  // When the prop is already linked to an adapter source, unwrap it so the
+  // panel can be re-opened pre-filled via the "Edit transform" item.
+  const currentAdapterSteps = useMemo(() => {
+    if (!selectedModel || !isEvaluatedComponentModel(selectedModel)) {
+      return null;
+    }
+    return sourceToSteps(selectedModel.source?.[propName], adapterSuggestions);
+  }, [selectedModel, propName, adapterSuggestions]);
   if (!selectedModel) {
     return null;
   }
-  const [linkerOpen, setLinkerOpen] = useState(false);
   const handleFieldClick = (value: LinkSuggestion) => {
     dispatch(
       _linkPropToEntityValue({
@@ -65,6 +168,33 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
         inputUIData,
       }),
     );
+  };
+  // TRICKY: the panel is a popover opened from a dropdown menu item.
+  // Opening it synchronously loses a race: the closing menu's dismissal
+  // events land on the freshly mounted popover and immediately close it.
+  // Defer the open until the menu teardown has completed.
+  const openAdapterPanel = (steps: AdapterStep[]) => {
+    setAdapterInitialSteps(steps);
+    window.setTimeout(() => setAdapterPanelOpen(true), 150);
+  };
+  const handleTransformClick = (suggestion: AdapterSuggestion) => {
+    openAdapterPanel([createStep(suggestion)]);
+  };
+  const handleEditTransformClick = () => {
+    if (currentAdapterSteps) {
+      openAdapterPanel(currentAdapterSteps);
+    }
+  };
+  const handleAdapterApply = (newSource: PropSource) => {
+    dispatch(
+      _linkPropToEntityValue({
+        componentToUpdateId: selectedComponentId,
+        propName,
+        newSource,
+        inputUIData,
+      }),
+    );
+    setAdapterPanelOpen(false);
   };
 
   let selectedSourceAsString = '';
@@ -167,7 +297,7 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
 
   // Flatten the suggestions to a list of linkable items with their full path as
   // the label for testing purposes.
-  const flatSuggestions = suggestions
+  const flatSuggestions = fieldSuggestions
     .reduce((acc: LinkSuggestion[], suggestion) => {
       const addSuggestionWithPath = (
         item: LinkSuggestion,
@@ -200,43 +330,93 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
     .map((item) => item.label);
 
   return (
-    <DropdownMenu.Root onOpenChange={(open) => setLinkerOpen(open)}>
-      <DropdownMenu.Trigger>
-        <button
-          className={clsx(styles.linker, {
-            [styles.linkerOpen]: linkerOpen,
-          })}
-          aria-label={`Link ${propName} to an other field`}
-          data-canvas-link-suggestions={JSON.stringify(flatSuggestions)}
-        >
-          {linked && <Link1Icon className={styles.default} />}
-          {!linked && <LinkNone1Icon className={styles.default} />}
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content align="end" side="bottom">
-        {suggestions.map((suggestion, index) => {
-          if (suggestion.items && suggestion.items.length > 0) {
+    <>
+      <DropdownMenu.Root onOpenChange={(open) => setLinkerOpen(open)}>
+        <DropdownMenu.Trigger>
+          <button
+            className={clsx(styles.linker, {
+              [styles.linkerOpen]: linkerOpen,
+            })}
+            aria-label={`Link ${propName} to an other field`}
+            data-canvas-link-suggestions={JSON.stringify(flatSuggestions)}
+          >
+            {linked && <Link1Icon className={styles.default} />}
+            {!linked && <LinkNone1Icon className={styles.default} />}
+          </button>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="end" side="bottom">
+          {fieldSuggestions.map((suggestion, index) => {
+            if (suggestion.items && suggestion.items.length > 0) {
+              return (
+                <NestedDropdownItem
+                  key={suggestion.id || index}
+                  item={suggestion}
+                  parent={'root'}
+                />
+              );
+            }
+            const isActive =
+              JSON.stringify(suggestion.source) === selectedSourceAsString;
             return (
-              <NestedDropdownItem
-                key={suggestion.id || index}
+              <DropdownMenuItem
+                key={suggestion.id}
                 item={suggestion}
-                parent={'root'}
+                isActive={isActive}
+                childOf="root"
               />
             );
-          }
-          const isActive =
-            JSON.stringify(suggestion.source) === selectedSourceAsString;
-          return (
-            <DropdownMenuItem
-              key={suggestion.id}
-              item={suggestion}
-              isActive={isActive}
-              childOf="root"
+          })}
+          {inlineBridgingGroups.map(({ suggestion, candidates }) => (
+            <CandidateTreeMenuItems
+              key={suggestion.adapter.id}
+              candidates={candidates}
+              onSelect={(candidate) =>
+                openAdapterPanel([
+                  createStepWithPrimaryField(suggestion, candidate),
+                ])
+              }
             />
-          );
-        })}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+          ))}
+          {adapterSuggestions.length > 0 && (
+            <>
+              <DropdownMenu.Separator />
+              {currentAdapterSteps && (
+                <DropdownMenu.Item
+                  data-testid={`edit-transform-${propName}`}
+                  onClick={handleEditTransformClick}
+                >
+                  Edit transform
+                </DropdownMenu.Item>
+              )}
+              <DropdownMenu.Sub>
+                <DropdownMenu.SubTrigger data-transform-menu={propName}>
+                  Transform
+                </DropdownMenu.SubTrigger>
+                <DropdownMenu.SubContent>
+                  {adapterSuggestions.map((suggestion, index) => (
+                    <DropdownMenu.Item
+                      key={suggestion.id || index}
+                      data-transform-option={suggestion.adapter.id}
+                      onClick={() => handleTransformClick(suggestion)}
+                    >
+                      {suggestion.label}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.SubContent>
+              </DropdownMenu.Sub>
+            </>
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
+      <AdapterConfigPanel
+        open={adapterPanelOpen}
+        onOpenChange={setAdapterPanelOpen}
+        propName={propName}
+        initialSteps={adapterInitialSteps}
+        adapterSuggestions={adapterSuggestions}
+        onApply={handleAdapterApply}
+      />
+    </>
   );
 };
 
