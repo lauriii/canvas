@@ -464,7 +464,12 @@ test.describe('Templates - General', () => {
     const templateMenu = page.getByRole('menu');
     await expect(templateMenu).toBeVisible();
     await expect(templateMenu.getByText('Page template')).toHaveCount(0);
-    await page.keyboard.press('Escape');
+    // An Escape pressed while the menu is still opening can be missed, and the
+    // open menu then blocks clicks on the rest of the page.
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await expect(templateMenu).toBeHidden({ timeout: 1000 });
+    }).toPass();
 
     // Navigate to the teaser template
     await teaserTemplate.click();

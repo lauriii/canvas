@@ -78,4 +78,45 @@ describe('IframeSwapper', () => {
     await waitFor(() => expect(activeFrame().srcdoc).toContain('newer'));
     expect(setIsReloading).toHaveBeenLastCalledWith(false);
   });
+
+  it('keeps the newest document when an iframe loads twice before swapping', async () => {
+    const store = makeStore();
+    store.dispatch(setHtml(page('initial'), previewEditCount()));
+    const { container } = render(
+      <Provider store={store}>
+        <Swapper />
+      </Provider>,
+    );
+    const activeFrame = () =>
+      container.querySelector<HTMLIFrameElement>(
+        'iframe[data-canvas-swap-active="true"]',
+      )!;
+    await waitFor(() => expect(setIsReloading).toHaveBeenLastCalledWith(false));
+
+    act(() => {
+      store.dispatch(setHtml(page('stale'), previewEditCount()));
+    });
+    const loadingFrame = container.querySelector<HTMLIFrameElement>(
+      'iframe[data-canvas-swap-active="false"]',
+    )!;
+    expect(loadingFrame.srcdoc).toContain('stale');
+
+    // The stale document loads, and the fresh one arrives before the swap
+    // that load scheduled has happened. It loads into the same iframe.
+    act(() => {
+      loadingFrame.dispatchEvent(new Event('load'));
+      store.dispatch(setHtml(page('fresh'), previewEditCount()));
+    });
+    expect(loadingFrame.srcdoc).toContain('fresh');
+    act(() => {
+      loadingFrame.dispatchEvent(new Event('load'));
+    });
+
+    await waitFor(() => expect(activeFrame()).toBe(loadingFrame));
+    // Let any swap still scheduled run, then check nothing swapped back.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    expect(activeFrame()).toBe(loadingFrame);
+    expect(activeFrame().srcdoc).toContain('fresh');
+    expect(activeFrame().dataset.testCanvasContentInitialized).toBe('true');
+  });
 });
