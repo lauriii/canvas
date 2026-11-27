@@ -1688,7 +1688,11 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
         '⿲sdc_test_all_props:all-props␟test_object_drupal_document' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
-          PropSource::Adapter->value => [],
+          PropSource::Adapter->value => [
+            'contains',
+            'equals',
+            'mapping',
+          ],
           PropSource::HostEntityUrl->value => [],
           PropSource::HostEntity->value => [],
         ],

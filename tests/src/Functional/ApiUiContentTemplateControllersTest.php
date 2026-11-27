@@ -339,7 +339,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
    */
   public function testPreviewPropSource(): void {
     $two_days_ago = \time() - 2 * 86400 - 60;
-    $node = $this->container->get('entity_type.manager')->getStorage('node')->create([
+    $node = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node')->create([
       'type' => 'article',
       'title' => 'Hello world',
       'created' => $two_days_ago,

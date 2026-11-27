@@ -8,12 +8,12 @@ Evaluation happens server-side through the regular prop source evaluation path
 (`PropSource::parse()->evaluate()`), and the result carries the merged
 cacheability metadata of every input.
 
-Because adapted prop sources serialize into component tree `inputs`, which live
-in exportable config entities (content templates, patterns, pages, page
-regions, page variants), adapter configuration deploys through standard
-configuration synchronization with no additional steps.
+Adapted prop sources serialize into component tree `inputs`. They are allowed
+only in the component trees of content templates, which are exportable config
+entities: adapter configuration deploys through standard configuration
+synchronization with no additional steps.
 
-See [ADR 0020](adr/0020-component-prop-adapters.md) for the decision record and
+See [ADR 0025](adr/0025-component-prop-adapters.md) for the decision record and
 [shape-matching](shape-matching.md) for how prop sources are matched to prop
 shapes in general.
 

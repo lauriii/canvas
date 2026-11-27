@@ -69,7 +69,7 @@ final class FormatDateAdapter extends AdapterBase implements ContainerFactoryPlu
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('date.formatter'),
+      $container->get(DateFormatterInterface::class),
       $container->get(EntityTypeManagerInterface::class),
       $container->get(TimeInterface::class),
     );

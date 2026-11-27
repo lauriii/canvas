@@ -1,4 +1,4 @@
-# 20. Component prop adapters: expose the dormant adapter layer via parametric matching and server-evaluated preview
+# 25. Component prop adapters: expose the dormant adapter layer via parametric matching and server-evaluated preview
 
 Date: 2026-07-17
 

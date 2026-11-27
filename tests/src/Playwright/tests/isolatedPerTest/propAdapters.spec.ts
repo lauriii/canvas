@@ -116,7 +116,6 @@ test.describe('Prop adapters', () => {
     drupal,
     canvas,
   }) => {
-    test.slow();
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvasRoot();
     await canvas.openTemplatesPanel();
@@ -153,7 +152,7 @@ test.describe('Prop adapters', () => {
     await expect(panel).toBeHidden();
 
     await expect(page.getByTestId('linked-field-label-heading')).toContainText(
-      'Combine',
+      'Compose text',
     );
     // The editor preview re-renders with the combined value. (The full
     // publish-and-render pipeline is already covered by the Equals test.)

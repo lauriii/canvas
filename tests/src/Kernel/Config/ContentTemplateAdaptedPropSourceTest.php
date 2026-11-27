@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -152,7 +153,7 @@ final class ContentTemplateAdaptedPropSourceTest extends CanvasKernelTestBase {
 
     // Config export/import round trip: re-creating the template from its raw
     // (exportable) config data produces identical rendering.
-    $raw_config = $this->container->get('config.storage')->read('canvas.content_template.node.article.full');
+    $raw_config = $this->container->get(StorageCacheInterface::class)->read('canvas.content_template.node.article.full');
     self::assertIsArray($raw_config);
     // The adapted prop sources survive serialization into config verbatim.
     // (Exported component trees are keyed by component instance UUID.)
