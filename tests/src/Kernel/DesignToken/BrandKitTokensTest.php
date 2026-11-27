@@ -17,6 +17,7 @@ use Drupal\canvas\Plugin\ConfigAction\DesignTokenValue;
 use Drupal\canvas\Utility\ColorResolver;
 use Drupal\Core\Cache\CacheTagsChecksumInterface;
 use Drupal\Core\Config\Action\ConfigActionException;
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Theme\Entity\DesignToken;
@@ -312,7 +313,7 @@ final class BrandKitTokensTest extends CanvasKernelTestBase {
       ],
     ]));
     $request->headers->set('Content-Type', 'application/json');
-    $controller = $this->container->get('class_resolver')->getInstanceFromDefinition(ApiStagedConfigUpdateAutoSaveController::class);
+    $controller = $this->container->get(ClassResolverInterface::class)->getInstanceFromDefinition(ApiStagedConfigUpdateAutoSaveController::class);
     $response = $controller->post($request);
     self::assertInstanceOf(JsonResponse::class, $response);
     self::assertSame(200, $response->getStatusCode());

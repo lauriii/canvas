@@ -404,6 +404,34 @@ paths:
                       - No auto-save data found for this entity.
         '413':
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/brand-kit/design-tokens/disable:
+    post:
+      summary: Turns the theme style guide off. Overrides are kept, and return when it is turned on again.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DesignTokensToggle'
+      responses:
+        '200':
+          $ref: '#/components/responses/DesignTokensState'
+        '422':
+          description: The confirmation flag is missing.
+  /canvas/api/v0/brand-kit/design-tokens/enable:
+    post:
+      summary: Turns the theme style guide on. Deletes nothing.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DesignTokensToggle'
+      responses:
+        '200':
+          $ref: '#/components/responses/DesignTokensState'
+        '409':
+          description: Core has no compatible design tokens API.
+        '422':
+          description: The confirmation flag is missing.
   /canvas/api/v0/code-components/validate:
     post:
       summary: Validates a normalized Code Component payload without saving it
@@ -4449,34 +4477,6 @@ paths:
                   jsFooter:
                     type: string
                     description: Rendered footer JS asset markup.
-  /canvas/api/v0/brand-kit/design-tokens/enable:
-    post:
-      summary: Turns the theme style guide on. Deletes nothing.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DesignTokensToggle'
-      responses:
-        '200':
-          $ref: '#/components/responses/DesignTokensState'
-        '409':
-          description: Core has no compatible design tokens API.
-        '422':
-          description: The confirmation flag is missing.
-  /canvas/api/v0/brand-kit/design-tokens/disable:
-    post:
-      summary: Turns the theme style guide off. Overrides are kept, and return when it is turned on again.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DesignTokensToggle'
-      responses:
-        '200':
-          $ref: '#/components/responses/DesignTokensState'
-        '422':
-          description: The confirmation flag is missing.
   /canvas/api/v0/usage/color/{color}/details:
     get:
       summary: Get detailed usage information for a specific color.

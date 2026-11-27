@@ -46,6 +46,28 @@ canvas.api.auto-save.post:
   options:
     _format: 'json'
 
+canvas.api.brand_kit.design_tokens.disable:
+  path: '/canvas/api/v0/brand-kit/design-tokens/disable'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiDesignTokensController::disable'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer brand kit'
+  methods: [POST]
+  options:
+    _format: 'json'
+
+canvas.api.brand_kit.design_tokens.enable:
+  path: '/canvas/api/v0/brand-kit/design-tokens/enable'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiDesignTokensController::enable'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer brand kit'
+  methods: [POST]
+  options:
+    _format: 'json'
+
 canvas.api.code_component.validate:
   path: '/canvas/api/v0/code-components/validate'
   defaults:
@@ -1145,25 +1167,3 @@ entity.page_variant.edit_form:
       page_variant:
         type: entity:page_variant
     _admin_route: TRUE
-
-canvas.api.brand_kit.design_tokens.enable:
-  path: '/canvas/api/v0/brand-kit/design-tokens/enable'
-  defaults:
-    _controller: 'Drupal\canvas\Controller\ApiDesignTokensController::enable'
-  requirements:
-    _canvas_authentication_required: TRUE
-    _permission: 'administer brand kit'
-  methods: [POST]
-  options:
-    _format: 'json'
-
-canvas.api.brand_kit.design_tokens.disable:
-  path: '/canvas/api/v0/brand-kit/design-tokens/disable'
-  defaults:
-    _controller: 'Drupal\canvas\Controller\ApiDesignTokensController::disable'
-  requirements:
-    _canvas_authentication_required: TRUE
-    _permission: 'administer brand kit'
-  methods: [POST]
-  options:
-    _format: 'json'
