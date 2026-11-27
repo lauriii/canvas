@@ -38,6 +38,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'target',
     'actions',
   ],
+  constraints: [
+    // Style guide drafts.
+    'DesignTokenStagedValue' => [],
+  ],
 )]
 final class StagedConfigUpdate extends ConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, AutoSavePublishAwareInterface {
 

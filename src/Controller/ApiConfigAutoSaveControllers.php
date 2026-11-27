@@ -53,7 +53,9 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
       \assert($auto_save->entity instanceof CanvasAssetInterface);
       $canvas_config_entity = $auto_save->entity;
     }
-    $response = new Response($canvas_config_entity->getCss(), Response::HTTP_OK, [
+    // The draft brand kit stylesheet also applies staged design token values.
+    $css = $canvas_config_entity instanceof BrandKit ? $canvas_config_entity->getDraftCss() : $canvas_config_entity->getCss();
+    $response = new Response($css, Response::HTTP_OK, [
       'Content-Type' => 'text/css; charset=utf-8',
     ]);
     $response->setPrivate();

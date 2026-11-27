@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\ClientSideRepresentation;
-use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
 use Drupal\canvas\EntityHandlers\ColorAccessControlHandler;
-use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
@@ -212,7 +210,7 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
    */
   public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
     parent::postSave($storage, $update);
-    self::regenerateBrandKitAssets();
+    BrandKit::regenerateAssets();
   }
 
   /**
@@ -220,28 +218,7 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
    */
   public static function postDelete(EntityStorageInterface $storage, array $entities): void {
     parent::postDelete($storage, $entities);
-    self::regenerateBrandKitAssets();
-  }
-
-  /**
-   * Regenerates BrandKit assets and invalidates caches when colors change.
-   *
-   * This ensures that CSS files containing color variables are rebuilt
-   * whenever a color is created, updated, or deleted.
-   */
-  private static function regenerateBrandKitAssets(): void {
-    $storage = \Drupal::entityTypeManager()->getStorage(BrandKit::ENTITY_TYPE_ID);
-    \assert($storage instanceof CanvasAssetStorage);
-    $tags = ['library_info'];
-    foreach ($storage->loadMultiple() as $brand_kit) {
-      \assert($brand_kit instanceof CanvasAssetInterface);
-      $storage->generateFiles($brand_kit);
-      // The brand kit is not saved, so its cache tags must be invalidated
-      // explicitly for responses to refer to the newly generated files.
-      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
-      $tags = Cache::mergeTags($tags, array_values($brand_kit->getCacheTagsToInvalidate()));
-    }
-    Cache::invalidateTags($tags);
+    BrandKit::regenerateAssets();
   }
 
   /**
@@ -253,9 +230,29 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
    *   The CSS value as hex, rgb, rgba, hsl, or hsla.
    */
   public function getCssValue(): string {
-    $colorSpace = $this->value['colorSpace'];
-    $components = $this->value['components'];
-    $alpha = $this->value['alpha'] ?? NULL;
+    return self::cssValue($this->value);
+  }
+
+  /**
+   * Returns the CSS value for a DTCG color value.
+   *
+   * Shared with the `color` design token value polyfill, so a theme color and
+   * a site color with the same value emit identical CSS.
+   *
+   * @param array{colorSpace: string, components: list<float>, alpha?: float|int|null, hex?: string|null} $value
+   *   The DTCG color value.
+   *
+   * @return string
+   *   The CSS value as hex, rgba, hsl, or hsla.
+   *
+   * @see \Drupal\canvas\DesignToken\ColorValue::toCss()
+   */
+  public static function cssValue(array $value): string {
+    $colorSpace = $value['colorSpace'];
+    $components = $value['components'];
+    $alpha = $value['alpha'] ?? NULL;
+    // Compare numerically: an integer 1 from YAML means fully opaque too.
+    $opaque = $alpha === NULL || (float) $alpha === 1.0;
 
     switch ($colorSpace) {
       case 'srgb':
@@ -264,10 +261,10 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
         $g = (int) round($components[1] * 255);
         $b = (int) round($components[2] * 255);
 
-        if ($alpha === NULL || $alpha === 1.0) {
+        if ($opaque) {
           // Prefer stored hex value when available to maintain consistency with
           // client-side rendering. Fall back to computing from components.
-          return $this->value['hex'] ?? \sprintf('#%02x%02x%02x', $r, $g, $b);
+          return $value['hex'] ?? \sprintf('#%02x%02x%02x', $r, $g, $b);
         }
         return \sprintf('rgba(%d, %d, %d, %.2f)', $r, $g, $b, $alpha);
 
@@ -277,15 +274,15 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
         $s = round($components[1]);
         $l = round($components[2]);
 
-        if ($alpha === NULL || $alpha === 1.0) {
+        if ($opaque) {
           return \sprintf('hsl(%d, %d%%, %d%%)', $h, $s, $l);
         }
         return \sprintf('hsla(%d, %d%%, %d%%, %.2f)', $h, $s, $l, $alpha);
 
       default:
         // Fallback to hex if available, otherwise first component as gray.
-        if (isset($this->value['hex'])) {
-          return $this->value['hex'];
+        if (isset($value['hex'])) {
+          return $value['hex'];
         }
         return '#000000';
     }

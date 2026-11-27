@@ -1,0 +1,9 @@
+name: 'Canvas test: design tokens theme'
+type: theme
+description: 'Declares design tokens in tokens.yml, and sets the same variables in its CSS.'
+base theme: false
+core_version_requirement: ^11.3
+libraries:
+  - canvas_test_design_tokens_theme/global
+regions:
+  content: Content

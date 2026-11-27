@@ -877,3 +877,15 @@ function canvas_post_update_0032_install_empty_slot_marker(): void {
   // slots need the marker component to represent empty overrides.
   Marker::ensureComponent(Marker::EMPTY_SLOT_LOCAL_ID);
 }
+
+/**
+ * Add the off-by-default theme style guide setting.
+ *
+ * @see \Drupal\canvas\DesignToken\BrandKitTokens::SETTING
+ */
+function canvas_post_update_0033_experimental_design_tokens_setting(): void {
+  $settings = \Drupal::configFactory()->getEditable('canvas.settings');
+  if ($settings->get('experimental_design_tokens') === NULL) {
+    $settings->set('experimental_design_tokens', FALSE)->save(TRUE);
+  }
+}

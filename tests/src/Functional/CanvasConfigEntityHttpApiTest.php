@@ -2150,6 +2150,21 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   /**
+   * Theme design tokens in the brand kit depend on these.
+   *
+   * @see \Drupal\canvas\DesignToken\BrandKitTokens::addCacheability()
+   */
+  private const array BRAND_KIT_TOKEN_CACHE_TAGS = [
+    'canvas_design_tokens_mode',
+    'design_token',
+    'config:design_token_list',
+    'config:core.extension',
+    'config:system.theme',
+    'config:canvas.settings',
+    AutoSaveManager::CACHE_TAG,
+  ];
+
+  /**
    * @see \Drupal\canvas\Entity\BrandKit
    */
   public function testBrandKit(): void {
@@ -2174,7 +2189,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Authenticated and authorized: list returns the default global brand kit.
     $this->drupalLogin($this->httpApiUser);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:brand_kit_list', 'config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:brand_kit_list', 'config:color_list', 'http_response', ...self::BRAND_KIT_TOKEN_CACHE_TAGS], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertIsArray($body);
     $this->assertArrayHasKey(BrandKit::GLOBAL_ID, $body);
     $brand_kit_from_list = $body[BrandKit::GLOBAL_ID];
@@ -2198,7 +2213,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // GET canonical: 200.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'config:color_list', 'http_response', ...self::BRAND_KIT_TOKEN_CACHE_TAGS], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertIsArray($body);
     $this->assertArrayHasKey('id', $body);
     $this->assertArrayHasKey('label', $body);
@@ -2217,7 +2232,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertArrayHasKey('fonts', $body);
 
     // GET canonical again: 200 with updated data (cache miss after PATCH).
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'config:color_list', 'http_response', ...self::BRAND_KIT_TOKEN_CACHE_TAGS], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertIsArray($body);
     $this->assertArrayHasKey('label', $body);
     $this->assertSame($updated_label, $body['label']);

@@ -15,6 +15,7 @@ use JsonSchema\Entity\JsonPointer;
  *
  * - Validates hex colors (#rrggbb or #rrggbbaa) for free-pick values
  * - Validates Brand Kit references (canvas-color:<uuid>) exist
+ * - Accepts theme design token references ({path}) by syntax
  * - Short-circuits for already-resolved objects (render pipeline)
  *
  * @internal
@@ -70,6 +71,12 @@ final class CanvasColorStringConstraint extends StringConstraint {
       return;
     }
 
+    // Theme design token reference: syntax only, so a reference that stops
+    // resolving (theme switched, feature off) never fails a save.
+    if (ColorResolver::parseTokenPath($element) !== NULL) {
+      return;
+    }
+
     // Hex color.
     if (\str_starts_with($element, '#')) {
       $clean = \ltrim($element, '#');
@@ -104,7 +111,7 @@ final class CanvasColorStringConstraint extends StringConstraint {
 
     // Unrecognized format.
     $this->addError(ConstraintError::get(ConstraintError::PATTERN), $path, [
-      'pattern' => 'hex color (#rrggbb or #rrggbbaa), HSL (hsl(h, s%, l%)), or Brand Kit reference (canvas-color:<uuid>)',
+      'pattern' => 'hex color (#rrggbb or #rrggbbaa), HSL (hsl(h, s%, l%)), Brand Kit reference (canvas-color:<uuid>), or theme color reference ({path})',
     ]);
   }
 

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\DesignToken\BrandKitTokens;
 use Drupal\canvas\EntityHandlers\BrandKitAccessControlHandler;
 use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
 use Drupal\Core\Cache\Cache;
@@ -157,6 +159,17 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       )));
     }
 
+    $tokens = self::tokens();
+    $values['designTokens'] = [
+      'available' => $tokens->isAvailable(),
+      'enabled' => $tokens->isEnabled(),
+      'enableImpact' => $tokens->enableImpact(),
+    ];
+    if ($tokens->isAvailable()) {
+      $values['themeTokens'] = $tokens->themeTokens();
+      $values['themeTokenGroups'] = $tokens->themeTokenGroups();
+    }
+
     $representation = ClientSideRepresentation::create(
       values: $values,
       preview: NULL,
@@ -177,6 +190,11 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       $representation->addCacheableDependency($color_entity);
     }
 
+    // Theme tokens depend on the theme, enabled extensions, the setting,
+    // design token entities, and (for `draft`) auto-saves.
+    BrandKitTokens::addCacheability($representation);
+    $representation->addCacheTags([AutoSaveManager::CACHE_TAG]);
+
     return $representation;
   }
 
@@ -184,7 +202,20 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
    * {@inheritdoc}
    */
   public function getCss(): string {
-    $generated_css = $this->buildGeneratedCss();
+    return $this->assembleCss(FALSE);
+  }
+
+  /**
+   * The CSS for the draft brand kit stylesheet: staged token values applied.
+   *
+   * The production files never include staged values.
+   */
+  public function getDraftCss(): string {
+    return $this->assembleCss(TRUE);
+  }
+
+  private function assembleCss(bool $with_drafts): string {
+    $generated_css = $this->buildGeneratedCss($with_drafts);
     $compiled_css = $this->getCompiledCss();
 
     if ($generated_css === '') {
@@ -440,7 +471,7 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
     return $file instanceof FileInterface ? $file : NULL;
   }
 
-  private function buildGeneratedCss(): string {
+  private function buildGeneratedCss(bool $with_drafts): string {
     $css_parts = [];
 
     // Generate @font-face rules for fonts.
@@ -458,6 +489,12 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
     $color_rules = $this->buildColorCssRules();
     if ($color_rules !== '') {
       $css_parts[] = $color_rules;
+    }
+
+    // Design token entities, after site colors.
+    $token_css = self::tokens()->css($with_drafts);
+    if ($token_css !== '') {
+      $css_parts[] = $token_css;
     }
 
     return implode("\n\n", $css_parts);
@@ -620,6 +657,31 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
     return $properties;
   }
 
+  private static function tokens(): BrandKitTokens {
+    return \Drupal::service(BrandKitTokens::class);
+  }
+
+  /**
+   * Regenerates the brand kit files, and invalidates what refers to them.
+   *
+   * Called whenever something the generated CSS contains changes: colors,
+   * design token entities, or the design tokens setting.
+   */
+  public static function regenerateAssets(): void {
+    $storage = \Drupal::entityTypeManager()->getStorage(self::ENTITY_TYPE_ID);
+    \assert($storage instanceof CanvasAssetStorage);
+    $tags = ['library_info'];
+    foreach ($storage->loadMultiple() as $brand_kit) {
+      \assert($brand_kit instanceof CanvasAssetInterface);
+      $storage->generateFiles($brand_kit);
+      // The brand kit is not saved, so its cache tags must be invalidated
+      // explicitly for responses to refer to the newly generated files.
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      $tags = Cache::mergeTags($tags, array_values($brand_kit->getCacheTagsToInvalidate()));
+    }
+    Cache::invalidateTags($tags);
+  }
+
   /**
    * Returns all Color entity IDs.
    *
@@ -682,6 +744,8 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       'value' => $color['value'],
       'displayFormat' => $color['displayFormat'] ?? NULL,
       'weight' => (int) ($color['weight'] ?? 0),
+      // The client stores this verbatim when the color is picked.
+      'reference' => Color::REFERENCE_PREFIX . $color['id'],
     ], $colors));
   }
 
