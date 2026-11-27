@@ -65,7 +65,9 @@ final class BrandKitTokensTest extends CanvasKernelTestBase {
     $directory = AssetLibrary::ASSETS_DIRECTORY;
     $this->container->get(FileSystemInterface::class)->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
     $this->setUpCurrentUser([], [BrandKit::ADMIN_PERMISSION, 'publish auto-saves']);
-    $this->tokens = $this->container->get(BrandKitTokens::class);
+    $tokens = $this->container->get(BrandKitTokens::class);
+    \assert($tokens instanceof BrandKitTokens);
+    $this->tokens = $tokens;
   }
 
   public function testListingFollowsTheTheme(): void {
@@ -105,6 +107,7 @@ final class BrandKitTokensTest extends CanvasKernelTestBase {
 
     // The brand kit response always reports the feature.
     $values = BrandKit::load(BrandKit::GLOBAL_ID)?->normalizeForClientSide()->values;
+    self::assertIsArray($values);
     self::assertSame(['available' => TRUE, 'enabled' => FALSE, 'enableImpact' => ['otherModuleValues' => 0, 'collidingSiteColors' => 0]], $values['designTokens']);
     self::assertCount(7, $values['themeTokens']);
   }
@@ -203,6 +206,7 @@ final class BrandKitTokensTest extends CanvasKernelTestBase {
 
     // Off: the declared value.
     [$resolved, $cacheability] = $resolver->resolve('{color.semantic.primary}');
+    self::assertIsArray($resolved);
     self::assertSame('rgb(0, 85, 170)', $resolved['cssColorValue']);
     self::assertSame('--color-semantic-primary', $resolved['cssVariable']);
     self::assertSame('Primary', $resolved['colorName']);
@@ -215,6 +219,7 @@ final class BrandKitTokensTest extends CanvasKernelTestBase {
 
     $this->tokens->setRootValue('color.semantic.primary', '#ff0000');
     [$resolved, $cacheability] = $resolver->resolve('{color.semantic.primary}');
+    self::assertIsArray($resolved);
     self::assertSame('rgb(255, 0, 0)', $resolved['cssColorValue']);
     // With an entity, saving unrelated tokens does not invalidate it.
     self::assertNotContains('config:design_token_list', $cacheability->getCacheTags());

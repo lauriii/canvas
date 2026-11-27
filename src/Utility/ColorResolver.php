@@ -111,7 +111,7 @@ final class ColorResolver {
           'value' => $value,
           'cssColorValue' => $this->computeCssColorValue($value),
           'cssVariable' => BrandKitTokens::cssVariable($path),
-          'colorName' => $this->brandKitTokens->tokenName($path),
+          'colorName' => BrandKitTokens::tokenName($path),
         ],
         $cacheability,
       ];

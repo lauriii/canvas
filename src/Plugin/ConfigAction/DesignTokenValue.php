@@ -41,7 +41,9 @@ final class DesignTokenValue implements ConfigActionPluginInterface, ContainerFa
   ) {}
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
-    return new static($container->get(BrandKitTokens::class));
+    $tokens = $container->get(BrandKitTokens::class);
+    \assert($tokens instanceof BrandKitTokens);
+    return new static($tokens);
   }
 
   public function apply(string $configName, mixed $value): void {

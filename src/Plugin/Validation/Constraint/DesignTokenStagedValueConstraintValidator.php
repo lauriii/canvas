@@ -21,7 +21,9 @@ final class DesignTokenStagedValueConstraintValidator extends ConstraintValidato
   ) {}
 
   public static function create(ContainerInterface $container): self {
-    return new self($container->get(BrandKitTokens::class));
+    $tokens = $container->get(BrandKitTokens::class);
+    \assert($tokens instanceof BrandKitTokens);
+    return new self($tokens);
   }
 
   public function validate(mixed $value, Constraint $constraint): void {

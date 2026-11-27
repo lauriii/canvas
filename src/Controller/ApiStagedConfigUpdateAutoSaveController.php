@@ -61,7 +61,7 @@ class ApiStagedConfigUpdateAutoSaveController extends ApiControllerBase {
     // A style guide draft equal to the published value is no change: delete
     // it instead of saving a no-op. That includes resetting a token that has
     // no override.
-    $input = $canvas_config_entity->getActions()[0]['input'];
+    $input = \array_values($canvas_config_entity->getActions())[0]['input'];
     if (BrandKitTokens::sameValue($input['type'], $input['value'], $input['base'])) {
       $this->autoSaveManager->delete($canvas_config_entity);
       return new JsonResponse(['draft' => NULL], Response::HTTP_OK);

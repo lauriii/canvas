@@ -8,6 +8,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\StagedConfigUpdate;
+use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\ConfigCrudEvent;
@@ -25,6 +26,7 @@ use Drupal\Core\Theme\Entity\DesignToken;
 use Drupal\Core\Utility\Error;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -102,15 +104,29 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
     private readonly AutoSaveManager $autoSaveManager,
     #[Autowire(service: 'logger.channel.canvas')]
     private readonly LoggerInterface $logger,
+    // Core's design token plugin managers exist only on core 11.5 or later.
+    #[Autowire(service: 'service_container')]
+    private readonly ContainerInterface $container,
   ) {}
+
+  /**
+   * Core's value plugin manager, or NULL on core versions without the API.
+   */
+  private function valueManager(): ?PluginManagerInterface {
+    if (!$this->container->has('plugin.manager.design_token_value')) {
+      return NULL;
+    }
+    $manager = $this->container->get('plugin.manager.design_token_value');
+    \assert($manager instanceof PluginManagerInterface);
+    return $manager;
+  }
 
   /**
    * Whether core has the design token API and a `color` value type.
    */
   public function isAvailable(): bool {
     return $this->entityTypeManager->hasDefinition('design_token')
-      && \Drupal::hasService('plugin.manager.design_token_value')
-      && \Drupal::service('plugin.manager.design_token_value')->hasDefinition('color');
+      && ($this->valueManager()?->hasDefinition('color') ?? FALSE);
   }
 
   /**
@@ -220,8 +236,9 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
    * @return array<string, \Drupal\Core\Theme\DesignToken\DesignToken>
    */
   private function allDefinitions(): array {
-    $definitions = \Drupal::service('plugin.manager.design_token')->getDefinitions();
-    return \array_filter($definitions, static fn ($d): bool => $d instanceof DesignTokenDefinition);
+    $manager = $this->container->get('plugin.manager.design_token');
+    \assert($manager instanceof PluginManagerInterface);
+    return \array_filter($manager->getDefinitions(), static fn ($d): bool => $d instanceof DesignTokenDefinition);
   }
 
   /**
@@ -233,13 +250,11 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
     $providers = [];
     $default = (string) $this->configFactory->get('system.theme')->get('default');
     $themes = $this->themeHandler->listInfo();
-    if (isset($themes[$default])) {
-      $base_themes = \array_reverse(\array_keys($themes[$default]->base_themes ?? []));
-      foreach ([$default, ...$base_themes] as $theme) {
-        $providers[$theme] = ['type' => 'theme', 'name' => $theme, 'label' => $this->themeHandler->getName($theme)];
-      }
+    // The default theme, then its base themes, nearest first.
+    for ($theme = $default; \is_string($theme) && isset($themes[$theme]); $theme = $themes[$theme]->info['base theme'] ?? NULL) {
+      $providers[$theme] = ['type' => 'theme', 'name' => $theme, 'label' => $this->themeHandler->getName($theme)];
     }
-    $modules = \array_keys($this->moduleHandler->getModuleList());
+    $modules = \array_map('strval', \array_keys($this->moduleHandler->getModuleList()));
     \sort($modules);
     foreach ($modules as $module) {
       $providers[$module] ??= [
@@ -636,7 +651,7 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
         \array_splice($parts, 1, 0, [self::displayName($group->name)]);
       }
     }
-    $parts[] = $this->tokenName($path);
+    $parts[] = self::tokenName($path);
     return 'Style guide: ' . \implode(' / ', $parts);
   }
 
@@ -747,7 +762,7 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
     }
     finally {
       $entity->setSyncing(FALSE);
-      $this->entityTypeManager->getStorage('design_token')->resetCache([$entity->id()]);
+      $this->entityTypeManager->getStorage('design_token')->resetCache([(string) $entity->id()]);
       $this->resetIndex();
     }
   }
@@ -788,6 +803,9 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
     }
     $css = '';
     foreach ($entities as $entity) {
+      if (!$entity instanceof DesignToken) {
+        continue;
+      }
       try {
         $css .= DesignToken::toCss([$entity]);
       }
@@ -821,13 +839,13 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
     if ($value === NULL && $this->listedType($path) === 'color') {
       $value = self::normalize('color', $this->listedDefinitions()[$path]->value->toDtcg());
     }
-    return \is_array($value) && isset($value['colorSpace']) ? $value : NULL;
+    return ColorValue::parse($value);
   }
 
   /**
    * The display name of a listed or stored token, for resolved color props.
    */
-  public function tokenName(string $path): string {
+  public static function tokenName(string $path): string {
     return self::displayName(self::lastSegment($path));
   }
 
@@ -859,10 +877,11 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
    * {@inheritdoc}
    */
   public function validate($module): array {
-    if ($module !== 'canvas' || !$this->entityTypeManager->hasDefinition('design_token') || !\Drupal::hasService('plugin.manager.design_token_value')) {
+    $manager = $this->valueManager();
+    if ($module !== 'canvas' || !$this->entityTypeManager->hasDefinition('design_token') || $manager === NULL) {
       return [];
     }
-    $definition = \Drupal::service('plugin.manager.design_token_value')->getDefinition('color', FALSE);
+    $definition = $manager->getDefinition('color', FALSE);
     if (($definition['class'] ?? NULL) !== ColorValue::class) {
       return [];
     }
@@ -870,7 +889,7 @@ final class BrandKitTokens implements EventSubscriberInterface, ModuleUninstallV
     if ($ids === []) {
       return [];
     }
-    return [$this->t('Design tokens of type color depend on Canvas: @ids. Delete them first.', ['@ids' => \implode(', ', $ids)])];
+    return [(string) $this->t('Design tokens of type color depend on Canvas: @ids. Delete them first.', ['@ids' => \implode(', ', $ids)])];
   }
 
 }

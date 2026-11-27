@@ -7,6 +7,7 @@ namespace Drupal\canvas\Hook;
 use Drupal\canvas\DesignToken\BrandKitTokens;
 use Drupal\canvas\DesignToken\ColorValue;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -28,6 +29,7 @@ final class DesignTokenHooks {
   public function __construct(
     private readonly BrandKitTokens $tokens,
     private readonly Connection $database,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -36,7 +38,7 @@ final class DesignTokenHooks {
    * Registers the `color` polyfill, only when core has no color type.
    */
   #[Hook('design_token_value_info_alter')]
-  public function designTokenValueInfoAlter(array &$definitions): void {
+  public static function designTokenValueInfoAlter(array &$definitions): void {
     $definitions['color'] ??= [
       'id' => 'color',
       'label' => new TranslatableMarkup('Color'),
@@ -104,7 +106,7 @@ final class DesignTokenHooks {
    */
   #[Hook('runtime_requirements')]
   public function runtimeRequirements(): array {
-    if ($this->tokens->isAvailable() || !\Drupal::config('canvas.settings')->get(BrandKitTokens::SETTING)) {
+    if ($this->tokens->isAvailable() || !$this->configFactory->get('canvas.settings')->get(BrandKitTokens::SETTING)) {
       return [];
     }
     return [

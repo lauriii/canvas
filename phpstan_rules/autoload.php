@@ -10,3 +10,9 @@ $autoloader->addPsr4('Canvas\\PHPStan\\UsageProvider\\', __DIR__ . '/Canvas/PHPS
 // @see https://github.com/carlosas/phpat
 $autoloader->addPsr4('Canvas\\PHPStan\\Architecture\\', __DIR__ . '/Canvas/PHPStan/Architecture');
 $autoloader->register();
+
+// Core < 11.5 has no design tokens API.
+// @see phpstan_rules/stubs/DesignTokenValuePluginBase.php
+if (!class_exists('Drupal\Core\Theme\DesignToken\DesignTokenValuePluginBase')) {
+  require_once __DIR__ . '/stubs/DesignTokenValuePluginBase.php';
+}
