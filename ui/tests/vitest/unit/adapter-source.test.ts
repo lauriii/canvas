@@ -996,6 +996,26 @@ describe('combine pill editor helpers', () => {
       expect(isStepComplete(step, 1)).toBe(true);
     });
 
+    it('is incomplete beyond the 10 available slots', () => {
+      const step = createStep(combineSuggestion);
+      // Ten pills fill every slot; empty text runs do not count.
+      step.parts = [
+        { kind: 'text', text: '' },
+        ...Array.from({ length: 10 }, () => titlePill),
+      ];
+      expect(isStepComplete(step, 0)).toBe(true);
+      // Typing into the empty run makes an 11th part, which serialization
+      // would drop silently.
+      step.parts = [{ kind: 'text', text: 'Re: ' }, ...step.parts.slice(1)];
+      expect(isStepComplete(step, 0)).toBe(false);
+      // In a later chain step the dropped part could be the chain link.
+      step.parts = [
+        ...Array.from({ length: 10 }, () => titlePill),
+        { kind: 'previous' },
+      ];
+      expect(isStepComplete(step, 1)).toBe(false);
+    });
+
     it('serializes a configured combine step through stepsToSource', () => {
       const step = createStep(combineSuggestion);
       step.parts = [{ kind: 'text', text: 'Hello ' }, titlePill];

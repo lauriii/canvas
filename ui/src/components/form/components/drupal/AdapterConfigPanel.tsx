@@ -27,6 +27,7 @@ import { usePreviewPropSourceMutation } from '@/services/componentAndLayout';
 import {
   candidateShortLabel,
   COMBINE_MAX_PARTS,
+  combineEmittedPartCount,
   combineTextCandidates,
   createStep,
   getPrimaryInputName,
@@ -120,9 +121,13 @@ const DateFormatSelect = ({
 // a JSON object string, e.g. {"blue":"primary"}.
 const MappingRowsEditor = ({
   rows,
+  outputOptions,
   onChange,
 }: {
   rows: MappingRow[];
+  // The allowed outputs, when the targeted prop is an enum: any other output
+  // would make the component invalid.
+  outputOptions?: Array<string | number>;
   onChange: (rows: MappingRow[]) => void;
 }) => {
   const updateRow = (index: number, patch: Partial<MappingRow>) => {
@@ -142,15 +147,35 @@ const MappingRowsEditor = ({
           <Text size="1" color="gray" aria-hidden>
             →
           </Text>
-          <TextField.Root
-            size="1"
-            placeholder="Output"
-            aria-label={`Output ${index + 1}`}
-            value={row.value}
-            onChange={(event) =>
-              updateRow(index, { value: event.target.value })
-            }
-          />
+          {outputOptions ? (
+            <Select.Root
+              size="1"
+              value={row.value}
+              onValueChange={(value) => updateRow(index, { value })}
+            >
+              <Select.Trigger
+                placeholder="Output"
+                aria-label={`Output ${index + 1}`}
+              />
+              <Select.Content>
+                {outputOptions.map((option) => (
+                  <Select.Item key={String(option)} value={String(option)}>
+                    {humanizeInputName(String(option))}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+          ) : (
+            <TextField.Root
+              size="1"
+              placeholder="Output"
+              aria-label={`Output ${index + 1}`}
+              value={row.value}
+              onChange={(event) =>
+                updateRow(index, { value: event.target.value })
+              }
+            />
+          )}
           <IconButton
             variant="ghost"
             size="1"
@@ -196,11 +221,6 @@ const ensureTrailingText = (parts: CombinePart[]): CombinePart[] =>
     ? [...parts, { kind: 'text', text: '' }]
     : parts;
 
-// The number of parts that serialize to a slot (pills and non-empty text
-// runs). Empty text runs are skipped and do not count toward the cap.
-const emittedPartCount = (parts: CombinePart[]): number =>
-  parts.filter((part) => part.kind !== 'text' || part.text !== '').length;
-
 /**
  * Token/pill editor for the combine adapter: the author writes free text and
  * inserts field references as inline pills. The ordered parts serialize to
@@ -221,7 +241,8 @@ const CombinePillEditor = ({
   previousLabel?: string;
   onChange: (parts: CombinePart[]) => void;
 }) => {
-  const atCap = emittedPartCount(parts) >= COMBINE_MAX_PARTS;
+  const partCount = combineEmittedPartCount(parts);
+  const atCap = partCount >= COMBINE_MAX_PARTS;
   const hasPrevious = parts.some((part) => part.kind === 'previous');
   const inputRefs = useRef(new Map<number, HTMLInputElement | null>());
 
@@ -379,7 +400,9 @@ const CombinePillEditor = ({
           </DropdownMenu.Content>
         </DropdownMenu.Root>
         {atCap && (
-          <Text size="1" color="gray">
+          // Typing into an empty text run can still exceed the cap: Apply is
+          // disabled until a part is removed (see isStepComplete).
+          <Text size="1" color={partCount > COMBINE_MAX_PARTS ? 'red' : 'gray'}>
             A combined value can hold at most {COMBINE_MAX_PARTS} parts
           </Text>
         )}
@@ -638,6 +661,10 @@ const AdapterConfigPanel = ({
       return (
         <MappingRowsEditor
           rows={binding.rows ?? [{ key: '', value: '' }]}
+          outputOptions={
+            step.adapter.inputs.find((input) => input.mirrorsOutput)?.schema
+              ?.enum
+          }
           onChange={(rows) => updateBinding(stepIndex, slot.name, { rows })}
         />
       );
@@ -913,6 +940,20 @@ const AdapterConfigPanel = ({
         // as selects): the panel only closes via Apply, Cancel, the close
         // button, or Escape.
         onInteractOutside={(event) => event.preventDefault()}
+        // The editor's global hotkeys listen on the document and only skip
+        // form fields: without this, Backspace/Delete pressed on a button or
+        // pill in this panel deletes the selected component, and undo/redo
+        // reverts canvas changes (which discards this panel's state).
+        onKeyDown={(event) => {
+          if (
+            event.key === 'Backspace' ||
+            event.key === 'Delete' ||
+            ((event.metaKey || event.ctrlKey) &&
+              ['z', 'y'].includes(event.key.toLowerCase()))
+          ) {
+            event.stopPropagation();
+          }
+        }}
         aria-label={`Transform ${humanizeInputName(propName)}`}
         data-testid="adapter-config-panel"
       >
@@ -990,7 +1031,9 @@ const AdapterConfigPanel = ({
           </Button>
           <Button
             size="1"
-            disabled={!complete}
+            // A source the server cannot evaluate must not be applied: it
+            // would fail the layout update or break the rendered component.
+            disabled={!complete || previewError !== null}
             onClick={handleApply}
             data-testid="adapter-apply"
           >

@@ -590,6 +590,11 @@ export const serializeSlot = (
 export const combineHasContent = (parts: CombinePart[]): boolean =>
   parts.some((part) => (part.kind === 'text' ? part.text !== '' : true));
 
+// The number of parts that serialize to a slot (pills and non-empty text
+// runs). Empty text runs are skipped and do not count toward the cap.
+export const combineEmittedPartCount = (parts: CombinePart[]): number =>
+  parts.filter((part) => part.kind !== 'text' || part.text !== '').length;
+
 export const isStepComplete = (
   step: AdapterStep,
   stepIndex: number,
@@ -597,10 +602,16 @@ export const isStepComplete = (
   if (step.adapter.id === 'combine') {
     // A later chain step must place the previous step's output somewhere
     // (the pill can be moved, but removing it breaks the chain); the first
-    // step needs at least one non-empty part.
+    // step needs at least one non-empty part. Parts beyond the available
+    // slots would be dropped on serialization — possibly the chain link
+    // itself — so exceeding the cap is incomplete too.
+    const parts = step.parts ?? [];
+    if (combineEmittedPartCount(parts) > COMBINE_MAX_PARTS) {
+      return false;
+    }
     return stepIndex > 0
-      ? (step.parts ?? []).some((part) => part.kind === 'previous')
-      : combineHasContent(step.parts ?? []);
+      ? parts.some((part) => part.kind === 'previous')
+      : combineHasContent(parts);
   }
   const primary = getPrimaryInputName(step.adapter);
   return step.adapter.inputs.every((slot) => {
