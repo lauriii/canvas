@@ -2,15 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildTokenStyles,
+  convertDimension,
   cssVariableSnippet,
   draftEffectiveValue,
+  hasUploadedWeight,
   hexToColorValue,
   isValidFontFamily,
+  isValidFontWeight,
+  parseNumberInput,
   parseTokenReference,
   tokenValueToCss,
 } from '@/features/brandKit/themeTokens';
 
-import type { BrandKitThemeToken } from '@/types/CodeComponent';
+import type { BrandKitFont, BrandKitThemeToken } from '@/types/CodeComponent';
 
 const token = (
   overrides: Partial<BrandKitThemeToken> = {},
@@ -130,5 +134,54 @@ describe('helpers', () => {
     expect(cssVariableSnippet(token({ type: 'typography' }))).toBe(
       'font: var(--color-semantic-primary)',
     );
+  });
+});
+
+describe('editor values', () => {
+  it('parses number fields, keeping invalid input out', () => {
+    expect(parseNumberInput('1.5')).toBe(1.5);
+    expect(parseNumberInput('-0.25')).toBe(-0.25);
+    expect(parseNumberInput('.5')).toBe(0.5);
+    expect(parseNumberInput('1.123456')).toBe(1.1235);
+    expect(parseNumberInput('1..5')).toBeNull();
+    expect(parseNumberInput('')).toBeNull();
+    expect(parseNumberInput('1e400')).toBeNull();
+  });
+
+  it('converts dimensions at 16px per rem, to 3 decimals', () => {
+    expect(convertDimension({ value: 16, unit: 'px' }, 'rem')).toEqual({
+      value: 1,
+      unit: 'rem',
+    });
+    expect(convertDimension({ value: 1.5, unit: 'rem' }, 'px')).toEqual({
+      value: 24,
+      unit: 'px',
+    });
+    expect(convertDimension({ value: 10, unit: 'px' }, 'rem')).toEqual({
+      value: 0.625,
+      unit: 'rem',
+    });
+    expect(convertDimension({ value: 7, unit: 'px' }, 'rem').value).toBe(0.438);
+  });
+
+  it('accepts whole font weights from 1 to 1000', () => {
+    expect(isValidFontWeight(700)).toBe(true);
+    expect(isValidFontWeight(0)).toBe(false);
+    expect(isValidFontWeight(1001)).toBe(false);
+    expect(isValidFontWeight(400.5)).toBe(false);
+  });
+
+  it('flags weights an uploaded family has no file for', () => {
+    const fonts = [
+      { family: 'Inter', weight: '400' },
+      { family: 'Inter', weight: 'bold' },
+      { family: 'Recursive', weight: '300 1000' },
+    ] as BrandKitFont[];
+    expect(hasUploadedWeight(fonts, 'Inter', 400)).toBe(true);
+    expect(hasUploadedWeight(fonts, 'Inter', 700)).toBe(true);
+    expect(hasUploadedWeight(fonts, 'Inter', 600)).toBe(false);
+    expect(hasUploadedWeight(fonts, 'Recursive', 850)).toBe(true);
+    // Not an uploaded family: nothing to flag.
+    expect(hasUploadedWeight(fonts, 'Georgia', 600)).toBeNull();
   });
 });

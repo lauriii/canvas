@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  Cross2Icon,
-  DotsHorizontalIcon,
-} from '@radix-ui/react-icons';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 import {
   AlertDialog,
   Badge,
@@ -15,17 +10,21 @@ import {
   IconButton,
   Spinner,
   Text,
-  TextField,
 } from '@radix-ui/themes';
 
+import {
+  ColorEditor,
+  DimensionEditor,
+  FontStackEditor,
+  FontWeightEditor,
+  NumberEditor,
+  TypographyEditor,
+} from '@/features/brandKit/components/ThemeTokenEditors';
 import { BRAND_KIT_ID } from '@/features/brandKit/constants';
 import {
   cssVariableSnippet,
   draftEffectiveValue,
   EDITABLE_TYPES,
-  FONT_FAMILY_ERROR,
-  hexToColorValue,
-  isValidFontFamily,
   tokenValueToCss,
 } from '@/features/brandKit/themeTokens';
 import {
@@ -33,12 +32,14 @@ import {
   useSetDesignTokensEnabledMutation,
   useStageThemeTokenMutation,
 } from '@/services/brandKit';
-import { getColorHex } from '@/utils/brandKitColor';
 
 import type {
   BrandKitColorValue,
+  BrandKitFont,
   BrandKitThemeToken,
   BrandKitThemeTokenGroup,
+  ThemeTokenDimension,
+  ThemeTokenTypography,
 } from '@/types/CodeComponent';
 
 const DEBOUNCE_MS = 400;
@@ -309,16 +310,28 @@ const TokenRow = ({
   enabled: boolean;
 }) => {
   const [stageMutation] = useStageThemeTokenMutation();
+  const { data: brandKit } = useGetBrandKitQuery(BRAND_KIT_ID);
+  const canEdit =
+    enabled && token.editable && EDITABLE_TYPES.includes(token.type);
+  const status =
+    token.draft !== null ? 'Draft' : token.overridden ? 'Customized' : null;
+  // The latest local edit, until the draft it stages comes back: edits to
+  // several typography fields within the debounce must not undo each other.
+  const [local, setLocal] = useState<{ value: unknown } | null>(null);
+  useEffect(() => setLocal(null), [token.draft, token.value]);
+  const effective = local ? local.value : draftEffectiveValue(token);
   // Pending edits are debounced per row: a reset cancels them, and closing
   // the panel saves them.
   const { stage, cancel } = useDebouncedStage((value: unknown) =>
     stageMutation({ token, value }),
   );
-  const canEdit =
-    enabled && token.editable && EDITABLE_TYPES.includes(token.type);
-  const status =
-    token.draft !== null ? 'Draft' : token.overridden ? 'Customized' : null;
-  const effective = draftEffectiveValue(token);
+  const change = (value: unknown) => {
+    setLocal({ value });
+    stage(value);
+  };
+  const fontStacks = (brandKit?.themeTokens ?? []).filter(
+    (t) => t.type === 'fontFamily' && t.provider !== null,
+  );
 
   return (
     <Flex
@@ -362,6 +375,7 @@ const TokenRow = ({
                   <DropdownMenu.Item
                     onSelect={() => {
                       cancel();
+                      setLocal(null);
                       stageMutation({ token, value: null });
                     }}
                   >
@@ -379,23 +393,89 @@ const TokenRow = ({
           </DropdownMenu.Root>
         </Flex>
       </Flex>
-      {canEdit && token.type === 'color' && (
-        <ColorEditor
+      {canEdit && effective !== null && (
+        <TokenEditor
           token={token}
-          value={effective as BrandKitColorValue | null}
-          onChange={(hex) => stage(hexToColorValue(hex))}
+          value={effective}
+          onChange={change}
+          fontStacks={fontStacks.filter((t) => t.path !== token.path)}
+          fonts={brandKit?.fonts}
         />
       )}
-      {canEdit && token.type === 'fontFamily' && (
-        <FontStackEditor
-          token={token}
-          value={(effective as string[] | null) ?? []}
-          onChange={stage}
-        />
+      {(!canEdit || effective === null) && (
+        <ReadOnlyValue token={token} enabled={enabled} />
       )}
-      {!canEdit && <ReadOnlyValue token={token} enabled={enabled} />}
     </Flex>
   );
+};
+
+const TokenEditor = ({
+  token,
+  value,
+  onChange,
+  fontStacks,
+  fonts,
+}: {
+  token: BrandKitThemeToken;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  fontStacks: BrandKitThemeToken[];
+  fonts?: BrandKitFont[] | null;
+}) => {
+  switch (token.type) {
+    case 'color':
+      return (
+        <ColorEditor
+          label={token.name}
+          value={value as BrandKitColorValue}
+          onChange={onChange}
+        />
+      );
+    case 'fontFamily':
+      return (
+        <FontStackEditor
+          label={token.name}
+          value={value as string[]}
+          onChange={onChange}
+        />
+      );
+    case 'fontWeight':
+      return (
+        <FontWeightEditor
+          label={token.name}
+          value={value as number}
+          onChange={onChange}
+        />
+      );
+    case 'dimension':
+      return (
+        <DimensionEditor
+          label={token.name}
+          value={value as ThemeTokenDimension}
+          onChange={onChange}
+        />
+      );
+    case 'number':
+      return (
+        <NumberEditor
+          label={token.name}
+          value={value as number}
+          onChange={onChange}
+        />
+      );
+    case 'typography':
+      return (
+        <TypographyEditor
+          token={token}
+          value={value as ThemeTokenTypography}
+          onChange={onChange}
+          fontStacks={fontStacks}
+          fonts={fonts}
+        />
+      );
+    default:
+      return null;
+  }
 };
 
 const ReadOnlyValue = ({
@@ -411,7 +491,7 @@ const ReadOnlyValue = ({
     : (token.reason ??
       (EDITABLE_TYPES.includes(token.type)
         ? null
-        : 'Editing this kind of value is coming in a later release.'));
+        : "Can't be edited in this version of Canvas."));
   return (
     <Flex direction="column" gap="1">
       <Flex align="center" gap="2">
@@ -472,160 +552,6 @@ const useDebouncedStage = <T,>(onChange: (value: T) => void) => {
       pending.current = null;
     },
   };
-};
-
-const ColorEditor = ({
-  token,
-  value,
-  onChange,
-}: {
-  token: BrandKitThemeToken;
-  value: BrandKitColorValue | null;
-  onChange: (value: string) => void;
-}) => {
-  const hex = value ? getColorHex(value) : '#000000';
-  const [input, setInput] = useState(hex);
-  useEffect(() => setInput(hex), [hex]);
-  const valid = hexToColorValue(input) !== null;
-
-  const update = (next: string) => {
-    setInput(next);
-    if (hexToColorValue(next)) {
-      onChange(next);
-    }
-  };
-
-  return (
-    <Flex direction="column" gap="1">
-      <Flex align="center" gap="2">
-        <input
-          type="color"
-          aria-label={`${token.name} color`}
-          value={valid ? hexToColorValue(input)!.hex! : hex}
-          onChange={(e) => update(e.target.value)}
-          style={{ width: 28, height: 28, padding: 0, border: 'none' }}
-        />
-        <TextField.Root
-          size="1"
-          aria-label={`${token.name} hex value`}
-          aria-invalid={!valid}
-          value={input}
-          onChange={(e) => update(e.target.value)}
-        />
-      </Flex>
-      {!valid && (
-        <Text size="1" color="red">
-          Enter a hex color, such as #0055aa.
-        </Text>
-      )}
-    </Flex>
-  );
-};
-
-/**
- * An ordered list of font families. Every declared entry is shown, and one
- * Canvas cannot save must be removed or replaced before the draft saves.
- */
-const FontStackEditor = ({
-  token,
-  value,
-  onChange,
-}: {
-  token: BrandKitThemeToken;
-  value: string[];
-  onChange: (value: string[]) => void;
-}) => {
-  const [families, setFamilies] = useState(value);
-  const serialized = value.join('\n');
-  useEffect(() => setFamilies(serialized.split('\n')), [serialized]);
-  const [newFamily, setNewFamily] = useState('');
-
-  const update = (next: string[]) => {
-    setFamilies(next);
-    if (next.length > 0 && next.every(isValidFontFamily)) {
-      onChange(next);
-    }
-  };
-  const move = (index: number, by: number) => {
-    const next = [...families];
-    [next[index], next[index + by]] = [next[index + by], next[index]];
-    update(next);
-  };
-  const hasGeneric = families.some((f) =>
-    /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|math|emoji|fangsong)$/.test(
-      f,
-    ),
-  );
-
-  return (
-    <Flex direction="column" gap="1" aria-label={`${token.name} font stack`}>
-      <ol style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
-        {families.map((family, index) => (
-          <li key={`${family}-${index}`}>
-            <Flex align="center" gap="1">
-              <Text size="1" style={{ flexGrow: 1, fontFamily: family }}>
-                {family}
-              </Text>
-              <IconButton
-                size="1"
-                variant="ghost"
-                aria-label={`Move ${family} up`}
-                disabled={index === 0}
-                onClick={() => move(index, -1)}
-              >
-                <ArrowUpIcon />
-              </IconButton>
-              <IconButton
-                size="1"
-                variant="ghost"
-                aria-label={`Move ${family} down`}
-                disabled={index === families.length - 1}
-                onClick={() => move(index, 1)}
-              >
-                <ArrowDownIcon />
-              </IconButton>
-              <IconButton
-                size="1"
-                variant="ghost"
-                aria-label={`Remove ${family}`}
-                onClick={() => update(families.filter((_, i) => i !== index))}
-              >
-                <Cross2Icon />
-              </IconButton>
-            </Flex>
-            {!isValidFontFamily(family) && (
-              <Text size="1" color="red">
-                {FONT_FAMILY_ERROR}
-              </Text>
-            )}
-          </li>
-        ))}
-      </ol>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const family = newFamily.trim();
-          if (family) {
-            update([...families, family]);
-            setNewFamily('');
-          }
-        }}
-      >
-        <TextField.Root
-          size="1"
-          placeholder="Add family"
-          aria-label={`Add a family to ${token.name}`}
-          value={newFamily}
-          onChange={(e) => setNewFamily(e.target.value)}
-        />
-      </form>
-      {families.length > 0 && !hasGeneric && (
-        <Text size="1" color="gray">
-          Add a generic family, such as sans-serif, as a fallback.
-        </Text>
-      )}
-    </Flex>
-  );
 };
 
 export default BrandKitStyleGuideSection;

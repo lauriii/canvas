@@ -16,6 +16,8 @@ import type { Page } from '@playwright/test';
 
 const PRIMARY = '[data-token-path="color.semantic.primary"]';
 const BODY_FONT = '[data-token-path="font.body"]';
+const SPACING_MD = '[data-token-path="spacing.md"]';
+const TYPE_HEADING = '[data-token-path="type.heading"]';
 
 /** The theme's own value, from its CSS and its tokens.yml. */
 const THEME_PRIMARY = '#0055aa';
@@ -38,6 +40,30 @@ const openStyleGuide = async (page: Page) => {
   await page.getByTestId('canvas-side-menu').getByLabel('Brand Kit').click();
   await page.getByTestId('canvas-brand-kit-style-guide-tab-select').click();
   await expect(page.getByTestId('canvas-style-guide')).toBeVisible();
+};
+
+const turnOn = async (page: Page) => {
+  await page
+    .getByTestId('canvas-style-guide-banner')
+    .getByRole('button', { name: 'Turn on' })
+    .click();
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: 'Turn on' })
+    .click();
+};
+
+/** Discards one pending change from the Review changes popover. */
+const discardChange = async (page: Page, label: string) => {
+  await page.getByRole('button', { name: /Review \d+ changes?/ }).click();
+  const review = page.getByTestId('canvas-publish-reviews-content');
+  await expect(review).toContainText('Style guide');
+  const change = review.locator('[data-testid="pending-change-row"]', {
+    hasText: label,
+  });
+  await change.hover();
+  await change.getByRole('button', { name: 'More options' }).click();
+  await page.getByRole('menuitem', { name: 'Discard changes' }).click();
 };
 
 test.describe('brand kit style guide', () => {
@@ -137,14 +163,7 @@ test.describe('brand kit style guide', () => {
   }) => {
     await canvas.openCanvasRoot();
     await openStyleGuide(page);
-    await page
-      .getByTestId('canvas-style-guide-banner')
-      .getByRole('button', { name: 'Turn on' })
-      .click();
-    await page
-      .getByRole('alertdialog')
-      .getByRole('button', { name: 'Turn on' })
-      .click();
+    await turnOn(page);
     const row = page.locator(BODY_FONT);
 
     // The theme declares "Font 3", which core would emit unquoted.
@@ -158,17 +177,55 @@ test.describe('brand kit style guide', () => {
     await expect(row).toContainText('Draft');
 
     // Discarding it in Review changes removes the draft. Nothing went live.
-    await page.getByRole('button', { name: /Review \d+ changes?/ }).click();
-    const review = page.getByTestId('canvas-publish-reviews-content');
-    await expect(review).toContainText('Style guide');
-    const change = review.locator('[data-testid="pending-change-row"]', {
-      hasText: 'Font / Body',
-    });
-    await change.hover();
-    await change.getByRole('button', { name: 'More options' }).click();
-    await page.getByRole('menuitem', { name: 'Discard changes' }).click();
+    await discardChange(page, 'Font / Body');
     await expect(row).not.toContainText('Draft');
     await expect(row).toContainText('Font 3');
     expect(await frontEndVariable(page, '--font-body')).toBe('');
+  });
+
+  test('spacing and typography drafts', async ({ page, canvas }) => {
+    await canvas.openCanvas(await canvas.createCanvas());
+    await openStyleGuide(page);
+    await turnOn(page);
+    const previewVariable = async (variable: string, expected: string) =>
+      canvas.testInPreviewFrame('html', async (html) => {
+        expect(
+          await html.evaluate(
+            (el, name) => getComputedStyle(el).getPropertyValue(name).trim(),
+            variable,
+          ),
+        ).toBe(expected);
+      });
+
+    // Switching the unit converts the value, at 16px per rem.
+    const spacing = page.locator(SPACING_MD);
+    const md = spacing.getByLabel('md value');
+    await expect(md).toHaveValue('16');
+    await spacing.getByRole('radio', { name: 'rem' }).click();
+    await expect(md).toHaveValue('1');
+    await expect(spacing).toContainText('Converted at 16px per rem.');
+
+    // Invalid input stays in the field, and stages nothing.
+    await md.fill('1..5');
+    await expect(spacing).toContainText('Enter a number.');
+    await md.fill('1.5');
+    await expect(spacing).toContainText('Draft');
+    await previewVariable('--spacing-md', '1.5rem');
+    expect(await frontEndVariable(page, '--spacing-md')).toBe('');
+
+    // Typography is the `font` shorthand; letter spacing is kept, not output.
+    const heading = page.locator(TYPE_HEADING);
+    await expect(heading).toContainText('-0.5px (Not output yet)');
+    await heading.getByLabel('Heading size value').fill('40');
+    await heading.getByLabel('Heading line height').fill('1.3');
+    await expect(heading).toContainText('Draft');
+    await previewVariable('--type-heading', '700 40px/1.3 Georgia, serif');
+
+    // Discarding the spacing draft restores the theme's value in the preview.
+    await discardChange(page, 'Spacing / md');
+    await expect(spacing).not.toContainText('Draft');
+    await expect(md).toHaveValue('16');
+    await previewVariable('--spacing-md', '16px');
+    expect(await frontEndVariable(page, '--type-heading')).toBe('');
   });
 });
