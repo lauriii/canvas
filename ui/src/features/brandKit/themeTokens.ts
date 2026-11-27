@@ -2,6 +2,7 @@ import { getCssColorValue } from '@/utils/brandKitColor';
 
 import type {
   BrandKitColorValue,
+  BrandKitFont,
   BrandKitThemeToken,
   ThemeTokenDimension,
   ThemeTokenType,
@@ -17,8 +18,8 @@ const KNOWN_TYPES: readonly string[] = [
   'typography',
 ] satisfies ThemeTokenType[];
 
-/** Types the style guide can edit until phase 1b adds the others. */
-export const EDITABLE_TYPES: readonly string[] = ['color', 'fontFamily'];
+/** Every known type has an editor in the style guide. */
+export const EDITABLE_TYPES: readonly string[] = KNOWN_TYPES;
 
 export const isKnownTokenType = (type: string): type is ThemeTokenType =>
   KNOWN_TYPES.includes(type);
@@ -163,4 +164,78 @@ export const hexToColorValue = (hex: string): BrandKitColorValue | null => {
     alpha: null,
     hex: `#${digits.toLowerCase()}`,
   };
+};
+
+/** Named font weights, as DTCG defines them. */
+export const FONT_WEIGHTS: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 100, label: 'Thin' },
+  { value: 200, label: 'Extra light' },
+  { value: 300, label: 'Light' },
+  { value: 400, label: 'Normal' },
+  { value: 500, label: 'Medium' },
+  { value: 600, label: 'Semi bold' },
+  { value: 700, label: 'Bold' },
+  { value: 800, label: 'Extra bold' },
+  { value: 900, label: 'Black' },
+  { value: 950, label: 'Extra black' },
+];
+
+/**
+ * Parses a number field: a finite number, rounded to 4 decimal places as the
+ * server stores it, or null while the input is not a number (such as "1..5").
+ */
+export const parseNumberInput = (input: string): number | null => {
+  if (!/^-?(\d+\.?\d*|\.\d+)$/.test(input.trim())) {
+    return null;
+  }
+  const value = Number(input);
+  return Number.isFinite(value) ? Math.round(value * 10_000) / 10_000 : null;
+};
+
+/** Whole weights from 1 to 1000, as core's font weight schema allows. */
+export const isValidFontWeight = (weight: number): boolean =>
+  Number.isInteger(weight) && weight >= 1 && weight <= 1000;
+
+/** The number of px per rem when a dimension switches unit. */
+export const PX_PER_REM = 16;
+
+/** Converts a dimension to another unit, at 16px per rem, to 3 decimals. */
+export const convertDimension = (
+  dimension: ThemeTokenDimension,
+  unit: ThemeTokenDimension['unit'],
+): ThemeTokenDimension => {
+  if (dimension.unit === unit) {
+    return dimension;
+  }
+  const value =
+    unit === 'rem'
+      ? dimension.value / PX_PER_REM
+      : dimension.value * PX_PER_REM;
+  return { value: Math.round(value * 1000) / 1000, unit };
+};
+
+const WEIGHT_KEYWORDS: Record<string, number> = { normal: 400, bold: 700 };
+
+/**
+ * Whether an uploaded Brand Kit family has a file for a weight.
+ *
+ * @returns null when the family is not an uploaded Brand Kit font, so no
+ *   weight can be flagged.
+ */
+export const hasUploadedWeight = (
+  fonts: BrandKitFont[] | null | undefined,
+  family: string | undefined,
+  weight: number,
+): boolean | null => {
+  const files = (fonts ?? []).filter((font) => font.family === family);
+  if (files.length === 0) {
+    return null;
+  }
+  return files.some((font) => {
+    // Variable fonts declare a range, such as "100 900".
+    const [min, max = min] = font.weight
+      .split(/\s+/)
+      .map((w) => WEIGHT_KEYWORDS[w] ?? Number(w));
+    return weight >= min && weight <= max;
+  });
 };
