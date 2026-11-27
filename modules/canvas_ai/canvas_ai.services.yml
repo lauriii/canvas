@@ -34,3 +34,4 @@ services:
     arguments:
       - '@config.factory'
   Drupal\canvas_ai\CanvasAiTempStore: '@canvas_ai.tempstore'
+  Drupal\canvas_ai\EventSubscriber\PageAgentRunCounterSubscriber: ~
