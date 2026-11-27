@@ -12,6 +12,7 @@ import { makeStore } from '@/app/store';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import { initialState } from '@/features/configuration/configurationSlice';
+import { styleExtensions } from '@/features/styles/styleDecorations';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard';
 import transforms from '@/utils/transforms';
@@ -138,6 +139,8 @@ if (container) {
 
   // Make the store available to extensions.
   canvasSettings.store = store;
+  // The style decorations extension point.
+  canvasSettings.styleExtensions = styleExtensions;
 
   root.render(
     <React.StrictMode>

@@ -1,0 +1,109 @@
+# Core Style API utilities used by Canvas component styles tests.
+# @see \Drupal\canvas\Style\ComponentStyles
+background_color:
+  label: 'Background color'
+  description: 'The background of the component.'
+  category: 'Color'
+  weight: 0
+  options:
+    primary:
+      label: 'Primary'
+      value: 'bg-primary'
+    muted:
+      label: 'Muted'
+      value: 'bg-muted'
+    retired:
+      label: 'Retired'
+      value: 'bg-retired'
+      status: deprecated
+spacing:
+  label: 'Spacing'
+  description: 'Padding inside the component.'
+  category: 'Spacing'
+  weight: 10
+  options:
+    small:
+      label: 'Small'
+      value: 'p-2'
+    medium:
+      label: 'Medium'
+      value: 'p-4'
+    large:
+      label: 'Large'
+      value: 'p-8'
+size:
+  label: 'Size'
+  category: 'Spacing'
+  weight: 10
+  options:
+    xs:
+      label: 'Extra small'
+      value: 'size-xs'
+    md:
+      label: 'Medium'
+      value: 'size-md'
+    xl:
+      label: 'Extra large'
+      value: 'size-xl'
+rounded:
+  label: 'Rounded corners'
+  description: 'Rounds the corners.'
+  category: 'Shape'
+  options:
+    'on':
+      label: 'Rounded'
+      value: 'rounded-lg'
+alignment:
+  label: 'Alignment'
+  category: 'Layout'
+  options:
+    start:
+      label: 'Start'
+      value: 'text-left'
+      icon: 'align-left'
+    center:
+      label: 'Center'
+      value: 'text-center'
+      icon: 'align-center'
+    end:
+      label: 'End'
+      value: 'text-right'
+      icon: 'align-right'
+tone:
+  label: 'Tone'
+  description: 'Logic-only: components read it with useStyleOptions().'
+  category: 'Color'
+  options:
+    light:
+      label: 'Light'
+      value: ''
+    dark:
+      label: 'Dark'
+      value: ''
+gap:
+  label: 'Gap'
+  category: 'Spacing'
+  attribute: style
+  options:
+    tight:
+      label: 'Tight'
+      value: '--gap: 0.5rem'
+    loose:
+      label: 'Loose'
+      value: '--gap: 2rem'
+theme_mode:
+  label: 'Theme mode'
+  category: 'Color'
+  attribute: data-theme
+  options:
+    night:
+      label: 'Night'
+      value: 'night'
+highlight:
+  label: 'Highlight'
+  category: 'Color'
+  library: 'canvas_test_styles/highlight'
+  options:
+    'yes':
+      label: 'Highlighted'
+      value: 'is-highlighted'

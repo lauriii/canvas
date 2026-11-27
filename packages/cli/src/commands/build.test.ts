@@ -81,6 +81,7 @@ describe('buildCommand', () => {
       componentDir: 'src/components',
       contentTemplatesDir: 'content-templates',
       globalCssPath: 'src/global.css',
+      stylesDir: 'styles',
       includeBrandKit: true,
       includeContentTemplates: false,
       includePages: false,

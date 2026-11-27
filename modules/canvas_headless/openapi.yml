@@ -687,6 +687,33 @@ components:
             type: array
             items:
               type: string
+        styles:
+          type: object
+          description: >-
+            Experimental. The instance's core Style API selection: style ID to option ID, or (reserved for
+            per-breakpoint styles) an object of breakpoint ID to option ID with a `base` key. Present only on code
+            component elements, when the client sends the `styles` capability in `Canvas-Client-Capabilities` and the
+            selection is not empty.
+          additionalProperties:
+            oneOf:
+              - type: string
+              - type: object
+                required: [base]
+                additionalProperties:
+                  type: string
+        attributes:
+          type: object
+          description: >-
+            Experimental. The resolved `class` and `style`, exactly as Drupal-rendered code components receive them as
+            `className` and `style`. Present whenever `styles` is.
+          additionalProperties: false
+          properties:
+            class:
+              type: string
+            style:
+              type: object
+              additionalProperties:
+                type: string
 
     LegacyCanvasContent:
       type: object

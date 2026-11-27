@@ -105,6 +105,8 @@ function getResourceGroup(type: string): ResourceGroup {
       return { label: 'Dependencies', order: 16 };
     case 'Artifact':
       return { label: 'Artifacts', order: 17 };
+    case 'Style library':
+      return { label: 'Style libraries', order: 5 };
     case 'Font variant':
       return {
         label: 'brand kit',

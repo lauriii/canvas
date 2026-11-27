@@ -1,0 +1,303 @@
+---
+title: Code Components - Styles
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Component styles let editors change how a component looks, within options a
+design owner approves: a background, spacing, or alignment. Styles are declared
+once, in Drupal core's Style API format, and every component that accepts them
+gets a **Style** tab in the editor.
+
+<Aside type="caution" title="Experimental">
+  Styles use the Drupal core Style API
+  ([#3517033](https://www.drupal.org/project/drupal/issues/3517033)), and are
+  behind the experimental setting `canvas.settings:experimental.styles`. Until
+  your core version includes the Style API, install the **Drupal Canvas Style
+  API polyfill** module (`canvas_style_polyfill`): it reads the same
+  `utilities.yml` files and produces the same markup, and does nothing once core
+  provides the API. The styles endpoint, the headless keys, and the CLI file
+  format can still change.
+</Aside>
+
+## Where styles come from
+
+- **A theme or module** declares styles in `{provider}.utilities.yml`. Styles
+  from modules and from the default theme (and its base themes) are available;
+  admin theme styles are not.
+- **A site style library**, for sites without a custom theme, such as Acquia
+  Source. Libraries live in your codebase as `styles/{library}.utilities.yml`
+  and are pushed with the Canvas CLI.
+
+```yaml
+# styles/brand.utilities.yml
+surface:
+  label: Surface
+  category: Color
+  options:
+    light:
+      label: Light
+      value: bg-white
+    dark:
+      label: Dark
+      value: bg-slate-900 text-white
+tone:
+  label: Tone
+  options:
+    light:
+      label: Light
+      value: ''
+    dark:
+      label: Dark
+      value: ''
+```
+
+Options set `class` by default. Use `attribute: style` for inline values, for
+example `value: '--gap: var(--space-7)'`. An option with `value: ''` adds
+nothing to markup and only drives component logic. Site libraries may only set
+`class`, `style`, `data-*`, or `aria-*`, cannot attach a `library`, and cannot
+reuse a style ID a theme or module provides. A library is published as soon as
+it is pushed.
+
+## Brand kit colors and custom values
+
+A style can offer more than its fixed options. Style libraries declare these
+keys on the style. Themes and modules declare them in
+`{provider}.canvas.styles.yml`, keyed by style ID, because core's style format
+doesn't have them yet.
+
+```yaml
+# mytheme.canvas.styles.yml
+surface:
+  # Every brand kit color, optionally from some folders only.
+  tokens:
+    type: color
+    folders: [Brand]
+    value: surface-token
+    property: --surface
+headline_size:
+  # A number editors type, drag, or slide, within bounds for each unit.
+  custom:
+    units:
+      rem: { min: 1, max: 10, step: 0.25 }
+      px: { min: 16, max: 160, step: 4 }
+    value: headline-custom
+    property: --headline
+```
+
+Canvas renders the `value` class, and sets `property` inline: a brand kit color
+as `var(--color-variable, fallback)`, a custom value as the number and unit. Your
+CSS reads the property: `.headline-custom { font-size: var(--headline); }`.
+
+Each unit has its own bounds, because 1 to 10 rem is not 1 to 10 px. For a
+number without a unit, put `min`, `max`, and `step` next to `value`, and add
+`type: integer` for whole numbers. Only users with the "Use custom style values"
+permission can enter custom values.
+
+## Which components accept styles
+
+Components accept no styles until their author lists them, so editors only see
+styles that make sense for the component.
+
+| Component      | How to accept styles                                                                   |
+| -------------- | -------------------------------------------------------------------------------------- |
+| SDC            | `thirdPartySettings.canvas.styles` in `*.component.yml`: a list of style IDs, or `'*'` |
+| Code component | `styles` in `component.yml`, or Component data > Styles in the code editor             |
+| Block          | Not yet declarable; blocks accept none                                                 |
+
+```yaml
+# components/card/card.component.yml
+thirdPartySettings:
+  canvas:
+    styles: [surface, radius, shadow]
+```
+
+```yaml
+# components/hero/component.yml
+styles: [surface, spacing, tone]
+# Or every style the component can receive as className and style:
+# styles: '*'
+```
+
+Changing the list creates a new component version. Existing instances keep their
+version, and their styles, until they are upgraded.
+
+### Limit a style on one component
+
+Instead of a list, `styles` can be a map of style ID to a limit, or `~` for no
+limit. A limit narrows what the style offers on this component only.
+
+```yaml
+# components/card/card.component.yml
+thirdPartySettings:
+  canvas:
+    styles:
+      surface: { folders: [Brand] } # brand kit colors in the Brand folder
+      spacing: { options: [s, m] } # these options only
+      radius: { custom: false } # no custom values
+      shadow: ~
+```
+
+### Style elements inside a component
+
+A component can name elements inside it that take styles of their own, such as a
+hero's heading and introduction. Each named part has a label, which editors see
+as a group in the Style tab, and its own list or map of styles. The same style
+can be set differently on the component and on each part.
+
+```yaml
+# components/hero/hero.component.yml
+thirdPartySettings:
+  canvas:
+    styles: [surface, spacing]
+    style_parts:
+      heading:
+        label: Heading
+        styles:
+          text_size: { options: [l, xl] }
+      intro:
+        label: Introduction
+        styles: [text_size, measure]
+```
+
+Print each part's attributes on its element. Canvas passes them as
+`{part}_attributes`, and they are empty when nothing is set, so the template
+needs no checks:
+
+```twig
+<h1{{ heading_attributes.addClass('hero__heading') }}>{{ heading }}</h1>
+<p{{ intro_attributes.addClass('hero__intro') }}>{{ intro }}</p>
+```
+
+Code components declare parts as `styleParts` in `component.yml` and receive
+each part's `className` and `style` in the `styleParts` prop:
+
+```tsx
+<h1
+  className={cn('hero__heading', styleParts?.heading?.className)}
+  style={styleParts?.heading?.style}
+>
+  {heading}
+</h1>
+```
+
+If a new version of a component moves a style from the component to one of its
+parts, or back, upgrading an instance moves its stored value too. Values that
+can't move on their own are listed in the Style tab, with a button to move them.
+
+## The code component contract
+
+A code component that accepts styles receives React's standard `className` and
+`style` props, like any component a parent styles. Apply them to the root
+element:
+
+```tsx
+import { cn, useStyleOptions } from 'drupal-canvas';
+
+export default function Hero({ heading, className, style }) {
+  const { tone } = useStyleOptions();
+  return (
+    <section className={cn('hero py-12', className)} style={style}>
+      <img src={tone === 'dark' ? logoLight : logoDark} alt="" />
+      <h1>{heading}</h1>
+    </section>
+  );
+}
+```
+
+- `className` joins the selected class values in style weight order, then style
+  ID order. It is `undefined` when nothing is set.
+- `style` is an object, with custom properties such as `--gap` kept as is.
+- `useStyleOptions()` returns the selected option IDs, keyed by style ID. After
+  `canvas pull`, `useStyleOptions<'hero'>()` is typed from `component.yml`. The
+  selection is never passed as a prop, so spreading props (`{...rest}`) is safe.
+- `'*'` only covers styles whose options set `class` or `style`. A style that
+  sets another attribute, such as DaisyUI's `data-theme`, must be listed, and
+  applied by the component: `data-theme={useStyleOptions().daisy_theme}`.
+
+### Rename a reserved prop
+
+A component that accepts styles cannot declare its own prop named `className`,
+`style`, or `styleParts`: Canvas uses those names for the selected styles. Saving such a
+component fails, and `canvas validate` reports the collision.
+
+1. Rename the prop, for example `style` to `variant`, in `component.yml` and in
+   the component code.
+2. Push or save. Renaming a prop creates a new component version; existing
+   instances keep their values on the previous version until they are upgraded.
+3. Consider whether the prop is a look that should become a style (see below).
+
+## What styles are not for
+
+Styles are for cross-cutting looks: spacing, surfaces, alignment. Component
+specific variants, such as a button's `primary | ghost | link` or a cva recipe,
+stay enum props: style IDs are global, and their options cannot be narrowed per
+component. To drive a recipe from a style, read it:
+
+```tsx
+const button = cva('btn', {
+  variants: { size: { small: 'px-2', large: 'px-6' } },
+});
+const className = button({ size: useStyleOptions().spacing });
+```
+
+## Merging classes
+
+`cn()` uses tailwind-merge, which only resolves conflicts it knows. Custom
+`@theme` utilities (for example `text-hero` as a font size) can be misread as
+another group, and BEM or DaisyUI classes are never deduplicated. Create a
+`cn()` with your own configuration:
+
+```ts
+import { extendCn } from 'drupal-canvas';
+
+export const cn = extendCn({
+  extend: { classGroups: { 'font-size': [{ text: ['hero'] }] } },
+});
+```
+
+## Moving an enum prop to a style
+
+1. Add the style to a theme utilities file or a site library, with option IDs
+   matching the prop's values where possible.
+2. List the style in the component's `styles`, remove the prop, and apply
+   `className` (or read `useStyleOptions()` for logic-only values).
+3. Push. Existing instances keep the old version, and their prop value, until
+   they are upgraded; set the style on upgraded instances in the Style tab.
+
+## Using the CLI
+
+`canvas pull` writes:
+
+- `styles/*.utilities.yml` for site libraries, with a `yaml-language-server`
+  schema comment for editor validation;
+- `.canvas/styles.json`, a snapshot of every available style;
+- `.canvas/styles.d.ts`, which types `useStyleOptions()` per component (add
+  `.canvas` to `include` in `tsconfig.json`);
+- `.canvas/styles.css`, an `@source inline(…)` list of every option class.
+
+Commit `.canvas/` like a lockfile. A headless front end imports
+`.canvas/styles.css` into its Tailwind entry so option classes from YAML are
+built. `canvas push` validates libraries locally and pushes them before
+components. `canvas validate` reports rule errors with file and line, unknown
+styles, reserved prop names, components that never reference `className`,
+options without a `value`, and enum props that look like styles.
+
+A typical first styled component in a new project:
+
+```bash
+npx canvas scaffold --name hero        # component.yml starts with styles: []
+# Add styles/brand.utilities.yml, then list the styles in component.yml.
+npx canvas validate
+npx canvas push
+```
+
+## Headless front ends
+
+The content API adds `styles` (option IDs) and `attributes` (`class`, `style`)
+to code component elements when the client sends the `styles` capability in
+`Canvas-Client-Capabilities`, which current SDK releases do. The React adapter
+passes `className` and `style` and provides `useStyleOptions()`. React Server
+Components read `element.styles` from the `renderElement` callback of
+`CanvasComponentTree`. SDCs and blocks arrive as markup with their classes
+already applied.

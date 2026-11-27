@@ -313,15 +313,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--gray-9);
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    'Liberation Mono',
-    'Courier New',
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
   line-height: 16px;
 }
@@ -367,12 +359,7 @@
   border: 1px solid var(--gray-5);
   border-radius: 9999px;
   background:
-    linear-gradient(
-        to right,
-        var(--accent-9) 0 var(--axis-progress, 0%),
-        transparent var(--axis-progress, 0%) 100%
-      )
-      no-repeat,
+    linear-gradient(to right, var(--accent-9) 0 var(--axis-progress, 0%), transparent var(--axis-progress, 0%) 100%) no-repeat,
     var(--gray-3);
 }
 
@@ -382,12 +369,7 @@
   border: 1px solid var(--gray-5);
   border-radius: 9999px;
   background:
-    linear-gradient(
-        to right,
-        var(--accent-9) 0 var(--axis-progress, 0%),
-        transparent var(--axis-progress, 0%) 100%
-      )
-      no-repeat,
+    linear-gradient(to right, var(--accent-9) 0 var(--axis-progress, 0%), transparent var(--axis-progress, 0%) 100%) no-repeat,
     var(--gray-3);
 }
 
@@ -451,15 +433,7 @@
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   color: var(--gray-1);
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    'Liberation Mono',
-    'Courier New',
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
   line-height: 1.45;
 }

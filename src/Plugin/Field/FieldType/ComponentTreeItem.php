@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use Drupal\canvas\Plugin\DataType\ComponentStylesData;
 use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
 use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
@@ -42,7 +43,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  *
  * @phpstan-import-type ComponentConfigEntityId from \Drupal\canvas\Entity\Component
  * @phpstan-import-type ConfigDependenciesArray from \Drupal\canvas\Entity\VersionedConfigEntityInterface
- * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'inputs_resolved'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'|'component_version'
+ * @phpstan-type ComponentTreeItemPropName 'uuid'|'inputs'|'inputs_resolved'|'component_id'|'component'|'parent_item'|'slot'|'parent_uuid'|'label'|'component_version'|'styles'
  *
  * @property \Drupal\canvas\HydratedTree $hydrated
  */
@@ -117,6 +118,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
         'uuid',
         'component_id',
         'component_version',
+        // One look for all translations: styles are part of the structure.
+        // @see \Drupal\canvas\Style\ComponentStyles
+        'styles',
       ],
     ],
   ],
@@ -301,6 +305,15 @@ class ComponentTreeItem extends FieldItemBase {
           // @see \Drupal\canvas\Entity\Component::$label
           'not null' => FALSE,
         ],
+        'styles' => [
+          'description' => 'Core Style API selection for this component instance: style ID to option ID.',
+          'type' => 'json',
+          'pgsql_type' => 'jsonb',
+          'mysql_type' => 'json',
+          'sqlite_type' => 'json',
+          // NULL means no styles are set.
+          'not null' => FALSE,
+        ],
       ],
       'indexes' => [
         'component_id' => ['component_id'],
@@ -382,6 +395,10 @@ class ComponentTreeItem extends FieldItemBase {
       ->setLabel(new TranslatableMarkup('Optional label for the component instance to provide context for content authors. Not visible to end users.'))
       ->setSetting('max_length', 255)
       ->addConstraint('Length', ['max' => 255])
+      ->setRequired(FALSE);
+
+    $properties['styles'] = DataDefinition::create(ComponentStylesData::PLUGIN_ID)
+      ->setLabel(new TranslatableMarkup('Style selection'))
       ->setRequired(FALSE);
 
     $properties['inputs_resolved'] = DataDefinition::create('any')
@@ -576,6 +593,23 @@ class ComponentTreeItem extends FieldItemBase {
   }
 
   /**
+   * The stored style selection, which may contain degraded entries.
+   *
+   * @return array<string, mixed>
+   *
+   * @see \Drupal\canvas\Style\ComponentStyles::filter()
+   */
+  public function getStyles(): array {
+    $styles = $this->get('styles');
+    \assert($styles instanceof ComponentStylesData);
+    return $styles->getStyles();
+  }
+
+  public function setStyles(array $styles): self {
+    return $this->set('styles', $styles);
+  }
+
+  /**
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
   public function getClientSideRepresentation(): array {
@@ -588,6 +622,8 @@ class ComponentTreeItem extends FieldItemBase {
       // @see \Drupal\Core\TypedData\TypedData::$name
       'name' => $this->getLabel(),
       'slots' => [],
+      // Omitted when empty.
+      ...(($styles = $this->getStyles()) !== [] ? ['styles' => $styles] : []),
     ];
   }
 

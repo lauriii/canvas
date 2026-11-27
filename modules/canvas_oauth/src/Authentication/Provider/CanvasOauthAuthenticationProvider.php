@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Entity\StyleLibrary;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider;
@@ -74,6 +75,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'canvas.api.interface_translation.lookup',
       'canvas.api.settings.default_page_variant.get',
       'canvas.api.settings.default_page_variant.set',
+      'canvas.api.styles',
       'canvas.api.push.complete',
       'canvas.api.push.fail',
       'canvas.api.push.start',
@@ -103,6 +105,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       ContentTemplate::ENTITY_TYPE_ID,
       Folder::ENTITY_TYPE_ID,
       PageVariant::ENTITY_TYPE_ID,
+      StyleLibrary::ENTITY_TYPE_ID,
     ];
 
     if ($entity_type_id !== NULL && \in_array($entity_type_id, $protected_config_entity_types, TRUE)) {

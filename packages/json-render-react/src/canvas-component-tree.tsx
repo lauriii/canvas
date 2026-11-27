@@ -30,11 +30,23 @@ import type { CanvasMarker as CanvasMarkerProps } from '@drupal-canvas/json-rend
 /** App component implementations keyed by component.yml machine name. */
 export type CanvasComponentRegistry = Record<string, ElementType>;
 
+/**
+ * Wraps one rendered app component, for example to provide the instance's
+ * style selection through context. React Server Components, which cannot use
+ * context, read `element.styles` here instead.
+ */
+export type CanvasRenderElement = (
+  rendered: ReactNode,
+  element: CanvasComponentTreeElement,
+) => ReactNode;
+
 export interface CanvasComponentTreeProps {
   tree: CanvasComponentTreeSpec | null;
   components: CanvasComponentRegistry;
   /** Whether Canvas editor boundaries and empty drop areas should render. */
   preview?: boolean;
+  /** Wraps each rendered app component. */
+  renderElement?: CanvasRenderElement;
 }
 
 interface CanvasElementProps {
@@ -43,6 +55,7 @@ interface CanvasElementProps {
   components: CanvasComponentRegistry;
   path: string;
   editor: boolean;
+  renderElement?: CanvasRenderElement;
 }
 
 /**
@@ -55,6 +68,7 @@ export function CanvasComponentTree({
   tree,
   components,
   preview = false,
+  renderElement,
 }: CanvasComponentTreeProps) {
   const prepared = prepareCanvasJsonRender(tree, { preview });
   const content = prepared.spec?.root ? (
@@ -64,6 +78,7 @@ export function CanvasComponentTree({
       components={components}
       path={`elements.${prepared.spec.root}`}
       editor={prepared.preview}
+      renderElement={renderElement}
       key={prepared.rootRenderKey}
     />
   ) : null;
@@ -88,6 +103,7 @@ function CanvasElement({
   components,
   path,
   editor,
+  renderElement,
 }: CanvasElementProps) {
   const node = tree.elements[elementKey];
   if (!node) {
@@ -105,6 +121,7 @@ function CanvasElement({
       components,
       path,
       editor,
+      renderElement,
     );
     if (!editor) {
       return <>{content}</>;
@@ -131,6 +148,7 @@ function CanvasElement({
       components,
       path,
       editor,
+      renderElement,
     );
     if (!editor) {
       return <>{content}</>;
@@ -161,7 +179,16 @@ function CanvasElement({
   );
   if (!componentData) {
     return (
-      <>{renderStructuralChildren(tree, node, components, path, editor)}</>
+      <>
+        {renderStructuralChildren(
+          tree,
+          node,
+          components,
+          path,
+          editor,
+          renderElement,
+        )}
+      </>
     );
   }
 
@@ -172,14 +199,30 @@ function CanvasElement({
   }
 
   const slotProps = Object.fromEntries(
-    renderSlots(tree, node, elementKey, components, path, editor).map(
-      ({ name, content }) => [name === 'default' ? 'children' : name, content],
-    ),
+    renderSlots(
+      tree,
+      node,
+      elementKey,
+      components,
+      path,
+      editor,
+      renderElement,
+    ).map(({ name, content }) => [
+      name === 'default' ? 'children' : name,
+      content,
+    ]),
   );
-  const component = createElement(Component, {
+  // Styles: the same `className` and `style` Drupal-rendered code components
+  // receive. Present only when the SDK opted in and the selection is set.
+  const styleProps: Record<string, unknown> = {};
+  if (node.attributes?.class) styleProps.className = node.attributes.class;
+  if (node.attributes?.style) styleProps.style = node.attributes.style;
+  const created = createElement(Component, {
     ...componentData.props,
+    ...styleProps,
     ...slotProps,
   });
+  const component = renderElement ? renderElement(created, node) : created;
 
   if (!editor) {
     return component;
@@ -211,6 +254,7 @@ function renderStructuralChildren(
   components: CanvasComponentRegistry,
   path: string,
   editor: boolean,
+  renderElement?: CanvasRenderElement,
 ): ReactNode[] {
   return getCanvasComponentTreeElementSlots(node).flatMap(([name, childKeys]) =>
     childKeys.map((childKey, index) => (
@@ -220,6 +264,7 @@ function renderStructuralChildren(
         components={components}
         path={`${path}:${name}:${index}`}
         editor={editor}
+        renderElement={renderElement}
         key={childKey}
       />
     )),
@@ -233,6 +278,7 @@ function renderSlots(
   components: CanvasComponentRegistry,
   path: string,
   editor: boolean,
+  renderElement?: CanvasRenderElement,
 ) {
   const componentData = getJsonRenderComponentData(
     node,
@@ -249,6 +295,7 @@ function renderSlots(
         components={components}
         path={`${path}:${name}:${index}`}
         editor={editor}
+        renderElement={renderElement}
         key={childKey}
       />
     ));

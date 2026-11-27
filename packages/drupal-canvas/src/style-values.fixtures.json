@@ -1,0 +1,73 @@
+{
+  "_comment": "Shared test cases for custom style values. Run by StyleValuesTest (PHP), styleUtils.test.ts (editor), and styles.test.tsx (drupal-canvas), so the three parsers stay in step. 'normalized' is what Canvas sends to clients for 'authored'.",
+  "specs": {
+    "size": {
+      "authored": {
+        "units": {
+          "rem": { "min": 1, "max": 10, "step": 0.25 },
+          "px": { "min": 16, "max": 160, "step": 4 },
+          "ch": { "min": 20, "max": 90 }
+        },
+        "value": "size-custom",
+        "property": "--size"
+      },
+      "normalized": {
+        "type": "length",
+        "units": ["rem", "px", "ch"],
+        "min": 1,
+        "max": 10,
+        "step": 0.25,
+        "ranges": {
+          "rem": { "min": 1, "max": 10, "step": 0.25 },
+          "px": { "min": 16, "max": 160, "step": 4 },
+          "ch": { "min": 20, "max": 90, "step": null }
+        },
+        "value": "size-custom",
+        "property": "--size"
+      }
+    },
+    "columns": {
+      "authored": { "type": "integer", "min": 1, "max": 6, "value": "cols", "property": "--cols" },
+      "normalized": {
+        "type": "integer",
+        "units": [""],
+        "min": 1,
+        "max": 6,
+        "step": null,
+        "ranges": { "": { "min": 1, "max": 6, "step": null } },
+        "value": "cols",
+        "property": "--cols"
+      }
+    },
+    "share": {
+      "authored": { "units": { "%": { "min": 0, "max": 100 } }, "value": "share", "property": "--share" },
+      "normalized": {
+        "type": "percentage",
+        "units": ["%"],
+        "min": 0,
+        "max": 100,
+        "step": null,
+        "ranges": { "%": { "min": 0, "max": 100, "step": null } },
+        "value": "share",
+        "property": "--share"
+      }
+    }
+  },
+  "parse": [
+    { "spec": "size", "value": "=4rem", "css": "4rem" },
+    { "spec": "size", "value": "=1.50rem", "css": "1.5rem" },
+    { "spec": "size", "value": "=64px", "css": "64px" },
+    { "spec": "size", "value": "=8px", "css": null, "why": "px has its own bounds" },
+    { "spec": "size", "value": "=11rem", "css": null },
+    { "spec": "size", "value": "=60ch", "css": "60ch" },
+    { "spec": "size", "value": "=4em", "css": null, "why": "unit not allowed" },
+    { "spec": "size", "value": "=4", "css": null, "why": "a length needs a unit" },
+    { "spec": "size", "value": "=4rem; color: red", "css": null },
+    { "spec": "size", "value": "large", "css": null },
+    { "spec": "columns", "value": "=3", "css": "3" },
+    { "spec": "columns", "value": "=2.5", "css": null },
+    { "spec": "columns", "value": "=7", "css": null },
+    { "spec": "share", "value": "=50%", "css": "50%" },
+    { "spec": "share", "value": "=-1%", "css": null }
+  ]
+}

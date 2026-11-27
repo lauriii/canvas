@@ -38,6 +38,12 @@ interface IFrameSwapperProps {
    */
   setInPlaceUpdates: Dispatch<SetStateAction<number>>;
   interactive: boolean;
+  /**
+   * Holds back new preview documents while text is edited in place: replacing
+   * the document would destroy the caret and the in-progress value. The latest
+   * document is applied as soon as the hold is released.
+   */
+  holdUpdates?: boolean;
 }
 
 const applyHeadStyles = (frame: HTMLIFrameElement | null, css: string) => {
@@ -57,7 +63,14 @@ const applyHeadStyles = (frame: HTMLIFrameElement | null, css: string) => {
 
 const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
   (
-    { srcDocument, headStyles, setIsReloading, setInPlaceUpdates, interactive },
+    {
+      srcDocument,
+      headStyles,
+      setIsReloading,
+      setInPlaceUpdates,
+      interactive,
+      holdUpdates = false,
+    },
     ref: Ref<HTMLIFrameElement>,
   ) => {
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
@@ -79,6 +92,13 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const loadingSrcDocumentRef = useRef<string | null>(null);
     const swappedSrcDocumentRef = useRef<string | null>(null);
     const activeSrcDocumentRef = useRef<string | null>(null);
+    // While held, keep rendering the document from before the hold. Releasing
+    // the hold applies the latest document, and only if it changed.
+    const heldSrcDocumentRef = useRef(srcDocument);
+    if (!holdUpdates) {
+      heldSrcDocumentRef.current = srcDocument;
+    }
+    const documentToApply = heldSrcDocumentRef.current;
 
     // Keep already-loaded preview documents in step when the styles change.
     useEffect(() => {
@@ -229,7 +249,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           inactiveIFrame.addEventListener('load', swapIFrames);
           return () => inactiveIFrame.removeEventListener('load', swapIFrames);
         }
-        activeSrcDocumentRef.current = srcDocument;
+        activeSrcDocumentRef.current = documentToApply;
         return;
       }
 
@@ -237,18 +257,18 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       const inPlaceUpdate =
         previousSrcDocument === null
           ? null
-          : findInPlaceUpdate(previousSrcDocument, srcDocument);
+          : findInPlaceUpdate(previousSrcDocument, documentToApply);
       if (
         inPlaceUpdate &&
         activeIFrame.contentDocument &&
         applyInPlaceUpdate(activeIFrame.contentDocument, inPlaceUpdate)
       ) {
-        activeSrcDocumentRef.current = srcDocument;
+        activeSrcDocumentRef.current = documentToApply;
         setInPlaceUpdates((count) => count + 1);
         return;
       }
       activeSrcDocumentRef.current = null;
-      loadingSrcDocumentRef.current = srcDocument;
+      loadingSrcDocumentRef.current = documentToApply;
 
       // Important to change a state ensure parent re-renders (and re-calls hooks) once the iframe is swapped.
       setIsReloading(true);
@@ -256,7 +276,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
       // Insert the head styles into the markup itself, so a loading document
       // renders with them from its first paint.
-      const srcDocumentWithStyles = srcDocument.replace(
+      const srcDocumentWithStyles = documentToApply.replace(
         /<\/head>/i,
         () =>
           `<style id="${PREVIEW_HEAD_STYLES_ID}">${headStylesRef.current}</style></head>`,
@@ -292,7 +312,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         activeIFrame?.removeEventListener('load', swapIFrames);
       };
     }, [
-      srcDocument,
+      documentToApply,
       setIsReloading,
       setInPlaceUpdates,
       swapIFrames,

@@ -35,9 +35,66 @@ export class ComponentMetadataValidationError extends Error {
   }
 }
 
-const validateEnvelope = createCanvasAjv({ allErrors: true }).compile(
-  componentMetadataSchema,
-);
+const STYLE_ID_SCHEMA = { type: 'string', pattern: '^[a-z0-9_]+$' };
+const LIMIT_LIST_SCHEMA = {
+  type: 'array',
+  items: { type: 'string', minLength: 1 },
+};
+
+/**
+ * Named parts of a code component, each with a label and the styles it
+ * accepts: a list of style IDs, or a map of style ID to a limit (or null).
+ *
+ * @see \Drupal\canvas\Style\StyleDeclaration
+ */
+export const STYLE_PARTS_SCHEMA = {
+  description:
+    "Named parts that take styles of their own, keyed by part ID. The component receives each part's choices in its styleParts prop.",
+  type: 'object',
+  propertyNames: { type: 'string', pattern: '^[a-z][a-z0-9_]*$' },
+  additionalProperties: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['label', 'styles'],
+    properties: {
+      label: { type: 'string', pattern: '\\S' },
+      styles: {
+        oneOf: [
+          { type: 'array', uniqueItems: true, items: STYLE_ID_SCHEMA },
+          {
+            type: 'object',
+            propertyNames: STYLE_ID_SCHEMA,
+            additionalProperties: {
+              oneOf: [
+                { type: 'null' },
+                {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    folders: LIMIT_LIST_SCHEMA,
+                    colors: LIMIT_LIST_SCHEMA,
+                    options: LIMIT_LIST_SCHEMA,
+                    custom: { type: 'boolean' },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  },
+};
+
+// Ponytail: `styleParts` is added here until component-metadata.schema.json
+// at the repository root declares it.
+const validateEnvelope = createCanvasAjv({ allErrors: true }).compile({
+  ...componentMetadataSchema,
+  properties: {
+    ...componentMetadataSchema.properties,
+    styleParts: STYLE_PARTS_SCHEMA,
+  },
+});
 
 function decodeJsonPointer(instancePath: string): string[] {
   if (!instancePath) return [];
@@ -176,6 +233,8 @@ export function normalizeComponentMetadata(value: unknown): ComponentMetadata {
     props: raw.props ?? { properties: {} },
     slots: raw.slots ?? {},
     dataDependencies: raw.dataDependencies ?? {},
+    ...(raw.styles !== undefined ? { styles: raw.styles } : {}),
+    ...(raw.styleParts !== undefined ? { styleParts: raw.styleParts } : {}),
   };
 }
 

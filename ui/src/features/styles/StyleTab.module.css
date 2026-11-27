@@ -1,0 +1,319 @@
+/* A property row, as in Figma or Framer: label, then control. */
+.row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  column-gap: var(--space-2);
+  align-items: center;
+  min-height: 32px;
+}
+
+/* Labels are buttons: they open the style's details and Reset. */
+.label,
+.labelSet,
+.labelStatic {
+  all: unset;
+  overflow: hidden;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin-inline-start: -4px;
+  padding: 1px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-radius: var(--radius-1);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+}
+
+.label,
+.labelStatic {
+  color: var(--gray-11);
+}
+
+/* No description and nothing to reset: not interactive. */
+.labelStatic {
+  cursor: default;
+}
+
+.label:hover {
+  color: var(--gray-12);
+  background: var(--gray-a3);
+}
+
+/* A set style's label is a soft chip, as in Webflow. */
+.labelSet {
+  color: var(--accent-11);
+  background: var(--accent-a3);
+}
+
+.labelSet:hover {
+  background: var(--accent-a4);
+}
+
+.label:focus-visible,
+.labelSet:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
+}
+
+.labelMenu {
+  width: 260px;
+  padding: var(--space-1);
+}
+
+.menuDescription {
+  padding: var(--space-2);
+  color: var(--gray-11);
+}
+
+.menuItem {
+  all: unset;
+  display: flex;
+  box-sizing: border-box;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-2);
+  cursor: pointer;
+  border-radius: var(--radius-2);
+  gap: var(--space-2);
+  font-size: var(--font-size-2);
+}
+
+/* A divider separates the description from the action. */
+.menuDescription + .menuItem {
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--gray-a4);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--gray-a3);
+}
+
+.menuIcon {
+  flex: none;
+  margin-top: 3px;
+}
+
+.menuItemText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuItemHint {
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+}
+
+.menuShortcut {
+  flex: none;
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-2);
+}
+
+.unsetItem {
+  color: var(--gray-11);
+  font-style: italic;
+}
+
+/* The control fills its column. */
+.control > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * Segments size to their labels, and spare width is shared out, so a short
+ * option set gets roomy segments and a long one still fits. Radix's sliding
+ * indicator assumes equal segments, so the selected segment is painted
+ * directly instead.
+ */
+.segmented {
+  width: 100%;
+  min-width: 0;
+  grid-auto-columns: auto;
+}
+
+.segmented :global(.rt-SegmentedControlIndicator) {
+  display: none;
+}
+
+.segmented.segmented :global(.rt-SegmentedControlItemLabel) {
+  min-width: 0;
+  padding-inline: var(--space-1);
+}
+
+.segmented :global(.rt-SegmentedControlItem[data-state="on"]) {
+  border-radius: max(var(--radius-1), var(--radius-full));
+  background: var(--color-background);
+  box-shadow:
+    0 0 0 1px var(--gray-a5),
+    0 1px 2px var(--gray-a3);
+}
+
+.select,
+.selectUnset {
+  width: 100%;
+}
+
+.selectUnset {
+  color: var(--gray-10);
+}
+
+.marker {
+  margin-inline-start: var(--space-1);
+}
+
+/* Sections are separated by hairlines, with a quiet title. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--gray-a4);
+}
+
+.section:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* A part chosen from the preview flashes once. */
+.sectionFocused {
+  animation: partFocus 1.2s ease-out;
+}
+
+@keyframes partFocus {
+  from {
+    background: var(--accent-a3);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sectionFocused {
+    animation: none;
+  }
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  color: var(--gray-12);
+}
+
+/* A part is an element inside the component, like a layer in Figma: a small
+   nested square marks its group. */
+.partIcon {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--gray-9);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-panel-solid, white),
+    inset 0 0 0 4px var(--gray-9);
+}
+
+.linkButton {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-11);
+  font-size: var(--font-size-1);
+  cursor: pointer;
+}
+
+.tabBadge {
+  margin-inline-start: var(--space-1);
+}
+
+/* Brand kit colors in the picker. */
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--gray-a6);
+}
+
+.swatchItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Custom values, as in Framer: a slider and a compact field on one row. */
+.customControl {
+  flex: 1;
+  min-width: 0;
+}
+
+.customSlider {
+  flex: 1;
+  min-width: 48px;
+}
+
+.customField {
+  flex: 1;
+  min-width: 0;
+}
+
+.customFieldCompact {
+  flex: none;
+  width: 84px;
+}
+
+/* The unit, and the menu of units and options, inside the field. */
+.customMenuTrigger {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  margin-inline-end: calc(var(--space-1) * -1);
+  padding-inline: 2px;
+  cursor: pointer;
+  border-radius: var(--radius-1);
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+}
+
+.customMenuTrigger:hover,
+.customMenuTrigger[data-state="open"] {
+  color: var(--gray-12);
+  background: var(--gray-a3);
+}
+
+.customMenuTrigger:focus-visible {
+  outline: 2px solid var(--focus-8);
+}
+
+.customMenuTrigger:disabled {
+  cursor: default;
+}
+
+.customUnitText {
+  padding-inline-end: 2px;
+}
+
+/* An option has no number: the slider rests, muted, until dragged. */
+.sliderIdle {
+  opacity: 0.45;
+}
+
+/* A label that scrubs its number when dragged sideways. */
+.scrub {
+  cursor: ew-resize;
+}

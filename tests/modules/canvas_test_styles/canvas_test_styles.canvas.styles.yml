@@ -1,0 +1,13 @@
+# Canvas extensions to the styles in canvas_test_styles.utilities.yml.
+# @see \Drupal\canvas\Style\ComponentStyles::extensionDeclarations()
+background_color:
+  tokens:
+    type: color
+    value: bg-token
+    property: --bg
+spacing:
+  custom:
+    units:
+      px: { min: 0, max: 64, step: 4 }
+    value: p-custom
+    property: --p

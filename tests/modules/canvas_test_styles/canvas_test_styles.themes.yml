@@ -1,0 +1,8 @@
+# A page-level theme style: never offered to or applied on instances.
+page_scheme:
+  label: 'Page scheme'
+  target: body
+  options:
+    dark:
+      label: 'Dark'
+      value: 'scheme-dark'

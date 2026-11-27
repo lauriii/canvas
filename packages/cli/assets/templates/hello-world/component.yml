@@ -2,6 +2,11 @@ name: Hello World
 machineName: hello-world
 status: false
 required: []
+# Styles from the site's style libraries this component accepts. Canvas
+# passes the selection as `className` and `style`. To opt in, list style IDs
+# (for example `styles: [surface, spacing]`) or use `styles: '*'` for every
+# style that sets a class or inline style. Run `canvas validate` to check.
+styles: []
 props:
   properties:
     greeting:

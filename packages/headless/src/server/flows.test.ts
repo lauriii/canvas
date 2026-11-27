@@ -736,7 +736,7 @@ describe('fetchPage', () => {
         cache: 'no-store',
         headers: {
           Accept: 'application/json',
-          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render, styles',
         },
       }),
     );
@@ -1073,7 +1073,7 @@ describe('fetchPage', () => {
         headers: {
           Accept: 'application/json',
           Authorization: 'Bearer old-token',
-          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render, styles',
         },
       }),
     );
@@ -1108,7 +1108,7 @@ describe('fetchPage', () => {
           headers: {
             Accept: 'application/json',
             Authorization: 'Bearer old-token',
-            [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+            [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render, styles',
           },
         }),
       );
@@ -1179,7 +1179,7 @@ describe('fetchPage', () => {
       expect.objectContaining({
         headers: {
           Accept: 'application/json',
-          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render, styles',
         },
       }),
     );
@@ -1258,7 +1258,7 @@ describe('fetchEntity', () => {
         cache: 'no-store',
         headers: {
           Accept: 'application/json',
-          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render',
+          [CANVAS_CLIENT_CAPABILITIES_HEADER]: 'json-render, styles',
         },
       }),
     );

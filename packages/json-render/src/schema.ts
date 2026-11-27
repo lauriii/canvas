@@ -26,12 +26,42 @@ export const CanvasJsonRenderPropsSchema = z.record(
 /** Ordered element keys in one named slot. */
 export const CanvasComponentTreeSlotSchema = z.array(z.string());
 
-/** One element in a Canvas json-render document. */
-export const CanvasComponentTreeElementSchema = z.strictObject({
+/**
+ * A style value: an option ID for all screen sizes, or (reserved for
+ * per-breakpoint styles) breakpoint IDs to option IDs with a `base`.
+ */
+export const CanvasStyleValueSchema = z.union([
+  z.string(),
+  z.object({ base: z.string() }).catchall(z.string()),
+]);
+
+/** A component instance's style selection: style ID to value. */
+export const CanvasStylesSchema = z.record(z.string(), CanvasStyleValueSchema);
+
+/**
+ * Resolved style attributes, exactly as Drupal-rendered code components
+ * receive them as `className` and `style`.
+ */
+export const CanvasStyleAttributesSchema = z.strictObject({
+  class: z.string().optional(),
+  style: z.record(z.string(), z.string()).optional(),
+});
+
+/**
+ * One element in a Canvas json-render document.
+ *
+ * Unknown keys are accepted and ignored, so a front end keeps working when a
+ * newer Canvas adds keys it does not understand yet.
+ */
+export const CanvasComponentTreeElementSchema = z.looseObject({
   type: z.string(),
   props: CanvasJsonRenderPropsSchema,
   children: CanvasComponentTreeSlotSchema,
   slots: z.record(z.string(), CanvasComponentTreeSlotSchema).optional(),
+  /** Experimental: present when the client opted in to styles. */
+  styles: CanvasStylesSchema.optional(),
+  /** Experimental: present when the client opted in to styles. */
+  attributes: CanvasStyleAttributesSchema.optional(),
 });
 
 const CanvasComponentTreeStructureSchema = z.strictObject({
@@ -83,6 +113,15 @@ export const CanvasComponentTreeSchema =
 
     addCycleIssues(tree.elements, context);
   });
+
+/** A style value. */
+export type CanvasStyleValue = z.infer<typeof CanvasStyleValueSchema>;
+
+/** A component instance's style selection. */
+export type CanvasStyles = z.infer<typeof CanvasStylesSchema>;
+
+/** Resolved style attributes. */
+export type CanvasStyleAttributes = z.infer<typeof CanvasStyleAttributesSchema>;
 
 /** A value that can be represented in a json-render document. */
 export type JsonValue = z.infer<typeof JsonValueSchema>;

@@ -130,6 +130,7 @@ The following scopes are created as dynamic scopes (stored as config entities) u
 | `canvas:js_component`                | `administer code components` |
 | `canvas:asset_library`               | `administer code components` |
 | `canvas:brand_kit`                   | `administer brand kit`       |
+| `canvas:style_library`               | `administer style libraries` |
 | `canvas:page:read`                   | `access content`             |
 | `canvas:page:create`                 | `create canvas_page`         |
 | `canvas:page:edit`                   | `edit canvas_page`           |
@@ -173,6 +174,9 @@ With `canvas_headless` enabled, `GET`, `POST`, and `DELETE` on
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/asset_library/{configEntityId}`  |
 | `GET`, `POST`            | `/canvas/api/v0/config/brand_kit`                       |
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/brand_kit/{configEntityId}`      |
+| `GET`, `POST`            | `/canvas/api/v0/config/style_library`                   |
+| `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/config/style_library/{configEntityId}`  |
+| `GET`                    | `/canvas/api/v0/styles`                                 |
 | `GET`, `POST`            | `/canvas/api/v0/content/canvas_page`                    |
 | `GET`                    | `/canvas/api/v0/content/canvas_page/by-uuid/{uuid}`     |
 | `GET`, `PATCH`, `DELETE` | `/canvas/api/v0/content/canvas_page/{contentEntityId}`  |

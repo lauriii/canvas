@@ -8,6 +8,7 @@ import { duplicateNode, shiftNode } from '@/features/layout/layoutModelSlice';
 import { componentSubtreeMatchesType } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
 import { SlotMenuItems } from '@/features/layout/preview/SlotContextMenu';
+import { useStyleClipboard } from '@/features/styles/useStyleClipboard';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import {
   EditorFrameContext,
@@ -70,6 +71,7 @@ export const ComponentContextMenuContent: React.FC<
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
   const { navigateToCodeEditor } = useEditorNavigation();
+  const styleClipboard = useStyleClipboard();
   const isTemplateContext =
     useAppSelector(selectEditorFrameContext) === EditorFrameContext.TEMPLATE;
 
@@ -236,6 +238,42 @@ export const ComponentContextMenuContent: React.FC<
       <UnifiedMenu.Item onClick={handlePasteClick} shortcut="⌘ V">
         Paste
       </UnifiedMenu.Item>
+      {styleClipboard.active && !isMarker && (
+        <>
+          <UnifiedMenu.Separator />
+          <UnifiedMenu.Item
+            onClick={() => styleClipboard.copyStyles(componentUuid)}
+            shortcut="⌘ ⌥ C"
+          >
+            Copy styles
+          </UnifiedMenu.Item>
+          {styleClipboard.canChange && (
+            <>
+              <UnifiedMenu.Item
+                disabled={!styleClipboard.hasCopied}
+                onClick={() => styleClipboard.pasteStyles(componentUuid)}
+                shortcut="⌘ ⌥ V"
+              >
+                Paste styles
+              </UnifiedMenu.Item>
+              <UnifiedMenu.Item
+                disabled={!styleClipboard.hasCopied}
+                onClick={() =>
+                  styleClipboard.pasteAndMergeStyles(componentUuid)
+                }
+              >
+                Paste and merge styles
+              </UnifiedMenu.Item>
+              <UnifiedMenu.Item
+                disabled={!component.styles}
+                onClick={() => styleClipboard.removeAllStyles(componentUuid)}
+              >
+                Remove all styles
+              </UnifiedMenu.Item>
+            </>
+          )}
+        </>
+      )}
       {!isMarker && (
         <PermissionCheck hasPermission="patterns">
           <UnifiedMenu.Separator />

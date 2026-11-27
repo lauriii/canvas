@@ -15,11 +15,13 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
+use Drupal\canvas\Style\ComponentStyles;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
+use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
@@ -120,6 +122,10 @@ trait ClientServerConversionTrait {
     if ($uuid !== NULL) {
       $component['inputs'] = $model[$uuid] ?? [];
     }
+    // @see \Drupal\canvas\Style\ComponentStyles
+    if (!empty($layout['styles'])) {
+      $component['styles'] = $layout['styles'];
+    }
 
     if ($parent_slot !== NULL) {
       $component['slot'] = $parent_slot;
@@ -182,6 +188,9 @@ trait ClientServerConversionTrait {
         $items[$delta]['inputs'] = $fallback_source->clientModelToInput($uuid, $component, $inputs['resolved'] ?? [], $entity, $violation_list);
       }
       if ($violation_list !== NULL) {
+        foreach (ComponentStyles::validateShape($items[$delta]['styles'] ?? NULL) as $error) {
+          $violation_list->add(new ConstraintViolation($error['message'], $error['message'], [], NULL, 'styles.' . $uuid, $items[$delta]['styles'] ?? NULL));
+        }
         // Then we ensure the input values are valid using the source plugin.
         $component_violations = self::translateConstraintPropertyPathsAndRoot(
           ['inputs.' => 'model.'],

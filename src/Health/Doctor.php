@@ -6,17 +6,27 @@ namespace Drupal\canvas\Health;
 
 use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\StyleLibrary;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Style\ComponentStyles;
+use Drupal\Component\Serialization\Json;
 use Drupal\content_translation\Plugin\Validation\Constraint\ContentTranslationSynchronizedFieldsConstraint;
 use Drupal\Core\Cache\CacheTagsChecksumInterface;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraint;
 use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityUntranslatableFieldsConstraint;
 use Drupal\Core\Entity\RevisionableStorageInterface;
+use Drupal\Core\Entity\Sql\DefaultTableMapping;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Site\Settings;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
@@ -59,6 +69,10 @@ final class Doctor {
     private readonly EnvironmentInterface $environment,
     private readonly CacheTagsChecksumInterface $cacheTagsChecksum,
     private readonly ComponentSourceManager $componentSourceManager,
+    private readonly ComponentStyles $componentStyles,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly Connection $database,
+    private readonly ComponentPluginManager $sdcPluginManager,
   ) {}
 
   /**
@@ -79,6 +93,7 @@ final class Doctor {
       HealthCheck::UpdatesExecuted => $this->runUpdatesExecutedCheck(),
       HealthCheck::UpdatesEscapedConfig => $this->runUpdatesEscapedConfigCheck(),
       HealthCheck::ComponentSourceSchemaEvolution => $this->runComponentSourceSchemaEvolutionCheck(),
+      HealthCheck::ComponentStyles => $this->runComponentStylesCheck(),
       HealthCheck::Config,
       HealthCheck::Content,
       HealthCheck::ContentPastRevisions,
@@ -241,6 +256,158 @@ final class Doctor {
   }
 
   /**
+   * Reports component styles that do not render.
+   *
+   * Reads only rows with stored styles, straight from the field tables, so it
+   * stays cheap on large sites.
+   *
+   * @return SystemCheckResult
+   */
+  private function runComponentStylesCheck(): array {
+    $styles = $this->componentStyles;
+    if (!$styles->isActive()) {
+      return self::systemCheckResult(HealthCheck::ComponentStyles, 0, [], ['active' => FALSE]);
+    }
+    $problems = [];
+    $total = 0;
+
+    // 1. Stored selections that do not render.
+    $components = [];
+    foreach ($this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID) as $entity_type_id => $fields) {
+      $storage = $this->entityTypeManager->getStorage($entity_type_id);
+      if (!$storage instanceof SqlContentEntityStorage) {
+        continue;
+      }
+      $mapping = $storage->getTableMapping();
+      \assert($mapping instanceof DefaultTableMapping);
+      $definitions = $this->entityFieldManager->getFieldStorageDefinitions($entity_type_id);
+      foreach (\array_keys($fields) as $field_name) {
+        if (!isset($definitions[$field_name])) {
+          continue;
+        }
+        $table = $mapping->getDedicatedDataTableName($definitions[$field_name]);
+        $column = static fn (string $property): string => $mapping->getFieldColumnName($definitions[$field_name], $property);
+        $rows = $this->database->select($table, 't')
+          ->fields('t', [
+            'entity_id',
+            'langcode',
+            $column('uuid'),
+            $column('component_id'),
+            $column('component_version'),
+            $column('styles'),
+          ])
+          ->isNotNull($column('styles'))
+          ->execute() ?? [];
+        foreach ($rows as $row) {
+          $total++;
+          $component_id = $row->{$column('component_id')};
+          $components[$component_id] ??= Component::load($component_id);
+          $component = $components[$component_id];
+          if ($component === NULL) {
+            continue;
+          }
+          $version = $row->{$column('component_version')};
+          if (\in_array($version, $component->getVersions(), TRUE)) {
+            $component->loadVersion($version);
+          }
+          // Entries shown through a brand kit fallback render as intended.
+          $degraded = \array_filter(
+            $styles->degraded(Json::decode($row->{$column('styles')}) ?? [], $component),
+            static fn (string $reason): bool => $reason !== 'fallback',
+          );
+          if ($degraded !== []) {
+            $problems[] = [
+              'label' => \sprintf('%s %s (%s), instance %s', $entity_type_id, $row->entity_id, $row->langcode, $row->{$column('uuid')}),
+              'description' => implode(', ', \array_map(
+                static fn (string $style_id, string $reason): string => "$style_id: " . match ($reason) {
+                  'unavailable' => 'no longer available',
+                  'not_offered' => 'not offered on this site, and no fallback',
+                  default => 'no longer accepted',
+                },
+                \array_keys($degraded),
+                $degraded,
+              )),
+            ];
+          }
+        }
+      }
+    }
+
+    // 2. Site style library entries shadowed by an extension.
+    $source_definitions = $styles->sourceDefinitions();
+    foreach ($this->entityTypeManager->getStorage(StyleLibrary::ENTITY_TYPE_ID)->loadMultiple() as $library) {
+      \assert($library instanceof StyleLibrary);
+      foreach (\array_keys($library->getStyles()) as $style_id) {
+        $total++;
+        $definition = $source_definitions[$style_id] ?? NULL;
+        if ($definition !== NULL && $definition['canvas_library'] === NULL) {
+          $problems[] = [
+            'label' => \sprintf('Style library %s: %s', $library->id(), $style_id),
+            'description' => \sprintf('shadowed by %s, which provides the same style ID', $definition['provider']),
+          ];
+        }
+      }
+    }
+
+    // 3. Brand kit entries naming styles or options no extension provides.
+    $available = $styles->availableDefinitions();
+    foreach ($styles->brandKitStyles() as $style_id => $entry) {
+      $total++;
+      if (!isset($available[$style_id])) {
+        $problems[] = [
+          'label' => \sprintf('Brand kit styles: %s', $style_id),
+          'description' => 'no installed extension provides this style',
+        ];
+        continue;
+      }
+      $named = \array_unique([
+        ...($entry['options'] ?? []),
+        ...\array_keys($entry['labels'] ?? []),
+        ...\array_values($entry['fallbacks'] ?? []),
+      ]);
+      $missing = \array_diff($named, \array_keys($available[$style_id]['options']));
+      if ($missing !== []) {
+        $problems[] = [
+          'label' => \sprintf('Brand kit styles: %s', $style_id),
+          'description' => \sprintf('names options no extension provides: %s', implode(', ', $missing)),
+        ];
+      }
+    }
+
+    // 4. Style IDs defined by more than one extension: core silently keeps the
+    // last one, so the other never reaches Canvas.
+    foreach ($styles->duplicateDefinitions() as $style_id => $duplicate) {
+      $total++;
+      $problems[] = [
+        'label' => \sprintf('Style %s', $style_id),
+        'description' => \sprintf('defined by %s; core uses the definition from %s', implode(', ', $duplicate['providers']), $duplicate['kept']),
+      ];
+    }
+
+    // 5. SDCs that accept styles but never print `attributes`.
+    foreach (Component::loadMultiple() as $component) {
+      if ($component->get('source') !== 'sdc' || $styles->forComponent($component) === []) {
+        continue;
+      }
+      $total++;
+      try {
+        $template = $this->sdcPluginManager->find($component->get('source_local_id'))->getTemplatePath();
+      }
+      catch (\Throwable) {
+        continue;
+      }
+      if ($template !== NULL && is_file($template) && !str_contains((string) file_get_contents($template), 'attributes')) {
+        $problems[] = [
+          'label' => \sprintf('SDC %s', $component->get('source_local_id')),
+          'description' => 'accepts styles but its template never prints `attributes`',
+        ];
+      }
+    }
+
+    return self::systemCheckResult(HealthCheck::ComponentStyles, $total, $problems, []);
+  }
+
+  /**
    * Validates every data item across the requested checks.
    *
    * @param \Drupal\canvas\Health\HealthCheck[] $checks
@@ -271,7 +438,8 @@ final class Doctor {
         HealthCheck::CodeTaggedReleases,
         HealthCheck::UpdatesExecuted,
         HealthCheck::UpdatesEscapedConfig,
-        HealthCheck::ComponentSourceSchemaEvolution => throw new \LogicException(\sprintf('No data-check handler for %s.', $check->value)),
+        HealthCheck::ComponentSourceSchemaEvolution,
+        HealthCheck::ComponentStyles => throw new \LogicException(\sprintf('No data-check handler for %s.', $check->value)),
       };
     }
   }

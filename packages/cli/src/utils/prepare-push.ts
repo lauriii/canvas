@@ -95,6 +95,27 @@ async function buildComponentUploadTasks(
     };
     if (remoteNames.has(machineName)) {
       let componentPayload = serializedPayload;
+      // Removing `styles` from component.yml means the component accepts
+      // none, so clear what the site has.
+      const remoteStyles = (existingComponents[machineName] as Component)
+        .styles;
+      if (
+        componentPayload.styles === undefined &&
+        (remoteStyles === '*' ||
+          (Array.isArray(remoteStyles) && remoteStyles.length > 0))
+      ) {
+        componentPayload = { ...componentPayload, styles: [] };
+      }
+      // Likewise for parts.
+      const remoteParts = (existingComponents[machineName] as Component)
+        .styleParts;
+      if (
+        componentPayload.styleParts === undefined &&
+        remoteParts &&
+        Object.keys(remoteParts).length > 0
+      ) {
+        componentPayload = { ...componentPayload, styleParts: {} };
+      }
       if (componentPayload.type === 'external') {
         const serverComponent = existingComponents[machineName] as Component;
         // Preserve dependencies used by retained React fallback assets. Entity

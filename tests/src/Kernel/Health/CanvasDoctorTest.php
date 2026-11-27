@@ -14,8 +14,10 @@ use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
 use Drupal\canvas\Health\Inventory;
 use Drupal\canvas\Hook\HealthHooks;
+use Drupal\canvas\Style\ComponentStyles;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheTagsChecksumInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Site\Settings;
@@ -313,6 +315,10 @@ final class CanvasDoctorTest extends CanvasKernelTestBase {
       $environment,
       $this->container->get(CacheTagsChecksumInterface::class),
       $this->container->get(ComponentSourceManager::class),
+      $this->container->get(ComponentStyles::class),
+      $this->container->get(EntityFieldManagerInterface::class),
+      $this->container->get('database'),
+      $this->container->get('plugin.manager.sdc'),
     );
     return [$engine, $healthRecords];
   }

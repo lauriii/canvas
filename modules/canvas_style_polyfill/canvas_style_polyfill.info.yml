@@ -1,0 +1,8 @@
+type: module
+name: Drupal Canvas Style API polyfill
+description: "Experimental: lets Canvas component styles read utilities.yml files on Drupal core versions without the core Style API. Does nothing once core provides it."
+core_version_requirement: ^11.3
+package: Drupal Canvas
+lifecycle: experimental
+dependencies:
+  - canvas:canvas

@@ -1,5 +1,6 @@
 import type { TranslatableString } from '@drupal-canvas/translatable-strings';
 import type derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
+import type { BrandKitStyles } from '@/types/Styles';
 
 export interface DataFetch {
   id: string;
@@ -27,6 +28,23 @@ export interface CodeComponent {
     [key: string]: DataFetch;
   };
   dataDependencies: DataDependencies;
+  /**
+   * The styles the component accepts: `'*'` for every class and style
+   * style, a list of style IDs, or none.
+   *
+   * @see \Drupal\canvas\Entity\JavaScriptComponent::$styles
+   */
+  styles?: '*' | string[];
+  /** Named parts that take styles of their own, keyed by part ID. */
+  styleParts?: Record<
+    string,
+    {
+      label: string;
+      styles:
+        string[] | Record<string, import('@/types/Styles').StyleLimit | null>;
+      limits?: Record<string, import('@/types/Styles').StyleLimit>;
+    }
+  >;
 }
 
 export interface DataDependencies {
@@ -282,6 +300,8 @@ export interface BrandKit {
   fonts: BrandKitFont[] | null;
   /** Absent while the Brand kit has no colors, rather than an empty list. */
   colors?: BrandKitColor[] | null;
+  /** Which style options this site offers. Absent when every option is. */
+  styles?: BrandKitStyles | null;
 }
 
 export type BrandKitFontVariantType = 'static' | 'variable';

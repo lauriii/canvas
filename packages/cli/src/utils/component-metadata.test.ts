@@ -37,6 +37,26 @@ describe('component metadata', () => {
     });
   });
 
+  it('accepts and keeps accepted styles', async () => {
+    const parsed = await parseComponentMetadata(
+      path.join(fixtureRoot, 'valid/styles.yml'),
+    );
+
+    expect(validateParsedComponentMetadata(parsed)).toEqual([]);
+    expect(normalizeComponentMetadata(parsed.value).styles).toEqual([
+      'surface',
+      'spacing',
+    ]);
+  });
+
+  it('rejects styles that are neither a list nor *', async () => {
+    const parsed = await parseComponentMetadata(
+      path.join(fixtureRoot, 'invalid/invalid-styles.yml'),
+    );
+
+    expect(validateParsedComponentMetadata(parsed)).not.toEqual([]);
+  });
+
   it('accepts the complete valid metadata fixture', async () => {
     const parsed = await parseComponentMetadata(
       path.join(fixtureRoot, 'valid/all-prop-types.yml'),

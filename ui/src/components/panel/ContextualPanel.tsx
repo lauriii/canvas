@@ -36,6 +36,8 @@ import {
   findComponentByUuid,
   findSlotById,
 } from '@/features/layout/layoutUtils';
+import StylesPageNotice from '@/features/styles/StylesPageNotice';
+import { useStyleClipboardShortcuts } from '@/features/styles/useStyleClipboard';
 import {
   EditorFrameContext,
   selectEditorFrameContext,
@@ -58,6 +60,7 @@ const ContextualPanel: React.FC = () => {
   const dispatch = useAppDispatch();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const { entityId, entityType, bundle, viewMode } = useParams();
+  useStyleClipboardShortcuts();
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   // Page variants are config entities without entity form fields, so like
   // templates they have no "Page data" tab: the panel only shows component
@@ -198,6 +201,7 @@ const ContextualPanel: React.FC = () => {
         data-testid={`canvas-contextual-panel-${selectedComponent}`}
       >
         <ErrorBoundary>
+          <StylesPageNotice />
           <Tabs.Root
             defaultValue={'pageData'}
             onValueChange={setActivePanel}

@@ -6,10 +6,16 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasNotificationHandler;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
+use Drupal\Core\Entity\Sql\DefaultTableMapping;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 
 /**
@@ -157,5 +163,65 @@ function canvas_update_11200(): void {
 
     // No need to manually flush caches during the update.
     // @see \Drupal\system\Controller\DbUpdateController::triggerBatch()
+  }
+}
+
+/**
+ * Add the `styles` column to every component tree field.
+ *
+ * This must be a hook_update_N(), not a post-update: field tables are built
+ * from code, so once this code is deployed every entity load selects the
+ * column. Post-updates that load component trees would fail on sites that
+ * skip versions.
+ *
+ * Ponytail: not batched. Adding a nullable column rewrites no rows; batch it
+ * if a database engine turns out to copy large tables on ALTER.
+ *
+ * @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::schema()
+ */
+function canvas_update_11201(): void {
+  $schema = \Drupal::database()->schema();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $last_installed = \Drupal::service(EntityLastInstalledSchemaRepositoryInterface::class);
+  $storage_schema = \Drupal::keyValue('entity.storage_schema.sql');
+  $current_definitions = [];
+  $column = ComponentTreeItem::schema(BaseFieldDefinition::create(ComponentTreeItem::PLUGIN_ID))['columns']['styles'];
+
+  foreach (\Drupal::service(EntityFieldManagerInterface::class)->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID) as $entity_type_id => $fields) {
+    $storage = $entity_type_manager->getStorage($entity_type_id);
+    if (!$storage instanceof SqlContentEntityStorage) {
+      continue;
+    }
+    $table_mapping = $storage->getTableMapping();
+    \assert($table_mapping instanceof DefaultTableMapping);
+    $definitions = $last_installed->getLastInstalledFieldStorageDefinitions($entity_type_id);
+    $current_definitions[$entity_type_id] = \Drupal::service(EntityFieldManagerInterface::class)->getFieldStorageDefinitions($entity_type_id);
+    foreach (\array_keys($fields) as $field_name) {
+      $definition = $definitions[$field_name] ?? NULL;
+      if ($definition === NULL) {
+        continue;
+      }
+      $column_name = $table_mapping->getFieldColumnName($definition, 'styles');
+      $key = "$entity_type_id.field_schema_data.$field_name";
+      $installed_schema = $storage_schema->get($key, []);
+      $tables = [$table_mapping->getDedicatedDataTableName($definition)];
+      if ($definition->isRevisionable() && $entity_type_manager->getDefinition($entity_type_id)->isRevisionable()) {
+        $tables[] = $table_mapping->getDedicatedRevisionTableName($definition);
+      }
+      foreach ($tables as $table) {
+        if ($schema->tableExists($table) && !$schema->fieldExists($table, $column_name)) {
+          $schema->addField($table, $column_name, $column);
+        }
+        if (isset($installed_schema[$table])) {
+          $installed_schema[$table]['fields'][$column_name] = $column;
+        }
+      }
+      $storage_schema->set($key, $installed_schema);
+      // The installed definition caches its schema; refresh it so the column
+      // is not reported as a pending field storage change.
+      if (isset($current_definitions[$entity_type_id][$field_name])) {
+        $last_installed->setLastInstalledFieldStorageDefinition($current_definitions[$entity_type_id][$field_name]);
+      }
+    }
   }
 }

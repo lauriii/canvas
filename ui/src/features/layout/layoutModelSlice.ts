@@ -56,6 +56,24 @@ export interface ComponentNode {
   uuid: UUID;
   type: string;
   slots: SlotNode[];
+  /**
+   * Core Style API selection: style ID to option ID. Omitted when empty.
+   *
+   * @see \Drupal\canvas\Style\ComponentStyles
+   */
+  styles?: Record<string, string>;
+}
+
+export interface SetComponentStylesPayload {
+  /** The instances to change, each with its new selection. */
+  changes: Array<{ uuid: UUID; styles: Record<string, string> }>;
+  /**
+   * Changes with the same key within a short time merge into one undo step,
+   * for example `uuid:styleId` while arrowing through a segmented control.
+   *
+   * @see app/store.ts styleUndoMiddleware
+   */
+  mergeKey?: string;
 }
 
 export interface SlotNode {
@@ -478,6 +496,22 @@ export const layoutModelSlice = createSlice({
         ...state,
         updatePreview: action.payload,
       }),
+    ),
+    setComponentStyles: create.reducer(
+      (state, action: PayloadAction<SetComponentStylesPayload>) => {
+        for (const { uuid, styles } of action.payload.changes) {
+          const node = findComponentByUuid(state.layout, uuid);
+          if (!node || node.nodeType !== NodeType.Component) {
+            continue;
+          }
+          if (Object.keys(styles).length === 0) {
+            delete node.styles;
+          } else {
+            node.styles = { ...styles };
+          }
+        }
+        state.updatePreview = true;
+      },
     ),
     deleteNode: create.reducer((state, action: PayloadAction<string>) => {
       const deletedComponent = findComponentByUuid(
@@ -1227,6 +1261,7 @@ export const addNewPatternToLayout =
 
 // Action creators are generated for each case reducer function.
 export const {
+  setComponentStyles,
   deleteNode,
   setLayoutModel,
   setInitialized,

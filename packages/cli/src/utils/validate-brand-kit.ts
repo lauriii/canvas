@@ -6,6 +6,7 @@ import { BRAND_KIT_CONFIG_FILENAME } from '@drupal-canvas/discovery';
 import brandKitSchema from '../../../workbench/src/lib/schemas/brand-kit.schema.json';
 import { collectColorConfigErrors } from '../lib/colors/color-validate.js';
 import { collectFontConfigErrors } from '../lib/fonts/font-validate.js';
+import { collectBrandKitStyleErrors } from '../lib/styles/brand-kit-styles.js';
 
 import type { FontsConfig } from '../config.js';
 import type { Result } from '../types/Result.js';
@@ -99,6 +100,10 @@ export async function validateBrandKit(
     )) {
       details.push({ heading: 'colors', content: error });
     }
+  }
+
+  for (const error of collectBrandKitStyleErrors(file.styles)) {
+    details.push({ heading: 'styles', content: error });
   }
 
   if (

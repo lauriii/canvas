@@ -206,6 +206,26 @@ canvas.js_component.*:
       sequence:
         # See core/assets/schemas/v1/metadata-full.schema.json#$defs.slotDefinition
         type: canvas.slot_definition
+    # @see \Drupal\canvas\Entity\JavaScriptComponent::$styles
+    styles:
+      type: sequence
+      label: 'Accepted styles: style IDs, or * for every class and style style'
+      requiredKey: false
+      constraints:
+        Callback:
+          callback: [\Drupal\canvas\Entity\JavaScriptComponent, validateStyles]
+      sequence:
+        type: string
+        label: 'Style ID'
+        constraints:
+          Regex:
+            pattern: '/^(\*|[a-z0-9_]+)$/'
+            message: 'The %value style ID is not valid.'
+    # Named parts that take styles of their own, passed as `styleParts`.
+    # @see \Drupal\canvas\Style\StyleDeclaration
+    style_parts:
+      type: canvas.style_parts
+      requiredKey: false
     js:
       type: canvas.compilable_code
       label: 'JS'
@@ -462,6 +482,17 @@ canvas.settings:
           pattern: '/^[a-z0-9_]+$/'
         ConfigExists:
           prefix: canvas.page_variant.
+    experimental:
+      type: mapping
+      label: 'Experimental features'
+      # Omitted when no experimental feature is configured.
+      requiredKey: false
+      mapping:
+        styles:
+          type: boolean
+          label: 'Component styles on the core Style API'
+          # @see \Drupal\canvas\Style\ComponentStyles::isActive()
+          requiredKey: false
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
@@ -562,6 +593,19 @@ canvas.component_tree_node:
       label: 'Label of the component instance'
       # TRICKY: this does not specify any validation constraints because because the containing
       # `canvas.component_tree`'s `ComponentTreeStructureConstraintValidator` also validates it.
+    # @see \Drupal\canvas\Style\ComponentStyles
+    styles:
+      type: sequence
+      label: 'Style selection: core Style API style ID to option ID'
+      # Omitted when empty, so exports do not change for unstyled instances.
+      requiredKey: false
+      orderby: key
+      constraints:
+        NotBlank: ~
+        ValidComponentStyles: ~
+      sequence:
+        type: string
+        label: 'Option ID'
 
 # Based on core/assets/schemas/v1/metadata-full.schema.json#$defs.slotDefinition
 canvas.slot_definition:
@@ -646,6 +690,30 @@ canvas.json_schema_props:
   type: canvas.component_source_settings.*
   label: 'Baseline component settings for ComponentSource plugins that extend JsonSchemaPropsComponentSourceBase'
   mapping:
+    # Which core Style API styles this component accepts: a list of style IDs, or `['*']` for every available style.
+    # Omitted means the source's default: every style for SDCs and blocks, none for code components.
+    # @see \Drupal\canvas\Style\ComponentStyles::acceptedSetting()
+    styles:
+      type: sequence
+      label: 'Accepted styles'
+      requiredKey: false
+      sequence:
+        type: string
+        label: 'Style ID, or * for every style'
+        constraints:
+          Regex:
+            pattern: '/^(\*|[a-z0-9_]+)$/'
+            message: 'The %value style ID is not valid.'
+    # Narrows which choices an accepted style offers on this component.
+    # @see \Drupal\canvas\Style\ComponentStyles::limitsFor()
+    style_limits:
+      type: canvas.style_limits
+      requiredKey: false
+    # Named parts inside the component that take styles of their own.
+    # @see \Drupal\canvas\Style\ComponentStyles::partsFor()
+    style_parts:
+      type: canvas.style_parts
+      requiredKey: false
     prop_field_definitions:
       type: sequence
       # Respect the order of the props in the JSON Schema for this component, this allows the component developer to
@@ -842,6 +910,30 @@ canvas.component_source_settings.block:
   mapping:
     default_settings:
       type: block.settings.[%parent.%parent.%parent.%parent.source_local_id]
+    # Which core Style API styles this component accepts: a list of style IDs, or `['*']` for every available style.
+    # Omitted means the source's default: every style for SDCs and blocks, none for code components.
+    # @see \Drupal\canvas\Style\ComponentStyles::acceptedSetting()
+    styles:
+      type: sequence
+      label: 'Accepted styles'
+      requiredKey: false
+      sequence:
+        type: string
+        label: 'Style ID, or * for every style'
+        constraints:
+          Regex:
+            pattern: '/^(\*|[a-z0-9_]+)$/'
+            message: 'The %value style ID is not valid.'
+    # Narrows which choices an accepted style offers on this component.
+    # @see \Drupal\canvas\Style\ComponentStyles::limitsFor()
+    style_limits:
+      type: canvas.style_limits
+      requiredKey: false
+    # Named parts inside the component that take styles of their own.
+    # @see \Drupal\canvas\Style\ComponentStyles::partsFor()
+    style_parts:
+      type: canvas.style_parts
+      requiredKey: false
 
 # Marker components (intrinsic placeholders such as the page content marker).
 # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
@@ -1175,6 +1267,60 @@ canvas.brand_kit.*:
                 default:
                   type: float
                   label: 'Default axis value'
+
+    # Experimental: which core Style API options this site offers.
+    # @see \Drupal\canvas\Style\ComponentStyles::definitions()
+    styles:
+      type: sequence
+      label: 'Style options this site offers, keyed by style ID'
+      nullable: true
+      requiredKey: false
+      orderby: key
+      constraints:
+        # Omitted rather than empty.
+        NotBlank: ~
+        Callback:
+          callback: ['\Drupal\canvas\Entity\BrandKit', validateStyles]
+      sequence:
+        type: mapping
+        label: 'Style options'
+        mapping:
+          label:
+            type: required_label
+            label: 'Style label override'
+            requiredKey: false
+          options:
+            type: sequence
+            label: 'Offered option IDs; empty means the style is not offered'
+            requiredKey: false
+            orderby: value
+            sequence:
+              type: string
+              label: 'Option ID'
+              constraints:
+                NotBlank: ~
+          labels:
+            type: sequence
+            label: 'Option label overrides, keyed by option ID'
+            requiredKey: false
+            orderby: key
+            sequence:
+              type: required_label
+              label: 'Option label'
+          custom:
+            type: boolean
+            label: 'Whether this site allows custom values for the style'
+            requiredKey: false
+          fallbacks:
+            type: sequence
+            label: 'Offered option to render for an option this site does not offer'
+            requiredKey: false
+            orderby: key
+            sequence:
+              type: string
+              label: 'Option ID'
+              constraints:
+                NotBlank: ~
 
 canvas.compilable_code:
   type: mapping
@@ -1566,3 +1712,296 @@ plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:
       sequence:
         type: string
         label: 'Prop name'
+
+# A Canvas-managed style library, in core's `*.utilities.yml` format.
+# @see \Drupal\canvas\Entity\StyleLibrary
+# @see core/assets/schemas/v1/style.schema.json
+canvas.style_library.*:
+  type: config_entity
+  label: 'Style library'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'Style library ID'
+    label:
+      type: required_label
+      label: 'Label'
+    styles:
+      type: sequence
+      label: 'Styles, keyed by style ID'
+      orderby: key
+      constraints:
+        Callback:
+          callback: [\Drupal\canvas\Entity\StyleLibrary, validateStyles]
+      sequence:
+        type: canvas.style_library_style
+
+canvas.style_library_style:
+  type: mapping
+  label: 'Style'
+  mapping:
+    label:
+      type: required_label
+      label: 'Label'
+    description:
+      type: label
+      label: 'Description'
+      requiredKey: false
+    category:
+      type: label
+      label: 'Category'
+      requiredKey: false
+    weight:
+      type: integer
+      label: 'Weight'
+      requiredKey: false
+    status:
+      type: string
+      label: 'Status'
+      requiredKey: false
+      constraints:
+        Choice: [experimental, stable, deprecated, obsolete]
+    enabled:
+      type: boolean
+      label: 'Enabled'
+      requiredKey: false
+    links:
+      type: sequence
+      label: 'Documentation links'
+      requiredKey: false
+      sequence:
+        type: uri
+        label: 'URL'
+    attribute:
+      type: string
+      label: 'Attribute'
+      requiredKey: false
+      constraints:
+        Regex:
+          pattern: '/^(class|style|data-[a-z0-9-]+|aria-[a-z-]+)$/'
+          message: 'The %value attribute is not allowed. Use class, style, data-*, or aria-*.'
+    options:
+      type: sequence
+      label: 'Options, keyed by option ID'
+      # Optional when the style takes its choices from tokens or custom values.
+      requiredKey: false
+      constraints:
+        NotBlank: ~
+      sequence:
+        type: canvas.style_library_option
+    tokens:
+      type: canvas.style_tokens
+      requiredKey: false
+    custom:
+      type: canvas.style_custom
+      requiredKey: false
+
+# Canvas extensions to core styles. Themes and modules declare these in
+# `{provider}.canvas.styles.yml`; style libraries on the style itself.
+# @see docs/adr/0032-style-options-can-come-from-design-tokens.md
+canvas.style_tokens:
+  type: mapping
+  label: 'Design token source'
+  mapping:
+    type:
+      type: string
+      label: 'Token type'
+      constraints:
+        Choice: [color]
+    folders:
+      type: sequence
+      label: 'Brand kit color folders, by name; omit for every color'
+      requiredKey: false
+      sequence:
+        type: string
+        label: 'Folder name'
+        constraints:
+          NotBlank: ~
+    value:
+      type: string
+      label: 'Class applied for any token'
+      constraints:
+        NotBlank: ~
+        Length:
+          max: 255
+    property:
+      type: string
+      label: 'Custom property that receives the token'
+      constraints:
+        Regex:
+          pattern: '/^--[a-z0-9-]+$/'
+          message: 'The %value custom property name is not valid.'
+
+canvas.style_custom_bounds:
+  type: mapping
+  label: 'Bounds'
+  mapping:
+    min:
+      type: float
+      label: 'Minimum'
+      requiredKey: false
+    max:
+      type: float
+      label: 'Maximum'
+      requiredKey: false
+    step:
+      type: float
+      label: 'Step'
+      requiredKey: false
+
+# Lengths and percentages list their units, each with its own bounds; unitless
+# numbers put their bounds at the top level. The type follows from the units.
+# @see \Drupal\canvas\Style\StyleValues::normalizeCustom()
+canvas.style_custom:
+  type: mapping
+  label: 'Custom values'
+  mapping:
+    type:
+      type: string
+      label: 'Set to integer for whole numbers'
+      requiredKey: false
+      constraints:
+        Choice: [integer]
+    units:
+      type: sequence
+      label: 'Allowed units, keyed by unit, each with its bounds'
+      requiredKey: false
+      orderby: ~
+      sequence:
+        type: canvas.style_custom_bounds
+    min:
+      type: float
+      label: 'Minimum, for unitless numbers'
+      requiredKey: false
+    max:
+      type: float
+      label: 'Maximum, for unitless numbers'
+      requiredKey: false
+    step:
+      type: float
+      label: 'Step, for unitless numbers'
+      requiredKey: false
+    value:
+      type: string
+      label: 'Class applied for any custom value'
+      constraints:
+        NotBlank: ~
+        Length:
+          max: 255
+    property:
+      type: string
+      label: 'Custom property that receives the value'
+      constraints:
+        Regex:
+          pattern: '/^--[a-z0-9-]+$/'
+          message: 'The %value custom property name is not valid.'
+
+canvas.style_parts:
+  type: sequence
+  label: 'Named parts, keyed by part ID'
+  sequence:
+    type: mapping
+    label: 'Part'
+    mapping:
+      label:
+        type: required_label
+        label: 'Label'
+      styles:
+        type: sequence
+        label: 'Accepted style IDs'
+        sequence:
+          type: string
+          label: 'Style ID'
+          constraints:
+            Regex:
+              pattern: '/^[a-z0-9_]+$/'
+              message: 'The %value style ID is not valid.'
+      limits:
+        type: canvas.style_limits
+        label: 'Per-style limits on this part'
+        requiredKey: false
+
+canvas.style_limits:
+  type: sequence
+  label: 'Per-style limits, keyed by style ID'
+  orderby: key
+  sequence:
+    type: mapping
+    label: 'Limit'
+    mapping:
+      folders:
+        type: sequence
+        label: 'Brand kit color folders allowed, by name'
+        requiredKey: false
+        sequence:
+          type: string
+          label: 'Folder name'
+      colors:
+        type: sequence
+        label: 'Brand kit colors allowed, by name'
+        requiredKey: false
+        sequence:
+          type: string
+          label: 'Color name'
+      options:
+        type: sequence
+        label: 'Fixed options allowed'
+        requiredKey: false
+        sequence:
+          type: string
+          label: 'Option ID'
+      custom:
+        type: boolean
+        label: 'Whether custom values are allowed'
+        requiredKey: false
+
+canvas.style_library_option:
+  type: mapping
+  label: 'Style option'
+  mapping:
+    label:
+      type: required_label
+      label: 'Label'
+    value:
+      type: string
+      label: 'Value'
+      requiredKey: false
+      constraints:
+        Length:
+          max: 2048
+    description:
+      type: label
+      label: 'Description'
+      requiredKey: false
+    attribute:
+      type: string
+      label: 'Attribute'
+      requiredKey: false
+      constraints:
+        Regex:
+          pattern: '/^(class|style|data-[a-z0-9-]+|aria-[a-z-]+)$/'
+          message: 'The %value attribute is not allowed. Use class, style, data-*, or aria-*.'
+    status:
+      type: string
+      label: 'Status'
+      requiredKey: false
+      constraints:
+        Choice: [experimental, stable, deprecated, obsolete]
+    # Extra keys allowed by core's schema and used by UI Styles.
+    icon:
+      type: string
+      label: 'Icon'
+      requiredKey: false
+    previewed_with:
+      type: sequence
+      label: 'Classes to preview the option with'
+      requiredKey: false
+      sequence:
+        type: string
+        label: 'Class'
+    previewed_as:
+      type: string
+      label: 'Preview mode'
+      requiredKey: false

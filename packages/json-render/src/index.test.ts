@@ -530,7 +530,7 @@ describe('headless component rendering helpers', () => {
     ).toThrow(z.ZodError);
   });
 
-  it('rejects fields outside the Canvas json-render document schema', () => {
+  it('ignores unknown element keys, so newer Canvas keys do not break parsing', () => {
     expect(
       CanvasComponentTreeSchema.safeParse({
         root: 'card-one',
@@ -543,7 +543,25 @@ describe('headless component rendering helpers', () => {
           },
         },
       }).success,
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it('validates the style keys when present', () => {
+    const parse = (element: Record<string, unknown>) =>
+      CanvasComponentTreeSchema.safeParse({
+        root: 'hero',
+        elements: {
+          hero: { type: 'js.hero', props: {}, children: [], ...element },
+        },
+      }).success;
+    expect(
+      parse({
+        styles: { tone: 'dark', spacing: { base: 'large', md: 'small' } },
+        attributes: { class: 'p-8', style: { '--gap': '1rem' } },
+      }),
+    ).toBe(true);
+    expect(parse({ styles: { tone: 1 } })).toBe(false);
+    expect(parse({ attributes: { class: 'p-8', onclick: 'x' } })).toBe(false);
   });
 
   it('defines catalogs with framework structural and application types', () => {

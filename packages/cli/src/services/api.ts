@@ -16,10 +16,13 @@ import {
   ensureConfig,
   getConfig,
   setConfig,
+  STYLE_LIBRARY_SCOPE,
 } from '../config.js';
 
+import type { StylesResponse } from '@drupal-canvas/ui/types/Styles';
 import type { AxiosError, AxiosInstance } from 'axios';
 import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
+import type { StyleLibraryPayload } from '../lib/styles/style-library';
 import type {
   AssetLibrary,
   BrandKit,
@@ -76,7 +79,7 @@ export class CodeComponentMetadataOperationUnsupportedError extends Error {}
 
 export class CodeComponentMetadataValidationUnavailableError extends Error {}
 
-const pageVariantSupportCache = new Map<string, Promise<boolean>>();
+const configRouteSupportCache = new Map<string, Promise<boolean>>();
 
 /**
  * Check for the page-variant route without authenticating.
@@ -87,16 +90,29 @@ const pageVariantSupportCache = new Map<string, Promise<boolean>>();
  * request can report authentication, permission, network, and server errors.
  */
 export async function supportsPageVariants(siteUrl?: string): Promise<boolean> {
+  return supportsConfigEntityRoute('page_variant', siteUrl);
+}
+
+/**
+ * Check for a config entity API route without authenticating.
+ *
+ * @see supportsPageVariants()
+ */
+async function supportsConfigEntityRoute(
+  entityTypeId: string,
+  siteUrl?: string,
+): Promise<boolean> {
   if (!siteUrl) {
     return false;
   }
   const normalizedSiteUrl = siteUrl.replace(/\/+$/, '');
-  let support = pageVariantSupportCache.get(normalizedSiteUrl);
+  const cacheKey = `${normalizedSiteUrl} ${entityTypeId}`;
+  let support = configRouteSupportCache.get(cacheKey);
   if (!support) {
     support = (async () => {
       try {
         await axios.get(
-          `${normalizedSiteUrl}/canvas/api/v0/config/page_variant`,
+          `${normalizedSiteUrl}/canvas/api/v0/config/${entityTypeId}`,
           {
             headers: {
               Accept: 'application/json',
@@ -113,9 +129,33 @@ export async function supportsPageVariants(siteUrl?: string): Promise<boolean> {
         return true;
       }
     })();
-    pageVariantSupportCache.set(normalizedSiteUrl, support);
+    configRouteSupportCache.set(cacheKey, support);
   }
   return support;
+}
+
+/**
+ * Remove the style library scope for sites that predate style libraries.
+ *
+ * The scope follows the brand kit option, and requesting a scope the site
+ * does not define fails authentication for the whole command.
+ */
+export async function applyStyleLibraryCompatibility(
+  siteUrl: string,
+): Promise<void> {
+  const currentConfig = getConfig();
+  if (
+    !currentConfig.scope.split(/\s+/).includes(STYLE_LIBRARY_SCOPE) ||
+    (await supportsConfigEntityRoute('style_library', siteUrl))
+  ) {
+    return;
+  }
+  setConfig({
+    scope: currentConfig.scope
+      .split(/\s+/)
+      .filter((scope) => scope && scope !== STYLE_LIBRARY_SCOPE)
+      .join(' '),
+  });
 }
 
 /**
@@ -1323,6 +1363,23 @@ export class ApiService {
     }
   }
 
+  /**
+   * Sets which style options the site offers, or NULL to offer every option.
+   */
+  async updateBrandKitStyles(
+    styles: BrandKit['styles'] | null,
+  ): Promise<BrandKit> {
+    try {
+      const response = await this.client.patch(
+        `/canvas/api/v0/config/brand_kit/${BRAND_KIT_GLOBAL_ID}`,
+        { styles },
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
   /** Create a brand kit color; the server assigns the id. */
   async createColor(color: BrandKitColorPayload): Promise<BrandKitColorEntry> {
     try {
@@ -1371,6 +1428,66 @@ export class ApiService {
       const response = await this.client.get('/canvas/api/v0/config/folder');
       const data = response.data as Record<string, ColorFolderEntry>;
       return Object.values(data);
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get the style definitions Canvas offers, or null when the site predates
+   * component styles.
+   */
+  async getStyles(): Promise<StylesResponse | null> {
+    try {
+      const response = await this.client.get('/canvas/api/v0/styles');
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      this.handleApiError(error);
+    }
+  }
+
+  /** List Canvas-managed style libraries. */
+  async listStyleLibraries(): Promise<StyleLibraryPayload[]> {
+    try {
+      const response = await this.client.get(
+        '/canvas/api/v0/config/style_library',
+      );
+      return Object.values(
+        (response.data ?? {}) as Record<string, StyleLibraryPayload>,
+      );
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /** Create a style library. Libraries are published on save. */
+  async createStyleLibrary(
+    library: StyleLibraryPayload,
+  ): Promise<StyleLibraryPayload> {
+    try {
+      const response = await this.client.post(
+        '/canvas/api/v0/config/style_library',
+        library,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /** Replace a style library's label and styles. */
+  async updateStyleLibrary(
+    library: StyleLibraryPayload,
+  ): Promise<StyleLibraryPayload> {
+    try {
+      const response = await this.client.patch(
+        `/canvas/api/v0/config/style_library/${encodeURIComponent(library.id)}`,
+        { label: library.label, styles: library.styles },
+      );
+      return response.data;
     } catch (error) {
       this.handleApiError(error);
     }
@@ -1688,5 +1805,6 @@ export async function ensureAuthConfig(
   }
   if (options.componentCompatibility !== false) {
     await applyPageVariantCompatibility(getConfig().siteUrl);
+    await applyStyleLibraryCompatibility(getConfig().siteUrl);
   }
 }

@@ -98,6 +98,15 @@ export function createComponentPayload(
     dataDependencies: payloadDataDependencies,
   };
 
+  // Only sent when authored, so sites that predate component styles keep
+  // accepting the payload.
+  if (metadata.styles !== undefined) {
+    payload.styles = metadata.styles;
+  }
+  if (metadata.styleParts !== undefined) {
+    payload.styleParts = metadata.styleParts;
+  }
+
   if (type !== undefined) {
     payload.type = type;
   }

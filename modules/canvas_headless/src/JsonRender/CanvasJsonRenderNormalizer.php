@@ -76,6 +76,14 @@ final class CanvasJsonRenderNormalizer implements CustomElementFormatNormalizerI
       }
       $props = $element->getAttributes();
       $elements[$key] = ['type' => $type, 'props' => $props === [] ? new \stdClass() : $props, 'children' => []];
+      // Only present when the request opted in and the selection is not
+      // empty, so pinned front ends never see new keys.
+      // @see \Drupal\canvas_headless\RenderConverter\CanvasRenderConverter::convertBuild()
+      $styles = $element instanceof CanvasCustomElement ? $element->getStyles() : NULL;
+      if ($styles !== NULL) {
+        $elements[$key]['styles'] = $styles['styles'];
+        $elements[$key]['attributes'] = $styles['attributes'] === [] ? new \stdClass() : $styles['attributes'];
+      }
     }
 
     $references = [];

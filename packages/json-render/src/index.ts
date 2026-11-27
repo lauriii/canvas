@@ -5,6 +5,8 @@
 
 export {
   CanvasComponentTreeSchema,
+  CanvasStyleAttributesSchema,
+  CanvasStylesSchema,
   canvasJsonRenderSchema,
   defineCatalog,
   type CanvasJsonRenderCatalogComponent,
@@ -14,5 +16,8 @@ export type {
   CanvasComponentTree,
   CanvasComponentTreeElement,
   CanvasComponentTreeSlot,
+  CanvasStyleValue,
+  CanvasStyles,
+  CanvasStyleAttributes,
   JsonValue,
 } from './schema';

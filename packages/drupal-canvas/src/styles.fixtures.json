@@ -1,0 +1,87 @@
+{
+  "description": "Shared fixtures for resolveStyles() and ComponentStyles::resolveWithDefinitions(), so PHP and JS cannot drift.",
+  "definitions": {
+    "spacing": {
+      "id": "spacing",
+      "label": "Spacing",
+      "weight": 10,
+      "library": "",
+      "options": {
+        "small": { "id": "small", "label": "Small", "value": "p-2", "attribute": "class" },
+        "large": { "id": "large", "label": "Large", "value": "p-8", "attribute": "class" }
+      }
+    },
+    "background_color": {
+      "id": "background_color",
+      "label": "Background color",
+      "weight": 0,
+      "library": "my_theme/backgrounds",
+      "options": {
+        "primary": { "id": "primary", "label": "Primary", "value": "bg-primary text-white", "attribute": "class" }
+      }
+    },
+    "alignment": {
+      "id": "alignment",
+      "label": "Alignment",
+      "weight": 0,
+      "library": "",
+      "options": {
+        "center": { "id": "center", "label": "Center", "value": "text-center", "attribute": "class" }
+      }
+    },
+    "tone": {
+      "id": "tone",
+      "label": "Tone",
+      "weight": 0,
+      "library": "",
+      "options": {
+        "dark": { "id": "dark", "label": "Dark", "value": "", "attribute": "class" }
+      }
+    },
+    "gap": {
+      "id": "gap",
+      "label": "Gap",
+      "weight": 5,
+      "library": "",
+      "options": {
+        "loose": { "id": "loose", "label": "Loose", "value": "--gap: var(--space-7); margin-top: 1rem", "attribute": "style" }
+      }
+    },
+    "theme_mode": {
+      "id": "theme_mode",
+      "label": "Theme mode",
+      "weight": 0,
+      "library": "",
+      "options": {
+        "night": { "id": "night", "label": "Night", "value": "night", "attribute": "data-theme" }
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "empty selection",
+      "selection": {},
+      "expected": { "className": null, "style": null }
+    },
+    {
+      "name": "weight order, then style ID order",
+      "selection": { "spacing": "large", "background_color": "primary", "alignment": "center" },
+      "expected": { "className": "text-center bg-primary text-white p-8", "style": null }
+    },
+    {
+      "name": "logic-only and other attributes add nothing",
+      "selection": { "tone": "dark", "theme_mode": "night" },
+      "expected": { "className": null, "style": null }
+    },
+    {
+      "name": "inline style with custom property",
+      "selection": { "gap": "loose", "spacing": "small" },
+      "expected": { "className": "p-2", "style": { "--gap": "var(--space-7)", "marginTop": "1rem" } }
+    },
+    {
+      "name": "unknown style and option are skipped",
+      "selection": { "spacing": "huge", "nope": "x" },
+      "expected": { "className": null, "style": null }
+    }
+  ]
+}

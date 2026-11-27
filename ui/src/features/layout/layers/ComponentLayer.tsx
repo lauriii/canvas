@@ -3,8 +3,12 @@ import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
-import { Box, Flex } from '@radix-ui/themes';
+import {
+  ExclamationTriangleIcon,
+  TriangleDownIcon,
+  TriangleRightIcon,
+} from '@radix-ui/react-icons';
+import { Box, Flex, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
@@ -13,6 +17,7 @@ import SlotLayer from '@/features/layout/layers/SlotLayer';
 import ComponentContextMenu, {
   ComponentContextMenuContent,
 } from '@/features/layout/preview/ComponentContextMenu';
+import { useHasDegradedStyles } from '@/features/styles/StylesPageNotice';
 import {
   selectCollapsedLayers,
   selectComponentIsSelected,
@@ -59,6 +64,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const componentId = component.uuid;
   const isCollapsed = collapsedLayers.includes(componentId);
   const nodeName = useGetComponentName(component);
+  const hasDegradedStyles = useHasDegradedStyles(component);
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
   );
@@ -189,6 +195,20 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
                     <Box />
                   )}
                 </Box>
+                {hasDegradedStyles && (
+                  <Tooltip content="Uses styles that are no longer available">
+                    <Flex
+                      align="center"
+                      mr="1"
+                      data-testid="canvas-layer-style-warning"
+                    >
+                      <ExclamationTriangleIcon
+                        color="var(--amber-10)"
+                        aria-label="Uses styles that are no longer available"
+                      />
+                    </Flex>
+                  </Tooltip>
+                )}
               </Flex>
             }
           />

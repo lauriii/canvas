@@ -1,0 +1,22 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: Teaser
+description: A teaser whose title takes styles of its own.
+thirdPartySettings:
+  canvas:
+    styles: [spacing]
+    style_parts:
+      title:
+        label: Title
+        # Limits on a part apply to that part only: the root's Spacing still
+        # takes custom values.
+        styles:
+          spacing: { custom: false }
+          background_color: { colors: [Lagoon] }
+props:
+  type: object
+  properties:
+    heading:
+      type: string
+      title: Heading
+      examples:
+        - 'Teaser'

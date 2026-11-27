@@ -727,6 +727,150 @@ paths:
       responses:
         '204':
           description: Deleted individual Brand Kit
+  /canvas/api/v0/styles:
+    description: Experimental. Lists available component styles from the core Style API.
+    get:
+      summary: Lists available component styles.
+      parameters:
+        - name: preview
+          in: query
+          required: false
+          description: When 1, applies the draft brand kit, as the editor does.
+          schema:
+            type: string
+            enum: ['0', '1']
+        - name: unbranded
+          in: query
+          required: false
+          description: When 1, lists definitions before the brand kit applies, for the brand kit's own UI.
+          schema:
+            type: string
+            enum: ['0', '1']
+      responses:
+        '200':
+          description: Available styles, in class join order (weight, then ID).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [active, styles, hiddenStyles, permissions]
+                additionalProperties: false
+                properties:
+                  active:
+                    type: boolean
+                    description: Whether styles are active (core has the Style API and the experimental setting is on).
+                  hiddenStyles:
+                    type: object
+                    description: Styles the brand kit does not offer on this site, keyed by style ID, with their labels.
+                    additionalProperties:
+                      type: string
+                  styles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StyleDefinition'
+                  permissions:
+                    type: object
+                    required: [use, administer, custom]
+                    additionalProperties: false
+                    properties:
+                      use:
+                        type: boolean
+                      administer:
+                        type: boolean
+                      custom:
+                        type: boolean
+                        description: Whether the user may enter custom values.
+  /canvas/api/v0/styles/usage:
+    description: Experimental. Counts component instances per style option, for the brand kit.
+    get:
+      summary: Counts component instances per style option.
+      responses:
+        '200':
+          description: Instance counts, keyed by style ID, then option ID. Current revisions of content only; translations are counted once.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [usage]
+                additionalProperties: false
+                properties:
+                  usage:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      additionalProperties:
+                        type: integer
+  /canvas/api/v0/config/style_library:
+    description: Experimental. Endpoint for managing site style libraries.
+    get:
+      summary: Retrieves all style libraries.
+      responses:
+        '200':
+          description: All style libraries
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/StyleLibrary'
+    post:
+      summary: Creates a style library. It is published on save.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StyleLibrary'
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StyleLibrary'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/canvas/api/v0/config/style_library/{configEntityId}':
+    description: Experimental. Endpoint for managing a specific style library.
+    get:
+      summary: Retrieves a style library.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual style library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StyleLibrary'
+    patch:
+      summary: Updates a style library. It is published on save.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StyleLibraryUpdate'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual style library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StyleLibrary'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+    delete:
+      summary: Deletes a style library.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual style library
   /canvas/api/v0/config/color:
     description: Endpoint for managing colors.
     get:
@@ -4775,6 +4919,49 @@ components:
           type: string
           description: Typically, the component source plugin that provides this Component. But plugins have the freedom to choose to subdivide.
           # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::getSourceLabel()
+        styles:
+          type: array
+          description: Experimental. The styles the active version accepts. Present only when component styles are active.
+          items:
+            type: string
+        styleParts:
+          type: object
+          description: Experimental. Named parts inside the component that take styles of their own, keyed by part ID. Selection keys for a part are `part.style_id`. Present only when declared.
+          additionalProperties:
+            type: object
+            required: [label, styles, limits]
+            additionalProperties: false
+            properties:
+              label:
+                type: string
+              styles:
+                type: array
+                items:
+                  type: string
+              limits:
+                type: object
+                description: Per-style limits on this part, keyed by style ID.
+        styleLimits:
+          type: object
+          description: Experimental. Per-style limits on the choices this component offers, keyed by style ID. Present only when set.
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            properties:
+              folders:
+                type: array
+                items:
+                  type: string
+              colors:
+                type: array
+                items:
+                  type: string
+              options:
+                type: array
+                items:
+                  type: string
+              custom:
+                type: boolean
         library:
           type: string
           description: Library ID
@@ -4887,6 +5074,32 @@ components:
         machineName:
           type: string
           description: Machine name
+        styles:
+          description: Experimental. The core Style API styles the component accepts, `*` for every class and style style.
+          oneOf:
+            - type: string
+              enum: ['*']
+            - type: array
+              items:
+                type: string
+                pattern: '^[a-z0-9_]+$'
+        styleParts:
+          type: object
+          description: Experimental. Named parts that take styles of their own, keyed by part ID. Each part's styles are a list of style IDs, or a map of style ID to limit. The component receives each part's `className` and `style` in the `styleParts` prop.
+          additionalProperties:
+            type: object
+            required: [label, styles]
+            properties:
+              label:
+                type: string
+              styles:
+                oneOf:
+                  - type: array
+                    items:
+                      type: string
+                  - type: object
+              limits:
+                type: object
         name:
           type: string
           description: Human-readable code component label
@@ -5024,6 +5237,182 @@ components:
       # @see https://github.com/thephpleague/openapi-psr7-validator/issues/124#issuecomment-1483323527
       # @see https://github.com/thephpleague/openapi-psr7-validator/issues/163#issuecomment-2359233087
       unevaluatedProperties: false
+    StyleSelection:
+      title: StyleSelection
+      description: Experimental. A core Style API selection, keyed by style ID, or by `part.style_id` for a named part. Values are option IDs, custom values (`=24px`), or brand kit color references (`canvas-color:<uuid>`). Omitted when empty.
+      type: object
+      minProperties: 1
+      propertyNames:
+        pattern: '^([a-z][a-z0-9_]*\.)?[a-z0-9_]+$'
+      additionalProperties:
+        type: string
+        pattern: '^((?!0$)[a-zA-Z0-9_ -]+|=-?\d+(\.\d+)?[a-z%]*|canvas-color:[0-9a-f-]{36})$'
+    StyleDefinition:
+      title: StyleDefinition
+      description: Experimental. An available core Style API style, normalized for Canvas.
+      type: object
+      required: [id, label, originalLabel, description, category, weight, status, provider, providerLabel, providerType, library, options, fallbacks, notOffered, tokens, custom]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+          description: The label, after any brand kit override.
+        originalLabel:
+          type: string
+          description: The label the providing extension defines.
+        fallbacks:
+          type: object
+          description: Options this site does not offer, mapped to the offered option that renders instead.
+          additionalProperties:
+            type: string
+        notOffered:
+          type: object
+          description: Options the extension defines that this site's brand kit does not offer, with their labels.
+          additionalProperties:
+            type: string
+        tokens:
+          description: When brand kit colors are choices for this style, the class and custom property they use.
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [type, folders, value, property]
+              additionalProperties: false
+              properties:
+                type:
+                  type: string
+                  enum: [color]
+                folders:
+                  type: array
+                  items:
+                    type: string
+                value:
+                  type: string
+                property:
+                  type: string
+        custom:
+          description: When editors may enter a custom value for this style, its rules. Stored as `=` followed by the number and unit.
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [type, units, min, max, step, ranges, value, property]
+              additionalProperties: false
+              properties:
+                type:
+                  type: string
+                  enum: [length, number, integer, percentage]
+                units:
+                  type: array
+                  items:
+                    type: string
+                min:
+                  type: [number, "null"]
+                max:
+                  type: [number, "null"]
+                step:
+                  type: [number, "null"]
+                ranges:
+                  description: Bounds for each unit, keyed by unit.
+                  type: object
+                  additionalProperties:
+                    type: object
+                    required: [min, max, step]
+                    additionalProperties: false
+                    properties:
+                      min:
+                        type: [number, "null"]
+                      max:
+                        type: [number, "null"]
+                      step:
+                        type: [number, "null"]
+                value:
+                  type: string
+                property:
+                  type: string
+        description:
+          type: string
+        category:
+          type: string
+        weight:
+          type: integer
+        status:
+          type: string
+        provider:
+          type: string
+        providerLabel:
+          type: string
+          description: The module or theme name, or the style library label.
+        providerType:
+          type: string
+          enum: [site, theme, module]
+        library:
+          type: string
+        options:
+          type: array
+          items:
+            type: object
+            required: [id, label, originalLabel, description, value, attribute, status, icon, kind, swatch, cssVariable, folder]
+            additionalProperties: false
+            properties:
+              kind:
+                type: string
+                enum: [option, token]
+                description: A fixed option, or a brand kit color (its ID is the color's reference).
+              swatch:
+                type: [string, "null"]
+                description: For brand kit colors, the color's CSS value.
+              cssVariable:
+                type: [string, "null"]
+              folder:
+                type: [string, "null"]
+                description: For brand kit colors, the color's folder name.
+              id:
+                type: string
+              label:
+                type: string
+              originalLabel:
+                type: string
+              description:
+                type: string
+              value:
+                type: string
+              attribute:
+                type: string
+              status:
+                type: string
+              icon:
+                type: [string, 'null']
+    StyleLibraryUpdate:
+      title: StyleLibraryUpdate
+      description: Experimental. A partial style library update.
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        styles:
+          type: object
+          additionalProperties:
+            type: object
+    StyleLibrary:
+      title: StyleLibrary
+      description: Experimental. A site style library in core's utilities format.
+      type: object
+      required: [id, label, styles]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        styles:
+          type: object
+          description: Styles keyed by style ID, in core's `*.utilities.yml` format.
+          additionalProperties:
+            type: object
     LayoutComponent:
       title: LayoutComponent
       type: object
@@ -5051,6 +5440,8 @@ components:
           # Either null, or specify a non-empty string.
           minLength: 1
           description: The (optional) name of the component instance
+        styles:
+          $ref: '#/components/schemas/StyleSelection'
         slots:
           type: array
           description: Array of slots
@@ -5461,6 +5852,32 @@ components:
           items:
             $ref: '#/components/schemas/Color'
           description: Colors available to the Brand Kit, derived server-side from the site's Color entities and ignored on writes. Only present when at least one color exists.
+        styles:
+          description: Experimental. Which style options this site offers, keyed by style ID. Absent when the site uses every option as defined.
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties: false
+                properties:
+                  label:
+                    type: string
+                  options:
+                    type: array
+                    items:
+                      type: string
+                  labels:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  fallbacks:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  custom:
+                    type: boolean
+                    description: Set to false to turn off custom values for the style on this site.
     NewBrandKit:
       type: object
       allOf:

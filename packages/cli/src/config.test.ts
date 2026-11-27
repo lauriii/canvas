@@ -48,6 +48,7 @@ describe('config', () => {
         contentTemplatesDir: 'content-templates',
         fonts: undefined,
         globalCssPath: 'src/global.css',
+        stylesDir: 'styles',
         includePages: true,
         includeContentTemplates: true,
         includePageTemplates: true,
@@ -75,6 +76,7 @@ describe('config', () => {
         contentTemplatesDir: 'content-templates',
         fonts: undefined,
         globalCssPath: 'src/global.css',
+        stylesDir: 'styles',
         includePages: true,
         includeContentTemplates: true,
         includePageTemplates: true,
@@ -275,6 +277,7 @@ describe('config', () => {
         contentTemplatesDir: 'content-templates',
         fonts: undefined,
         globalCssPath: 'src/global.css',
+        stylesDir: 'styles',
         includePages: true,
         includeContentTemplates: true,
         includePageTemplates: true,
@@ -309,7 +312,7 @@ describe('config', () => {
       expect(getConfig().includeContentTemplates).toBe(false);
       expect(getConfig().includePageTemplates).toBe(false);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:brand_kit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:brand_kit canvas:style_library',
       );
     });
 
@@ -329,7 +332,7 @@ describe('config', () => {
       // they stay enabled.
       expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page_variant canvas:brand_kit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page_variant canvas:brand_kit canvas:style_library',
       );
     });
 
@@ -349,11 +352,12 @@ describe('config', () => {
         includePages: true,
         includePageTemplates: true,
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit canvas:style_library',
         componentDir: 'src/components',
         contentTemplatesDir: 'content-templates',
         fonts: undefined,
         globalCssPath: 'src/global.css',
+        stylesDir: 'styles',
         outputDir: 'dist',
         pagesDir: 'pages',
         pageTemplatesDir: 'page-templates',
@@ -368,7 +372,7 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit canvas:style_library',
       );
     });
 
@@ -382,7 +386,7 @@ describe('config', () => {
 
       expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit canvas:style_library',
       );
     });
   });

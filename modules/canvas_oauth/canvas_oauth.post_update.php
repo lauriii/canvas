@@ -356,3 +356,27 @@ function canvas_oauth_post_update_0007_page_variant_scope(array &$sandbox): void
 function canvas_oauth_post_update_0008_media_document_scopes(array &$sandbox): void {
   \Drupal::classResolver(MediaScopesHelper::class)->ensureMediaScopes();
 }
+
+/**
+ * Install scope for Canvas style libraries (experimental).
+ */
+function canvas_oauth_post_update_0009_canvas_style_library_scope(array &$sandbox): void {
+  if (Oauth2Scope::load('canvas_style_library')) {
+    return;
+  }
+  Oauth2Scope::create([
+    'id' => 'canvas_style_library',
+    'name' => 'canvas:style_library',
+    'description' => 'Drupal Canvas: Full access to style libraries',
+    'status' => TRUE,
+    'grant_types' => [
+      'authorization_code' => ['status' => TRUE, 'description' => 'Authorization code access for style libraries'],
+      'refresh_token' => ['status' => TRUE, 'description' => 'Refresh token access for style libraries'],
+      'client_credentials' => ['status' => TRUE, 'description' => 'Client credentials access for style libraries'],
+    ],
+    'umbrella' => FALSE,
+    'granularity_id' => 'permission',
+    'granularity_configuration' => ['permission' => 'administer style libraries'],
+    'dependencies' => ['enforced' => ['module' => ['canvas_oauth']]],
+  ])->save();
+}

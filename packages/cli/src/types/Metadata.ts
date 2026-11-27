@@ -2,7 +2,13 @@ import type { CodeComponentSerialized } from '@drupal-canvas/ui/types/CodeCompon
 
 export interface Metadata extends Pick<
   CodeComponentSerialized,
-  'name' | 'machineName' | 'status' | 'required' | 'slots'
+  | 'name'
+  | 'machineName'
+  | 'status'
+  | 'required'
+  | 'slots'
+  | 'styles'
+  | 'styleParts'
 > {
   props: {
     properties: CodeComponentSerialized['props'];

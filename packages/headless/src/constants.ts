@@ -91,7 +91,7 @@ export const HEADLESS_VIEWPORT_HEIGHT_MESSAGE =
   'canvas-headless:viewport-height';
 
 /** Protocol capabilities supported by the SDK. */
-export const CANVAS_HEADLESS_CAPABILITIES = ['json-render'] as const;
+export const CANVAS_HEADLESS_CAPABILITIES = ['json-render', 'styles'] as const;
 
 /** Request header advertising supported content API capabilities. */
 export const CANVAS_CLIENT_CAPABILITIES_HEADER = 'Canvas-Client-Capabilities';
