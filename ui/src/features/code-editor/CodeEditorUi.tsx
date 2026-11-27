@@ -100,7 +100,7 @@ const CodeEditorUi = () => {
 
   // Check for conflict errors (same as Editor.tsx)
   if (latestError && latestError.status === '409') {
-    return <ConflictWarning />;
+    return <ConflictWarning message={latestError.message} />;
   }
 
   if (!codeComponentId) {

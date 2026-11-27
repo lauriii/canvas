@@ -792,6 +792,36 @@ canvas.api.notifications.read:
   options:
     _format: 'json'
 
+canvas.api.presence.heartbeat:
+  path: '/canvas/api/v0/presence/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiPresenceController::heartbeat'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _entity_access: 'entity.update'
+  methods: [POST]
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+    _format: 'json'
+
+canvas.api.presence.leave:
+  path: '/canvas/api/v0/presence/{entity_type}/{entity}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiPresenceController::leave'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _entity_access: 'entity.update'
+  methods: [DELETE]
+  options:
+    parameters:
+      entity:
+        type: entity:{entity_type}
+    _format: 'json'
+
 canvas.api.push.complete:
   path: '/canvas/api/v0/push/complete'
   defaults:

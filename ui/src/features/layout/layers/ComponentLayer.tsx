@@ -13,6 +13,7 @@ import SlotLayer from '@/features/layout/layers/SlotLayer';
 import ComponentContextMenu, {
   ComponentContextMenuContent,
 } from '@/features/layout/preview/ComponentContextMenu';
+import { RemoteSelectionMarkers } from '@/features/presence/RemoteSelection';
 import {
   selectCollapsedLayers,
   selectComponentIsSelected,
@@ -161,6 +162,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
               />
             }
             indent={indent}
+            trailingContent={<RemoteSelectionMarkers uuid={component.uuid} />}
             leadingContent={
               <Flex>
                 <Box width="var(--space-4)" mr="1">

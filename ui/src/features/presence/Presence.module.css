@@ -1,0 +1,77 @@
+.avatar {
+  display: inline-flex;
+  padding: 0;
+  cursor: pointer;
+  border: none;
+  border-radius: 50%;
+  background: none;
+
+  &[data-idle] {
+    opacity: 0.45;
+  }
+}
+
+.overflow {
+  min-width: var(--space-5);
+  height: var(--space-5);
+  padding: 0 var(--space-1);
+  cursor: pointer;
+  color: var(--gray-11);
+  border: 1px solid var(--gray-6);
+  border-radius: 9999px;
+  background: none;
+  font-size: var(--font-size-1);
+}
+
+.notice {
+  position: fixed;
+  z-index: 10;
+  top: calc(var(--topbar-height) + var(--space-2));
+  left: 50%;
+  max-width: 480px;
+  transform: translateX(-50%);
+}
+
+.remoteOutline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  outline: 2px solid;
+}
+
+/* Round avatars on the component's top-right corner, overlapping. */
+.remoteBadges {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  display: flex;
+  transform: translate(25%, -50%);
+
+  & > * + * {
+    margin-inline-start: calc(-1 * var(--space-2));
+  }
+}
+
+.markers {
+  display: inline-flex;
+  gap: 2px;
+  margin-inline: var(--space-1);
+}
+
+.marker {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+@keyframes presence-flash {
+  50% {
+    background-color: var(--accent-a5);
+  }
+}
+
+/* Set by jumpToPerson() on a component overlay. */
+:global([data-presence-flash]) {
+  animation: presence-flash 0.5s ease-in-out 3;
+}

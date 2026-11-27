@@ -14,6 +14,7 @@ import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
 import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
+import { RemoteSelection } from '@/features/presence/RemoteSelection';
 import {
   selectComponentIsSelected,
   selectDragging,
@@ -199,6 +200,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-canvas-overlay="true"
         />
       </ComponentContextMenu>
+      <RemoteSelection uuid={component.uuid} />
       {(isHovered || isSelected) && (
         <div className={clsx(styles.canvasNameTag)}>
           <ComponentNameTag

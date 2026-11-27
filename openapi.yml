@@ -3536,6 +3536,86 @@ paths:
           $ref: '#/components/responses/ClientErrorResponse'
         '403':
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/presence/{entity_type}/{entity}:
+    description: Who else has an item open in the Canvas editor.
+    post:
+      summary: Refresh the current tab's presence session and get everyone else's.
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          description: Entity type ID of the item open in the editor.
+          schema:
+            type: string
+        - name: entity
+          in: path
+          required: true
+          description: ID of the item open in the editor.
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - clientInstanceId
+                - active
+              additionalProperties: false
+              properties:
+                clientInstanceId:
+                  type: string
+                  pattern: '^[a-zA-Z0-9-]{1,64}$'
+                selection:
+                  type: array
+                  maxItems: 100
+                  items:
+                    type: string
+                active:
+                  type: boolean
+      responses:
+        '200':
+          description: The other sessions on this item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresenceRoster'
+        '400':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    delete:
+      summary: End one of the current user's presence sessions.
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          description: Entity type ID of the item open in the editor.
+          schema:
+            type: string
+        - name: entity
+          in: path
+          required: true
+          description: ID of the item open in the editor.
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+        - name: clientInstanceId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Session ended, or it did not belong to the current user.
+        '400':
+          $ref: '#/components/responses/ClientErrorResponse'
+        '403':
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /canvas/api/v0/push/complete:
     description: Signal that a CLI push completed successfully.
     post:
@@ -5981,6 +6061,64 @@ components:
         - type
         - weight
         - items
+    PresenceUser:
+      type: object
+      required:
+        - uid
+        - displayName
+        - avatar
+      properties:
+        uid:
+          type: integer
+        displayName:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+    PresenceRoster:
+      type: object
+      required:
+        - sessions
+        - pendingChangesBy
+      properties:
+        sessions:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/PresenceUser'
+              - type: object
+                required:
+                  - clientInstanceId
+                  - self
+                  - selection
+                  - active
+                properties:
+                  clientInstanceId:
+                    type: string
+                  self:
+                    type: boolean
+                    description: Whether the session is one of the current user's other tabs.
+                  selection:
+                    type: array
+                    items:
+                      type: string
+                  active:
+                    type: boolean
+        pendingChangesBy:
+          description: Who last wrote the item's pending changes, or null when it has none.
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/PresenceUser'
+            - type: object
+              required:
+                - clientInstanceId
+                - updated
+              properties:
+                clientInstanceId:
+                  type: string
+                  nullable: true
+                updated:
+                  type: integer
     Notification:
       type: object
       required:

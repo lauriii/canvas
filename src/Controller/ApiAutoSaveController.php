@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AvatarUrlBuilder;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -36,14 +37,11 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraint;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
-use Drupal\image\Entity\ImageStyle;
-use Drupal\user\UserInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -64,13 +62,12 @@ final class ApiAutoSaveController extends ApiControllerBase {
   use SymmetricalTranslationSynchronizationTrait;
 
   public const AUTO_SAVE_KEY = 'api_auto_save_key';
-  public const AVATAR_IMAGE_STYLE = 'canvas_avatar';
 
   public function __construct(
     private readonly Connection $database,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ConfigFactoryInterface $configFactory,
-    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly AvatarUrlBuilder $avatarUrlBuilder,
     private readonly AutoSaveManager $autoSaveManager,
     #[Autowire(service: 'logger.channel.canvas')]
     private readonly LoggerInterface $logger,
@@ -322,7 +319,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
       return [
         'owner' => \array_key_exists($item['owner'], $users) ? [
           'name' => $users[$item['owner']]->getDisplayName(),
-          'avatar' => $this->buildAvatarUrl($users[$item['owner']]),
+          'avatar' => $this->avatarUrlBuilder->build($users[$item['owner']]),
           'uri' => $users[$item['owner']]->toUrl()->toString(),
           'id' => $item['owner'],
         ] : [
@@ -571,33 +568,6 @@ final class ApiAutoSaveController extends ApiControllerBase {
       $this->autoSaveManager->delete($member);
     }
     return new JsonResponse(data: ['message' => 'Auto-save data deleted successfully.'], status: Response::HTTP_NO_CONTENT);
-  }
-
-  /**
-   * Gets URL to avatar.
-   *
-   * @param \Drupal\user\UserInterface $owner
-   *
-   * @return string|null
-   */
-  private function buildAvatarUrl(UserInterface $owner): ?string {
-    if (!$owner->hasField('user_picture') || $owner->get('user_picture')->isEmpty()) {
-      return NULL;
-    }
-    /** @var \Drupal\file\FileInterface|null $file */
-    $file = $owner->get('user_picture')->entity;
-    if ($file === NULL) {
-      return NULL;
-    }
-    $uri = $file->getFileUri();
-    if ($uri === NULL) {
-      return NULL;
-    }
-    $imageStyle = $this->entityTypeManager->getStorage('image_style')->load(self::AVATAR_IMAGE_STYLE);
-    if (!$imageStyle instanceof ImageStyle || !$imageStyle->supportsUri($uri)) {
-      return $this->fileUrlGenerator->generateString($uri);
-    }
-    return $imageStyle->buildUrl($uri);
   }
 
   /**
