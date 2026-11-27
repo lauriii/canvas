@@ -212,7 +212,10 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   const groups: UnpublishedChangeGroups = useMemo(() => {
     if (!changes?.length) return {};
     return changes.reduce((acc, change) => {
-      const key = getReviewGroupKey(change.entity_type ?? 'unknown');
+      const key = getReviewGroupKey(
+        change.entity_type ?? 'unknown',
+        change.entity_id,
+      );
       if (!acc[key]) {
         acc[key] = [];
       }

@@ -1,14 +1,35 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
-import { BRAND_KIT_ID } from '@/features/brandKit/constants';
+import {
+  BRAND_KIT_ID,
+  DESIGN_TOKEN_DRAFT_PREFIX,
+} from '@/features/brandKit/constants';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 import type { AutoSavesHash } from '@/types/AutoSaves';
-import type { BrandKit, BrandKitColor } from '@/types/CodeComponent';
+import type {
+  BrandKit,
+  BrandKitColor,
+  BrandKitThemeToken,
+} from '@/types/CodeComponent';
+
+/**
+ * Patches one theme token in the Brand kit cache entry.
+ */
+const patchThemeToken = (
+  path: string,
+  mutate: (token: BrandKitThemeToken) => void,
+) =>
+  brandKitApi.util.updateQueryData('getBrandKit', BRAND_KIT_ID, (draft) => {
+    const token = draft.themeTokens?.find((t) => t.path === path);
+    if (token) {
+      mutate(token);
+    }
+  });
 
 export interface UploadedArtifact {
   fid: number;
@@ -241,6 +262,89 @@ export const brandKitApi = createApi({
         { type: 'BrandKits', id: BRAND_KIT_ID },
       ],
     }),
+    /**
+     * Stages a style guide draft: a theme token value, or `null` to reset.
+     *
+     * The server derives the draft's ID, label and `base`, and deletes drafts
+     * equal to the published value. The cached token's `draft` is patched
+     * locally instead of refetching the Brand kit.
+     */
+    stageThemeToken: builder.mutation<
+      { draft: { value: unknown } | null },
+      { token: BrandKitThemeToken; value: unknown }
+    >({
+      query: ({ token, value }) => ({
+        url: 'canvas/api/v0/staged-update/auto-save',
+        method: 'POST',
+        body: {
+          data: {
+            id: DESIGN_TOKEN_DRAFT_PREFIX,
+            label: token.name,
+            target: `canvas.brand_kit.${BRAND_KIT_ID}`,
+            actions: [
+              {
+                name: 'canvasDesignTokenValue',
+                input: { path: token.path, type: token.type, value },
+              },
+            ],
+          },
+        },
+      }),
+      async onQueryStarted({ token, value }, { dispatch, queryFulfilled }) {
+        const hadDraft = token.draft !== null;
+        // Show the edit in the previews before the request completes.
+        const optimistic = dispatch(
+          patchThemeToken(token.path, (t) => {
+            t.draft = { value };
+          }),
+        );
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            patchThemeToken(token.path, (t) => {
+              t.draft = data.draft;
+            }),
+          );
+          if (hadDraft !== (data.draft !== null)) {
+            dispatch(
+              pendingChangesApi.util.invalidateTags([
+                { type: 'PendingChanges', id: 'LIST' },
+              ]),
+            );
+          }
+        } catch {
+          optimistic.undo();
+        }
+      },
+    }),
+    setDesignTokensEnabled: builder.mutation<
+      { available: boolean; enabled: boolean },
+      boolean
+    >({
+      query: (enabled) => ({
+        url: `canvas/api/v0/brand-kit/design-tokens/${enabled ? 'enable' : 'disable'}`,
+        method: 'POST',
+        body: { confirm: true },
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // The stylesheet order and its contents changed.
+          dispatch(setUpdatePreview(true));
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
+        } catch (err) {
+          console.error(err);
+        }
+      },
+      invalidatesTags: [
+        { type: 'BrandKits', id: 'LIST' },
+        { type: 'BrandKits', id: BRAND_KIT_ID },
+      ],
+    }),
     getColorUsageDetails: builder.query<ColorUsageDetailsResponse, string>({
       query: (colorId) => `canvas/api/v0/usage/color/${colorId}/details`,
       providesTags: (result, error, id) => [{ type: 'ColorUsageDetails', id }],
@@ -258,4 +362,6 @@ export const {
   useUpdateColorMutation,
   useDeleteColorMutation,
   useGetColorUsageDetailsQuery,
+  useStageThemeTokenMutation,
+  useSetDesignTokensEnabledMutation,
 } = brandKitApi;

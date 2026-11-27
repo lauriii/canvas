@@ -14,13 +14,23 @@ import {
   folderfyComponents,
   sortFolderList,
 } from '@/components/list/FolderList';
+import { BRAND_KIT_ID } from '@/features/brandKit/constants';
 import { useBrandKitColors } from '@/features/brandKit/hooks/useBrandKitColors';
+import {
+  draftEffectiveValue,
+  parseTokenReference,
+} from '@/features/brandKit/themeTokens';
 import { setActivePanel } from '@/features/ui/primaryPanelSlice';
+import { useGetBrandKitQuery } from '@/services/brandKit';
 import { useGetFoldersQuery } from '@/services/componentAndLayout';
 import { ALL_FOLDERS_ID } from '@/utils/colorConstants';
 import { getCanvasPermissions } from '@/utils/drupal-globals';
 
-import type { BrandKitColor, BrandKitColorValue } from '@/types/CodeComponent';
+import type {
+  BrandKitColor,
+  BrandKitColorValue,
+  BrandKitThemeToken,
+} from '@/types/CodeComponent';
 import type { FolderInList, FoldersInList } from '@/types/Component';
 import type { Attributes } from '@/types/DrupalAttribute';
 
@@ -37,8 +47,10 @@ interface CanvasColorPickerFieldProps {
 }
 
 interface ParsedColorValue {
-  type: 'kit' | 'hex' | 'hsl' | 'empty';
+  type: 'kit' | 'token' | 'hex' | 'hsl' | 'empty';
   kitId?: string;
+  /** The DTCG path of a `{path}` theme color reference. */
+  tokenPath?: string;
   hex?: string;
   opacity?: number;
   // HSL fields
@@ -96,6 +108,12 @@ const parseColorValue = (value: string): ParsedColorValue => {
       return { type: 'kit', kitId: parts[1] };
     }
     return { type: 'empty' };
+  }
+
+  // Theme color reference: {path}
+  const tokenPath = parseTokenReference(value);
+  if (tokenPath !== null) {
+    return { type: 'token', tokenPath };
   }
 
   // Hex value: #rrggbb or #rrggbbaa
@@ -209,6 +227,18 @@ const CanvasColorPickerField = ({
   // Get Brand Kit data
   const { colors, isLoading: colorsLoading } = useBrandKitColors();
   const { data: foldersData, isLoading: foldersLoading } = useGetFoldersQuery();
+  // Theme colors: offered for new picks only while the style guide is on.
+  // Stored `{path}` values still show, read-only, while it is off.
+  const { data: brandKit, isLoading: brandKitLoading } =
+    useGetBrandKitQuery(BRAND_KIT_ID);
+  const themeTokensEnabled = !!brandKit?.designTokens?.enabled;
+  const themeColors = useMemo(
+    () =>
+      (brandKit?.themeTokens ?? []).filter(
+        (t) => t.type === 'color' && t.provider !== null,
+      ),
+    [brandKit?.themeTokens],
+  );
 
   // Build color lookup map for O(1) access
   const colorsById = useMemo(() => {
@@ -317,6 +347,25 @@ const CanvasColorPickerField = ({
 
   // Get display info for trigger
   const triggerInfo = useMemo(() => {
+    if (parsedValue.type === 'token') {
+      const token = themeColors.find((t) => t.path === parsedValue.tokenPath);
+      const tokenValue = token
+        ? (draftEffectiveValue(token) as BrandKitColorValue | null)
+        : null;
+      if (token && tokenValue) {
+        return {
+          label: themeTokensEnabled
+            ? token.name
+            : `${token.name} (theme color, feature off)`,
+          swatchColor: computeCssColorValue(tokenValue),
+        };
+      }
+      if (brandKitLoading) {
+        return { label: '', swatchColor: 'transparent' };
+      }
+      return { label: 'Missing color', swatchColor: 'transparent' };
+    }
+
     if (parsedValue.type === 'kit' && parsedValue.kitId) {
       const color = colorsById[parsedValue.kitId];
       if (color) {
@@ -364,11 +413,17 @@ const CanvasColorPickerField = ({
       label: 'Choose color',
       swatchColor: 'transparent',
     };
-  }, [parsedValue, colorsById, colorsLoading]);
+  }, [
+    parsedValue,
+    colorsById,
+    colorsLoading,
+    themeColors,
+    themeTokensEnabled,
+    brandKitLoading,
+  ]);
 
-  // Handle color selection from Brand Kit
-  const handleKitColorSelect = (color: BrandKitColor) => {
-    const newValue = `canvas-color:${color.id}`;
+  // Store the server's reference verbatim, so the server owns the format.
+  const selectReference = (newValue: string) => {
     setValue(newValue);
     if (fieldContext) {
       fieldContext.triggerChange(newValue);
@@ -377,6 +432,11 @@ const CanvasColorPickerField = ({
       onChange(newValue);
     }
     setPopoverOpen(false);
+  };
+
+  // Handle color selection from Brand Kit
+  const handleKitColorSelect = (color: BrandKitColor) => {
+    selectReference(color.reference ?? `canvas-color:${color.id}`);
   };
 
   // Handle color change from free picker
@@ -435,6 +495,63 @@ const CanvasColorPickerField = ({
       <span className={styles.colorRowLabel}>{color.name}</span>
     </button>
   );
+
+  // Theme colors, filtered by the search, with a group breadcrumb.
+  const themeColorBreadcrumb = (token: BrandKitThemeToken) =>
+    [token.provider?.label, ...token.groupPath].filter(Boolean).join(' / ');
+  const filteredThemeColors = themeTokensEnabled
+    ? themeColors.filter((token) =>
+        searchTerm
+          ? `${token.name} ${themeColorBreadcrumb(token)}`
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
+          : true,
+      )
+    : [];
+  const renderThemeColors = () => {
+    if (hasAllowedFolderFilter) {
+      return themeTokensEnabled && themeColors.length ? (
+        <div className={styles.emptyState}>
+          {"Theme colors aren't available for this field."}
+        </div>
+      ) : null;
+    }
+    if (filteredThemeColors.length === 0) {
+      return null;
+    }
+    return (
+      <div data-testid="canvas-color-picker-theme-colors">
+        <div className={styles.brandKitSubheader}>
+          <span className={styles.brandKitLabel}>Theme colors</span>
+        </div>
+        {filteredThemeColors.map((token) => {
+          const tokenValue = draftEffectiveValue(
+            token,
+          ) as BrandKitColorValue | null;
+          const swatch = tokenValue
+            ? computeCssColorValue(tokenValue)
+            : 'transparent';
+          return (
+            <button
+              key={token.path}
+              type="button"
+              className={styles.colorRow}
+              onClick={() => selectReference(token.reference)}
+              data-theme-color-row={token.path}
+              aria-label={`${token.name}, ${themeColorBreadcrumb(token)}, ${swatch}${token.overridden ? ', customized' : ''}`}
+              title={themeColorBreadcrumb(token)}
+            >
+              <div
+                className={`${styles.swatch} ${styles.swatchList}`}
+                style={{ backgroundColor: swatch }}
+              />
+              <span className={styles.colorRowLabel}>{token.name}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   // Render folder with its colors
   const renderFolder = (folder: FolderInList) => {
@@ -592,7 +709,7 @@ const CanvasColorPickerField = ({
 
                 {colorsLoading || foldersLoading ? (
                   <div className={styles.emptyState}>Loading...</div>
-                ) : colors?.length === 0 ? (
+                ) : colors?.length === 0 && filteredThemeColors.length === 0 ? (
                   <div className={styles.emptyState}>
                     No colors in Brand Kit
                   </div>
@@ -621,6 +738,7 @@ const CanvasColorPickerField = ({
                     </form>
                     {filteredFolders.map(renderFolder)}
                     {showTopLevel && renderTopLevelColors()}
+                    {renderThemeColors()}
                   </>
                 )}
               </div>

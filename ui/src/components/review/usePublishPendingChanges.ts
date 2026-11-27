@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 
 import { useAppDispatch } from '@/app/hooks';
+import {
+  BRAND_KIT_ID,
+  DESIGN_TOKEN_DRAFT_PREFIX,
+} from '@/features/brandKit/constants';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import { setInitialPageData } from '@/features/pageData/pageDataSlice';
 import { brandKitApi } from '@/services/brandKit';
@@ -62,6 +66,15 @@ export const usePublishPendingChanges = ({
       const changedBrandKitIds = Object.values(changesToPublish)
         .filter((change) => change.entity_type === 'brand_kit')
         .map((change) => String(change.entity_id));
+      // Style guide drafts change the Brand kit's theme tokens.
+      if (
+        Object.values(changesToPublish).some((change) =>
+          String(change.entity_id).startsWith(DESIGN_TOKEN_DRAFT_PREFIX),
+        ) &&
+        !changedBrandKitIds.includes(BRAND_KIT_ID)
+      ) {
+        changedBrandKitIds.push(BRAND_KIT_ID);
+      }
 
       try {
         await publishAllChanges(changesToPublish).unwrap();

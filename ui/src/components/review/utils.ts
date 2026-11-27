@@ -5,6 +5,7 @@
 import { differenceInMonths, format, formatDistanceToNow } from 'date-fns';
 import { kebabCase } from 'lodash';
 
+import { DESIGN_TOKEN_DRAFT_PREFIX } from '@/features/brandKit/constants';
 import { FallbackColor } from '@/types/Review';
 
 import type { UnpublishedChange } from '@/types/Review';
@@ -61,6 +62,8 @@ export function getGroupLabel(entityType: string): string {
       return 'Page templates';
     case 'staged_config_update':
       return 'Configuration updates';
+    case STYLE_GUIDE_GROUP:
+      return 'Style guide';
     case 'content_template':
       return 'Content templates';
     case 'pattern':
@@ -70,7 +73,20 @@ export function getGroupLabel(entityType: string): string {
   }
 }
 
-export function getReviewGroupKey(entityType: string): string {
+/** The Review changes group of style guide drafts. */
+export const STYLE_GUIDE_GROUP = 'style_guide';
+
+export function getReviewGroupKey(
+  entityType: string,
+  entityId?: string | number,
+): string {
+  // Style guide drafts are staged config updates, grouped on their own.
+  if (
+    entityType === 'staged_config_update' &&
+    String(entityId ?? '').startsWith(DESIGN_TOKEN_DRAFT_PREFIX)
+  ) {
+    return STYLE_GUIDE_GROUP;
+  }
   switch (entityType) {
     case 'brand_kit':
       return 'asset_library';
@@ -82,6 +98,10 @@ export function getReviewGroupKey(entityType: string): string {
 export function getChangeLabel(
   change: Pick<UnpublishedChange, 'entity_type' | 'label'>,
 ): string {
+  // "Style guide: Olivero / Spacing / md" is shown as "Spacing / md".
+  if (change.label.startsWith('Style guide: ')) {
+    return change.label.split(' / ').slice(1).join(' / ') || change.label;
+  }
   switch (change.entity_type) {
     case 'brand_kit':
       return 'Brand kit';

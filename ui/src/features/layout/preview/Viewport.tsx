@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { buildColorStyles } from '@/features/brandKit/colorCss';
 import { BRAND_KIT_ID } from '@/features/brandKit/constants';
+import { buildTokenStyles } from '@/features/brandKit/themeTokens';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import PreviewProgress from '@/features/layout/preview/PreviewProgress';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
@@ -53,9 +54,17 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   // ensures optimistic cache updates aren't lost when the editor panel
   // unmounts.
   const { data: brandKit } = useGetBrandKitQuery(BRAND_KIT_ID);
+  // Theme tokens come after site colors: only overridden or drafted ones,
+  // because this iframe loads the theme's own CSS.
   const brandKitColorStyles = useMemo(
-    () => buildColorStyles(brandKit?.colors),
-    [brandKit?.colors],
+    () =>
+      [
+        buildColorStyles(brandKit?.colors),
+        buildTokenStyles(brandKit?.themeTokens, { includeDeclared: false }),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    [brandKit?.colors, brandKit?.themeTokens],
   );
 
   useSyncIframeHeightToContent(

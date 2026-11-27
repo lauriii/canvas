@@ -2,6 +2,10 @@ import { camelCase, isEqual } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 import { getTranslatableStringsFromSource } from '@drupal-canvas/translatable-strings';
 
+import {
+  draftEffectiveValue,
+  parseTokenReference,
+} from '@/features/brandKit/themeTokens';
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
 import { CONFIG_EXAMPLE_URLS as DOCUMENT_CONFIG_EXAMPLE_URLS } from '@/features/code-editor/component-data/forms/FormPropTypeDocument';
 import { CONFIG_EXAMPLE_URLS as VIDEO_CONFIG_EXAMPLE_URLS } from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
@@ -10,6 +14,7 @@ import { getCanvasModuleBaseUrl } from '@/utils/drupal-globals';
 import type {
   BrandKitColor,
   BrandKitColorValue,
+  BrandKitThemeToken,
   CodeComponent,
   CodeComponentProp,
   CodeComponentPropDocumentExample,
@@ -241,9 +246,30 @@ function parseFreePickToValue(value: string): BrandKitColorValue | null {
 function resolveColorPropValueForPreview(
   storedValue: string,
   brandKitColors: BrandKitColor[] | null,
+  themeTokens: BrandKitThemeToken[] | null = null,
 ): ResolvedColorProp | null {
   if (!storedValue) {
     return null;
+  }
+
+  // Theme color reference: {path}, at its draft-effective value.
+  const tokenPath = parseTokenReference(storedValue);
+  if (tokenPath !== null) {
+    const token = themeTokens?.find(
+      (t) => t.path === tokenPath && t.type === 'color',
+    );
+    const value = token
+      ? (draftEffectiveValue(token) as BrandKitColorValue | null)
+      : null;
+    if (!token || !value) {
+      return null;
+    }
+    return {
+      value,
+      cssColorValue: computeCssColorValue(value),
+      cssVariable: token.cssVariable,
+      colorName: token.name,
+    };
   }
 
   // Brand Kit reference: canvas-color:<uuid>
@@ -291,12 +317,14 @@ function resolveColorPropValueForPreview(
 export function parsePropValueForPreview(
   prop: CodeComponentProp,
   brandKitColors: BrandKitColor[] | null,
+  themeTokens: BrandKitThemeToken[] | null = null,
 ): CodeComponentPropPreviewValue {
   // Color props need special resolution to match production render output
   if (prop.derivedType === 'color') {
     return resolveColorPropValueForPreview(
       (prop.example as string) ?? '',
       brandKitColors,
+      themeTokens,
     );
   }
 
@@ -336,6 +364,7 @@ export function parsePropValueForPreview(
 export function getPropValuesForPreview(
   props: CodeComponentProp[],
   brandKitColors: BrandKitColor[] | null,
+  themeTokens: BrandKitThemeToken[] | null = null,
 ): Record<string, CodeComponentPropPreviewValue> {
   const propValues = {} as Record<string, CodeComponentPropPreviewValue>;
   props
@@ -344,6 +373,7 @@ export function getPropValuesForPreview(
       propValues[getPropMachineName(prop.name)] = parsePropValueForPreview(
         prop,
         brandKitColors,
+        themeTokens,
       );
     });
   return propValues;
