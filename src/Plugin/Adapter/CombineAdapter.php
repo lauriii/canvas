@@ -35,7 +35,9 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'text_10' => ['type' => 'string'],
     'separator' => ['type' => 'string'],
   ],
-  requiredInputs: ['text_1', 'text_2'],
+  // A single part is valid: one field wrapped in nothing is the identity, and
+  // the editor UI lets authors start with one part and add more.
+  requiredInputs: ['text_1'],
   output: ['type' => 'string'],
   // Empty inputs are skipped; as long as `text_1` is non-empty the output is
   // non-empty, so all other slots tolerate emptiness.

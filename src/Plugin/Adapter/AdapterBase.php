@@ -20,9 +20,11 @@ abstract class AdapterBase extends PluginBase implements AdapterInterface {
     if (\array_key_exists($input, $this->getInputs())) {
       $json_schema_type = $this->getInputs()[$input];
       // An empty schema means "any shape": accept the value as-is.
+      // NULL means "no value" (e.g. an empty optional field): there is no
+      // shape to validate, the adapter decides what an absent input means.
       // @see \Drupal\canvas\Plugin\Adapter\Adapter::__construct()
       // @see \Drupal\Core\Theme\Component\ComponentValidator
-      if ($json_schema_type !== [] && !$this->validateConformanceToJsonSchemaType($json_schema_type, $value)) {
+      if ($value !== NULL && $json_schema_type !== [] && !$this->validateConformanceToJsonSchemaType($json_schema_type, $value)) {
         throw new \LogicException('…');
       }
       $this->$input = $value;

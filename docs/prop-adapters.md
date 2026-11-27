@@ -27,7 +27,7 @@ shapes in general.
 | Equals | `equals` | `value`, `comparison` (any), `then`, `else` (mirror the prop shape), `negate` (boolean) | `then` when the value equals the comparison, `else` otherwise |
 | Contains | `contains` | `text`, `needle` (strings), `position` (`contains`/`starts_with`/`ends_with`), `negate` (boolean), `then`, `else` (mirror the prop shape) | `then` when the text matches, `else` otherwise |
 | Mapping | `mapping` | `value` (any), `cases` (JSON object as string), `default` (mirrors the prop shape) | the configured output for the matched case, or the default |
-| Compose text | `combine` | `text_1` … `text_10` (strings), `separator` (string, defaults to a space) | text: the non-empty inputs joined by the separator |
+| Compose text | `combine` | `text_1` … `text_10` (strings, only `text_1` is required), `separator` (string, defaults to a space) | text: the non-empty inputs joined by the separator |
 
 Notes:
 

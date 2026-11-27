@@ -17,9 +17,12 @@ use Drupal\canvas\Plugin\AdapterManager;
 use Drupal\canvas\PropSource\AdaptedPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -45,6 +48,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas_data_model')]
 #[RunTestsInSeparateProcesses]
 final class Phase1AdapterPluginsTest extends CanvasKernelTestBase {
+
+  use UserCreationTrait;
 
   /**
    * Builds the array representation of a static string prop source.
@@ -128,6 +133,7 @@ final class Phase1AdapterPluginsTest extends CanvasKernelTestBase {
 
     // Combine: the "first name + last name" scenario; empty inputs are
     // skipped along with their separator.
+    yield 'combine: single input' => ['combine', ['text_1' => self::staticString('John')], 'John'];
     yield 'combine: two inputs, default separator' => ['combine', ['text_1' => self::staticString('John'), 'text_2' => self::staticString('Doe')], 'John Doe'];
     yield 'combine: empty input skipped' => ['combine', ['text_1' => self::staticString('John'), 'text_2' => self::staticString(''), 'text_3' => self::staticString('Doe')], 'John Doe'];
     yield 'combine: custom separator' => ['combine', ['text_1' => self::staticString('a'), 'text_2' => self::staticString('b'), 'separator' => self::staticString(' | ')], 'a | b'];
@@ -203,6 +209,72 @@ final class Phase1AdapterPluginsTest extends CanvasKernelTestBase {
       ],
     ]);
     $this->assertSame('in 2 days', $source->evaluate(NULL, is_required: FALSE)->value);
+  }
+
+  /**
+   * Adapter inputs populated by entity fields, on a REQUIRED target prop.
+   *
+   * The editor evaluates with `is_required: TRUE` when the targeted prop is
+   * required. That describes the prop, not each adapter input: inputs whose
+   * emptiness the adapter handles may be populated by empty optional fields.
+   *
+   * @see \Drupal\canvas\PropSource\AdaptedPropSource::evaluate()
+   */
+  public function testFieldInputs(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->setUpCurrentUser(permissions: ['access user profiles', 'administer users']);
+    // 2024-05-06 15:30:00 UTC: not midnight, in any timezone.
+    $created = 1715009400;
+    // The optional `mail` field is empty.
+    $user = User::create(['name' => 'John Doe', 'created' => $created]);
+    $user->save();
+    $mail_field = [
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:user␝mail␞␟value',
+    ];
+
+    // Fallback exists to bridge an empty optional field to a required prop.
+    $source = PropSource::parse([
+      'sourceType' => 'adapter:fallback',
+      'adapterInputs' => ['value' => $mail_field, 'default' => self::staticString('No e-mail')],
+    ]);
+    $this->assertSame('No e-mail', $source->evaluate($user, is_required: TRUE)->value);
+
+    // An empty field is "no value" for typed inputs too, not a schema
+    // violation: nothing contains the needle, so `else` is selected.
+    $source = PropSource::parse([
+      'sourceType' => 'adapter:contains',
+      'adapterInputs' => [
+        'text' => $mail_field,
+        'needle' => self::staticString('@example.com'),
+        'then' => self::staticString('y'),
+        'else' => self::staticString('n'),
+      ],
+    ]);
+    $this->assertSame('n', $source->evaluate($user, is_required: TRUE)->value);
+
+    // Date conversion accepts integer timestamp fields as-is, and keeps their
+    // time of day.
+    DateFormat::create([
+      'id' => 'canvas_test_time',
+      'label' => 'Canvas test time',
+      'pattern' => 'Y-m-d H:i',
+    ])->save();
+    $source = PropSource::parse([
+      'sourceType' => 'adapter:format_date',
+      'adapterInputs' => [
+        'date' => [
+          'sourceType' => PropSource::EntityField->value,
+          'expression' => 'ℹ︎␜entity:user␝created␞␟value',
+        ],
+        'format' => self::staticString('canvas_test_time'),
+      ],
+    ]);
+    $this->assertSame(
+      $this->container->get(DateFormatterInterface::class)->format($created, 'canvas_test_time'),
+      $source->evaluate($user, is_required: TRUE)->value,
+    );
   }
 
   /**

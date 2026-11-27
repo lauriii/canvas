@@ -13,6 +13,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -106,16 +107,41 @@ final class AdaptedPropSource extends PropSourceBase implements LinkablePropSour
     if ($host_entity !== NULL) {
       $inputs_cacheability->addCacheableDependency($host_entity);
     }
+    $inputs_attachments = [];
+    $adaptable = TRUE;
+    $inputs_required_when_output_required = $this->adapter_instance->getRequiredInputsWhenOutputRequired();
     foreach ($this->adapter_inputs as $input_name => $input) {
       $value_object = $this->getInputPropSource($input_name);
-      $input = $value_object->evaluate($host_entity, $is_required);
+      // `$is_required` describes the targeted prop, not each input: only an
+      // input whose emptiness propagates to the output must be non-empty.
+      // Inputs the adapter tolerates being empty (e.g. Fallback's `value`)
+      // are exactly what the adapter exists to handle.
+      // @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::buildAdapterSuggestions()
+      $input_is_required = $is_required
+        && ($this->adapter_instance->inputIsRequired($input_name) || \in_array($input_name, $inputs_required_when_output_required, TRUE))
+        && !$this->adapter_instance->inputToleratesEmpty($input_name);
+      $input = $value_object->evaluate($host_entity, $input_is_required);
       $inputs_cacheability->addCacheableDependency($input);
-      $this->adapter_instance->addInput($input_name, $input->value);
+      $inputs_attachments = BubbleableMetadata::mergeAttachments($inputs_attachments, $input->attachments);
+      try {
+        $this->adapter_instance->addInput($input_name, $input->value);
+      }
+      catch (\TypeError $e) {
+        if ($input->value !== NULL) {
+          throw $e;
+        }
+        // The adapter cannot represent the absence of this input (e.g. an
+        // empty optional field populating `unix_to_date`'s `int $unix`):
+        // there is nothing to adapt.
+        // @see \Drupal\canvas\PropSource\EntityFieldPropSource::evaluate()
+        $adaptable = FALSE;
+      }
     }
 
     return new EvaluationResult(
-      $this->adapter_instance->adapt(),
+      $adaptable ? $this->adapter_instance->adapt() : NULL,
       $inputs_cacheability,
+      $inputs_attachments,
     );
   }
 
