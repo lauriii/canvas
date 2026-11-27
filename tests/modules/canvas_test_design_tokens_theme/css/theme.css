@@ -1,0 +1,11 @@
+/* The theme's own defaults, which must match tokens.yml. */
+:root {
+  --color-palette-violet: #7c3aed;
+  --color-semantic-primary: #0055aa;
+  --font-heading: Georgia, serif;
+}
+
+body {
+  color: var(--color-semantic-primary);
+  font-family: var(--font-heading);
+}

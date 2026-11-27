@@ -12,6 +12,7 @@ enum ErrorCodesEnum: int {
   case ItemEntityUpdatedExternally = 4;
   case NoActiveConflictMatchingConflictId = 5;
   case AutoSaveItemNotFound = 6;
+  case DesignTokenChangedElsewhere = 7;
 
   public function getMessage(): string {
     return match($this) {
@@ -29,6 +30,10 @@ enum ErrorCodesEnum: int {
       // - somebody else resolved the conflict + published the auto-save
       // - somebody else deleted the auto-save
       self::AutoSaveItemNotFound => 'No auto-save item found to resolve a conflict on.',
+      // A style guide draft's design value was changed by a CLI push, drush or
+      // a config import after the draft was created. A 422, not a 409: the
+      // client offers "Discard" and "Use my value".
+      self::DesignTokenChangedElsewhere => 'Changed elsewhere since you edited it.',
     };
   }
 

@@ -404,6 +404,34 @@ paths:
                       - No auto-save data found for this entity.
         '413':
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/brand-kit/design-tokens/disable:
+    post:
+      summary: Turns the theme style guide off. Overrides are kept, and return when it is turned on again.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DesignTokensToggle'
+      responses:
+        '200':
+          $ref: '#/components/responses/DesignTokensState'
+        '422':
+          description: The confirmation flag is missing.
+  /canvas/api/v0/brand-kit/design-tokens/enable:
+    post:
+      summary: Turns the theme style guide on. Deletes nothing.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DesignTokensToggle'
+      responses:
+        '200':
+          $ref: '#/components/responses/DesignTokensState'
+        '409':
+          description: Core has no compatible design tokens API.
+        '422':
+          description: The confirmation flag is missing.
   /canvas/api/v0/code-components/validate:
     post:
       summary: Validates a normalized Code Component payload without saving it
@@ -3741,6 +3769,22 @@ paths:
                         input:
                           name: "My awesome site"
       responses:
+        '200':
+          description: A style guide draft (a canvasDesignTokenValue action) was saved, or deleted because it equals the published value.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [draft]
+                properties:
+                  draft:
+                    oneOf:
+                      - type: "null"
+                      - type: object
+                        required: [value]
+                        properties:
+                          value: {}
         '201':
           description: Auto-save entry created successfully
           content:
@@ -4576,6 +4620,15 @@ paths:
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
   schemas:
+    DesignTokensToggle:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+          enum: [true]
+        clientInstanceId:
+          type: string
     ColorComponentUsage:
       type: object
       description: Detailed information about a specific component instance using the color.
@@ -5461,6 +5514,124 @@ components:
           items:
             $ref: '#/components/schemas/Color'
           description: Colors available to the Brand Kit, derived server-side from the site's Color entities and ignored on writes. Only present when at least one color exists.
+        designTokens:
+          readOnly: true
+          description: The theme style guide (core design tokens). Absent on Canvas versions without it.
+          type: object
+          additionalProperties: false
+          required: [available, enabled, enableImpact]
+          properties:
+            available:
+              type: boolean
+              description: Core has the design tokens API and a color value type.
+            enabled:
+              type: boolean
+              description: The site turned the theme style guide on.
+            enableImpact:
+              description: Counts for the enable confirmation, only while available and off.
+              oneOf:
+                - type: "null"
+                - type: object
+                  additionalProperties: false
+                  required: [otherModuleValues, collidingSiteColors]
+                  properties:
+                    otherModuleValues:
+                      type: integer
+                    collidingSiteColors:
+                      type: integer
+        themeTokens:
+          readOnly: true
+          description: Design values the default theme, its base themes and enabled modules declare, in display order, then "Other values". Present while designTokens.available.
+          type: array
+          items:
+            $ref: '#/components/schemas/BrandKitThemeToken'
+        themeTokenGroups:
+          readOnly: true
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [provider, path, name, description]
+            properties:
+              provider:
+                type: string
+              path:
+                type: array
+                items:
+                  type: string
+              name:
+                type: string
+              description:
+                type: ['string', 'null']
+    BrandKitThemeToken:
+      title: Theme design token
+      type: object
+      additionalProperties: false
+      required: [path, reference, cssVariable, type, value, declaredValue, overridden, draft, name, description, provider, groupPath, editable, resettable, reason]
+      properties:
+        path:
+          type: string
+          description: DTCG path as declared, e.g. color.semantic.primary
+        reference:
+          type: string
+          description: Stored verbatim by color props that pick this token.
+          pattern: '^\{[^{}]+\}$'
+        cssVariable:
+          type: string
+        type:
+          type: string
+          description: color, fontFamily, fontWeight, dimension, number, typography, or a type a newer core adds.
+        value:
+          description: The effective (published) value, in stored form.
+        declaredValue:
+          description: The value the theme declares; null under "Other values".
+        overridden:
+          type: boolean
+        draft:
+          description: A pending style guide draft; a null value is a staged reset.
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [value]
+              properties:
+                value: {}
+        name:
+          type: string
+        description:
+          type: ['string', 'null']
+        provider:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required: [type, name, label]
+              properties:
+                type:
+                  type: string
+                  enum: [theme, module, project]
+                name:
+                  type: string
+                label:
+                  type: string
+        groupPath:
+          type: array
+          items:
+            type: string
+        editable:
+          type: boolean
+        resettable:
+          type: boolean
+        reason:
+          type: ['string', 'null']
+          description: Why the token is read-only, or listed under "Other values".
+        displayFormat:
+          type: ['string', 'null']
+          description: Display format of a color token.
+          enum:
+            - rgb
+            - hex
+            - hsl
+            - null
     NewBrandKit:
       type: object
       allOf:
@@ -5520,6 +5691,10 @@ components:
         weight:
           type: integer
           description: Sort order weight for the color
+        reference:
+          type: string
+          readOnly: true
+          description: Stored verbatim by color props that pick this color.
     ColorUpdate:
       title: Color Update
       type: object
@@ -6590,6 +6765,19 @@ components:
             description: Optional label for the component instance.
   # @see https://spec.openapis.org/oas/v3.1.0.html#response-object
   responses:
+    DesignTokensState:
+      description: The theme style guide's new state.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [available, enabled]
+            properties:
+              available:
+                type: boolean
+              enabled:
+                type: boolean
     ContentEntityResponse:
       description: Content entity response
       content:

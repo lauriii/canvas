@@ -188,6 +188,7 @@ export default defineConfig({
             { label: 'Introduction', slug: 'guides' },
             { label: 'Translations', slug: 'guides/translations' },
             { label: 'Exposed slots', slug: 'guides/exposed-slots' },
+            { label: 'Theme style guide', slug: 'guides/theme-style-guide' },
           ],
         },
         {

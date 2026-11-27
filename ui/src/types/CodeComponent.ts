@@ -274,6 +274,81 @@ export interface BrandKitColor {
   /** Original input format for display purposes */
   displayFormat?: 'rgb' | 'hex' | 'hsl' | null;
   weight: number;
+  /** Stored verbatim by color props that pick this color. */
+  reference?: `canvas-color:${string}`;
+}
+
+export interface BrandKitDesignTokens {
+  /** Core has the design tokens API and a `color` value type. */
+  available: boolean;
+  /** The site opted in to the theme style guide. */
+  enabled: boolean;
+  /** Counts for the enable confirmation; only while off and available. */
+  enableImpact: {
+    otherModuleValues: number;
+    collidingSiteColors: number;
+  } | null;
+}
+
+export type ThemeTokenType =
+  'color' | 'fontFamily' | 'fontWeight' | 'dimension' | 'number' | 'typography';
+
+export interface ThemeTokenDimension {
+  value: number;
+  unit: 'px' | 'rem';
+}
+
+export interface ThemeTokenTypography {
+  fontFamily: string[];
+  fontSize: ThemeTokenDimension;
+  fontWeight: number;
+  letterSpacing: ThemeTokenDimension;
+  lineHeight: number;
+}
+
+/**
+ * A design value the theme (or an enabled module) declares.
+ *
+ * `type` may be one this client does not know, from a newer server: such
+ * tokens are shown read-only, never dropped.
+ *
+ * @see \Drupal\canvas\DesignToken\BrandKitTokens::themeTokens()
+ */
+export interface BrandKitThemeToken {
+  /** DTCG path as declared, e.g. "color.semantic.primary". */
+  path: string;
+  reference: `{${string}}`;
+  cssVariable: `--${string}`;
+  name: string;
+  description: string | null;
+  /** `null` for "Other values". */
+  provider: {
+    type: 'theme' | 'module' | 'project';
+    name: string;
+    label: string;
+  } | null;
+  /** Group segments; `[]` shows under "General". */
+  groupPath: string[];
+  editable: boolean;
+  /** A published `:root` value exists. */
+  overridden: boolean;
+  resettable: boolean;
+  /** Why the token is read-only or listed under "Other values". */
+  reason: string | null;
+  type: ThemeTokenType | (string & {});
+  /** Effective (published) value. */
+  value: unknown;
+  declaredValue: unknown;
+  /** A pending draft; `value: null` is a staged reset. */
+  draft: { value: unknown } | null;
+  displayFormat?: 'rgb' | 'hex' | 'hsl' | null;
+}
+
+export interface BrandKitThemeTokenGroup {
+  provider: string;
+  path: string[];
+  name: string;
+  description: string | null;
 }
 
 export interface BrandKit {
@@ -282,6 +357,11 @@ export interface BrandKit {
   fonts: BrandKitFont[] | null;
   /** Absent while the Brand kit has no colors, rather than an empty list. */
   colors?: BrandKitColor[] | null;
+  /** Absent on Canvas versions without the theme style guide. */
+  designTokens?: BrandKitDesignTokens;
+  /** Present whenever `designTokens.available`. */
+  themeTokens?: BrandKitThemeToken[];
+  themeTokenGroups?: BrandKitThemeTokenGroup[];
 }
 
 export type BrandKitFontVariantType = 'static' | 'variable';

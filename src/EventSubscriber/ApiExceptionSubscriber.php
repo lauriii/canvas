@@ -6,6 +6,7 @@ namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\canvas\Controller\ErrorCodesEnum;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Utility\ExceptionHelper;
@@ -176,6 +177,10 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
         $meta['code'] = (int) $violation->getCode();
         $meta['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY] = $parameters[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY];
       }
+    }
+    // The client needs this code to offer "Use my value".
+    if ($violation->getCode() === (string) ErrorCodesEnum::DesignTokenChangedElsewhere->value) {
+      $meta['code'] = ErrorCodesEnum::DesignTokenChangedElsewhere->value;
     }
     return [
       'detail' => (string) $violation->getMessage(),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Utility;
 
+use Drupal\canvas\DesignToken\BrandKitTokens;
 use Drupal\canvas\Entity\Color;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -17,7 +18,21 @@ final class ColorResolver {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly BrandKitTokens $brandKitTokens,
   ) {}
+
+  /**
+   * Extracts the token path from a `{path}` theme color reference.
+   *
+   * Checks syntax only: a reference that no longer resolves stays valid, so
+   * unrelated saves and config imports never fail.
+   *
+   * @return string|null
+   *   The DTCG path, or NULL if this is not a theme token reference.
+   */
+  public static function parseTokenPath(string $stored_value): ?string {
+    return \preg_match('/^\{([^{}\s][^{}]*)\}$/', $stored_value, $matches) ? $matches[1] : NULL;
+  }
 
   /**
    * Extracts the referenced Color config entity ID from a stored value.
@@ -41,6 +56,8 @@ final class ColorResolver {
    * Resolves a stored canvas color value to a rich object for templates.
    *
    * - 'canvas-color:<uuid>' → loads Color config entity, returns object
+   * - '{path}' → a theme design token: its effective value (the declared
+   *   value while the theme style guide is off)
    * - '#rrggbbaa' → parses hex, returns object with null kit fields
    *
    * @param string $stored_value
@@ -80,6 +97,24 @@ final class ColorResolver {
         $this->entityTypeManager->getDefinition('color')->getListCacheTags()
       );
       return [NULL, $cacheability];
+    }
+
+    // Theme design token reference (a DTCG alias).
+    $path = self::parseTokenPath($stored_value);
+    if ($path !== NULL) {
+      $value = $this->brandKitTokens->resolveColor($path, $cacheability);
+      if ($value === NULL) {
+        return [NULL, $cacheability];
+      }
+      return [
+        [
+          'value' => $value,
+          'cssColorValue' => $this->computeCssColorValue($value),
+          'cssVariable' => BrandKitTokens::cssVariable($path),
+          'colorName' => BrandKitTokens::tokenName($path),
+        ],
+        $cacheability,
+      ];
     }
 
     // Free pick (8-digit hex #rrggbbaa or 6-digit #rrggbb).
@@ -146,7 +181,7 @@ final class ColorResolver {
         $g = (int) \round($components[1] * 255);
         $b = (int) \round($components[2] * 255);
 
-        if ($alpha === NULL || $alpha === 1.0) {
+        if ($alpha === NULL || (float) $alpha === 1.0) {
           return \sprintf('rgb(%d, %d, %d)', $r, $g, $b);
         }
         return \sprintf('rgba(%d, %d, %d, %.2f)', $r, $g, $b, $alpha);
@@ -157,7 +192,7 @@ final class ColorResolver {
         $s = \round($components[1]);
         $l = \round($components[2]);
 
-        if ($alpha === NULL || $alpha === 1.0) {
+        if ($alpha === NULL || (float) $alpha === 1.0) {
           return \sprintf('hsl(%d, %d%%, %d%%)', $h, $s, $l);
         }
         return \sprintf('hsla(%d, %d%%, %d%%, %.2f)', $h, $s, $l, $alpha);

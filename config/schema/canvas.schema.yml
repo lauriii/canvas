@@ -462,6 +462,9 @@ canvas.settings:
           pattern: '/^[a-z0-9_]+$/'
         ConfigExists:
           prefix: canvas.page_variant.
+    experimental_design_tokens:
+      type: boolean
+      label: 'Use the theme style guide (experimental)'
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
@@ -1456,6 +1459,61 @@ canvas.folder.*:
       constraints:
         Unique: ~
 
+# A DTCG 2025.10 color value. Site colors store it, and so does the `color`
+# design token value type that Canvas provides until core has one.
+# @see \Drupal\canvas\DesignToken\ColorValue
+canvas.dtcg_color:
+  type: mapping
+  label: 'Color value in DTCG format'
+  mapping:
+    colorSpace:
+      type: string
+      label: 'Color space'
+      constraints:
+        Choice:
+          choices:
+            - srgb
+            - hsl
+    components:
+      type: sequence
+      label: 'Color components'
+      constraints:
+        # Each known color space requires a fixed number of components.
+        # Unknown color spaces are silently allowed so that future spaces can
+        # be introduced without updating this constraint simultaneously.
+        # @see \Drupal\canvas\Plugin\Validation\Constraint\ColorComponentCountConstraint::COMPONENT_COUNTS
+        ColorComponentCount: []
+      sequence:
+        type: float
+        label: 'Component value'
+        # @todo Add per-colorSpace range validation (e.g., sRGB [0,1], HSL [0-360, 0-100, 0-100])
+    alpha:
+      type: float
+      label: 'Alpha (opacity)'
+      requiredKey: false
+      nullable: true
+      constraints:
+        Range:
+          min: 0.0
+          max: 1.0
+          notInRangeMessage: "Alpha must be between 0 and 1."
+    hex:
+      type: string
+      label: 'Hex fallback'
+      requiredKey: false
+      nullable: true
+      constraints:
+        Regex:
+          pattern: '/^#[0-9a-fA-F]{6}$/'
+          message: "The %value is not a valid 6-digit hex color."
+
+# The `color` design token value, until core has one. Schema alters cannot add
+# types, so this is declared even on core versions without design tokens.
+# @todo Remove once core's color design token type is committed (#3633969); its shape is the same.
+design_token_value.color:
+  type: canvas.dtcg_color
+  label: 'Color'
+
 canvas.color.*:
   type: config_entity
   constraints:
@@ -1477,49 +1535,8 @@ canvas.color.*:
         UniqueColorCssVariableConstraint:
           id: '%parent.uuid'
     value:
-      type: mapping
+      type: canvas.dtcg_color
       label: 'Color value in W3C Design Token format'
-      mapping:
-        colorSpace:
-          type: string
-          label: 'Color space'
-          constraints:
-            Choice:
-              choices:
-                - srgb
-                - hsl
-        components:
-          type: sequence
-          label: 'Color components'
-          constraints:
-            # Each known color space requires a fixed number of components.
-            # Unknown color spaces are silently allowed so that future spaces can
-            # be introduced without updating this constraint simultaneously.
-            # @see \Drupal\canvas\Plugin\Validation\Constraint\ColorComponentCountConstraint::COMPONENT_COUNTS
-            ColorComponentCount: []
-          sequence:
-            type: float
-            label: 'Component value'
-            # @todo Add per-colorSpace range validation (e.g., sRGB [0,1], HSL [0-360, 0-100, 0-100])
-        alpha:
-          type: float
-          label: 'Alpha (opacity)'
-          requiredKey: false
-          nullable: true
-          constraints:
-            Range:
-              min: 0.0
-              max: 1.0
-              notInRangeMessage: "Alpha must be between 0 and 1."
-        hex:
-          type: string
-          label: 'Hex fallback'
-          requiredKey: false
-          nullable: true
-          constraints:
-            Regex:
-              pattern: '/^#[0-9a-fA-F]{6}$/'
-              message: "The %value is not a valid 6-digit hex color."
     displayFormat:
       type: string
       label: 'Display format'
@@ -1566,3 +1583,28 @@ plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:
       sequence:
         type: string
         label: 'Prop name'
+
+# Marks design token entities Canvas created, so Canvas only ever deletes its
+# own. Entities other tools created carry no such mapping.
+# @see \Drupal\canvas\DesignToken\BrandKitTokens
+core.design_token.*.third_party.canvas:
+  type: mapping
+  label: 'Canvas'
+  mapping:
+    managed:
+      type: boolean
+      label: 'Created by Canvas'
+      constraints:
+        IdenticalTo:
+          value: true
+    displayFormat:
+      type: string
+      label: 'Display format'
+      requiredKey: false
+      nullable: true
+      constraints:
+        Choice:
+          choices:
+            - rgb
+            - hex
+            - hsl

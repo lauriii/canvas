@@ -6,7 +6,12 @@ import {
   setErrors,
   setPreviousPendingChanges,
 } from '@/components/review/PublishReview.slice';
+import {
+  BRAND_KIT_ID,
+  DESIGN_TOKEN_DRAFT_PREFIX,
+} from '@/features/brandKit/constants';
 import { baseQuery } from '@/services/baseQuery';
+import { brandKitApi } from '@/services/brandKit';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 
 interface Owner {
@@ -250,6 +255,14 @@ export const pendingChangesApi = createApi({
               { type: 'PendingChanges', id: 'LIST' },
             ]),
           );
+          // A discarded style guide draft changes the Brand kit's theme tokens.
+          if (String(change.entity_id).startsWith(DESIGN_TOKEN_DRAFT_PREFIX)) {
+            dispatch(
+              brandKitApi.util.invalidateTags([
+                { type: 'BrandKits', id: BRAND_KIT_ID },
+              ]),
+            );
+          }
 
           // Reset errors
           dispatch(setConflicts());

@@ -5,10 +5,12 @@ import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorCard from '@/components/error/ErrorCard';
 import { buildColorStyles } from '@/features/brandKit/colorCss';
+import { BRAND_KIT_ID } from '@/features/brandKit/constants';
 import {
   buildFontFaceStyles,
   getFontPreloadDefinitions,
 } from '@/features/brandKit/fontCss';
+import { buildTokenStyles } from '@/features/brandKit/themeTokens';
 import {
   clearDataFetches,
   selectBrandKit,
@@ -27,6 +29,7 @@ import {
   getSlotNamesForPreview,
   getTranslatableStrings,
 } from '@/features/code-editor/utils/utils';
+import { useGetBrandKitQuery } from '@/services/brandKit';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
 import {
   getBaseUrl,
@@ -72,6 +75,8 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const brandKitColors = useAppSelector((state) =>
     selectBrandKit<BrandKit['colors']>(state, 'colors'),
   );
+  // This preview loads no theme CSS: emit every theme token's value.
+  const themeTokens = useGetBrandKitQuery(BRAND_KIT_ID).data?.themeTokens;
   const previewCompiledJsForSlots = useAppSelector(
     selectPreviewCompiledJsForSlots,
   );
@@ -256,9 +261,19 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // being added to the iframe inline because of Content Security Policy (CSP)
     // restrictions.
     // @see ui/lib/code-editor-preview.js
-    const propValues = getPropValuesForPreview(props, brandKitColors ?? null);
+    const propValues = getPropValuesForPreview(
+      props,
+      brandKitColors ?? null,
+      themeTokens ?? null,
+    );
     const slotNames = getSlotNamesForPreview(slots);
-    const previewGlobalColorCss = buildColorStyles(brandKitColors ?? []);
+    // Like production: theme defaults, then site colors, then overrides and
+    // drafts, which win over site colors that share a variable.
+    const previewGlobalColorCss = [
+      buildTokenStyles(themeTokens, { includeDeclared: true }),
+      buildColorStyles(brandKitColors ?? []),
+      buildTokenStyles(themeTokens, { includeDeclared: false }),
+    ].join('\n');
     const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);
     const previewGlobalFontPreloads = getFontPreloadDefinitions(
       brandKitFonts ?? [],
@@ -300,6 +315,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     getIframeSrc,
     brandKitFonts,
     brandKitColors,
+    themeTokens,
     previewCompiledJsForSlots,
     props,
     slots,
