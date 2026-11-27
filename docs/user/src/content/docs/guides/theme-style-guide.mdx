@@ -73,8 +73,22 @@ come back when it is turned on again.
 
 ## Change and publish values
 
-Colors and font stacks can be changed in the style guide. Other types are
-listed with their value and CSS variable.
+Each type has its own editor:
+
+- **Colors:** a color field.
+- **Font stacks:** an ordered list of families.
+- **Font weights:** a named weight, or a custom whole number from 1 to 1000.
+  When the first family of a typography value is an uploaded Brand Kit font,
+  weights without a file are marked: browsers imitate them.
+- **Dimensions:** a number in px or rem. Switching the unit converts the
+  number at 16px per rem.
+- **Numbers:** a number field.
+- **Typography:** the family, size, weight, and line height. Letter spacing is
+  shown but cannot be changed yet, because core does not output it. The family
+  can start from one of the theme's font stacks; it is a copy, and does not
+  follow later changes to that stack.
+
+Invalid input stays in its field with an error, and is not saved.
 
 - Every change is a draft. The editor preview shows it at once. The live site
   changes only when the draft is published from **Review changes**, where
