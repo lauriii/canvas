@@ -8,6 +8,7 @@ import {
 import { getConfig } from '../config.js';
 import {
   applyPageVariantCompatibility,
+  applyStyleLibraryCompatibility,
   createApiService,
   isUserAuthenticated,
   supportsPageVariants,
@@ -23,6 +24,10 @@ import { validateBrandKit } from '../utils/validate-brand-kit.js';
 import { validateContentTemplates } from '../utils/validate-content-template.js';
 import { validatePageTemplates } from '../utils/validate-page-variant.js';
 import { validatePages } from '../utils/validate-page.js';
+import {
+  mergeComponentStyleFindings,
+  validateStyles,
+} from '../utils/validate-styles.js';
 import { validateComponents } from '../utils/validate.js';
 import { formatDiscoveryWarning } from './push.js';
 
@@ -50,6 +55,7 @@ async function createOptionalValidationApiService(): Promise<
     return undefined;
   }
   await applyPageVariantCompatibility(config.siteUrl);
+  await applyStyleLibraryCompatibility(config.siteUrl);
   try {
     return await createApiService();
   } catch {
@@ -63,7 +69,9 @@ async function createOptionalValidationApiService(): Promise<
 export function validateCommand(program: Command): void {
   program
     .command('validate')
-    .description('validate local components, pages, and the brand kit file')
+    .description(
+      'validate local components, pages, style libraries, and the brand kit file',
+    )
     .option(
       '-d, --dir <directory>',
       'Component directory to validate the components in',
@@ -123,7 +131,17 @@ export function validateCommand(program: Command): void {
         for (const warning of validationWarnings) {
           p.log.warn(warning);
         }
-        for (const result of componentResults) {
+        const { libraryResults, componentFindings } = await validateStyles(
+          discoveryResult,
+          { projectRoot: process.cwd(), stylesDir: config.stylesDir },
+        );
+        for (const result of libraryResults) {
+          results.push(result);
+        }
+        for (const result of mergeComponentStyleFindings(
+          componentResults,
+          componentFindings,
+        )) {
           results.push({ ...result, itemType: 'Component' });
         }
 

@@ -4,7 +4,6 @@ import { Flex } from '@radix-ui/themes';
 
 import App from '@/app/App';
 import CodeEditorRouteGuard from '@/app/CodeEditorRouteGuard';
-import ComponentInstanceForm from '@/components/ComponentInstanceForm';
 import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
@@ -25,6 +24,7 @@ import PatternDialogs from '@/features/pattern/PatternDialogs';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
 import ReviewChangesPage from '@/features/review/ReviewChangesPage';
+import ComponentSettings from '@/features/styles/ComponentSettings';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
 import VersionPreview from '@/features/versionComparison/VersionPreview';
 import Welcome from '@/features/welcome/Welcome';
@@ -135,7 +135,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             children: [
               {
                 path: '/editor/:entityType/:entityId/component/:componentId',
-                element: <ComponentInstanceForm />,
+                element: <ComponentSettings />,
               },
             ],
           },
@@ -157,7 +157,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             children: [
               {
                 path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/component/:componentId',
-                element: <ComponentInstanceForm />,
+                element: <ComponentSettings />,
               },
             ],
           },
@@ -171,7 +171,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             children: [
               {
                 path: '/pattern/:patternId/component/:componentId',
-                element: <ComponentInstanceForm />,
+                element: <ComponentSettings />,
               },
             ],
           },

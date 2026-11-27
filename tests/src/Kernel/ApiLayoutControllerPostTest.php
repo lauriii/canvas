@@ -340,6 +340,36 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
   }
 
   /**
+   * Every stored style value shape passes the OpenAPI schema and round-trips.
+   *
+   * Requests and responses are validated against openapi.yml whenever
+   * assertions are on, so this covers part keys, custom values, and brand kit
+   * color references end to end. The test component accepts none of them:
+   * they save as degraded entries, which is enough to check their shape.
+   */
+  public function testStyleSelectionShapes(): void {
+    $this->config('canvas.settings')->set('experimental.styles', TRUE)->save();
+    $entity = $this->getTestEntity('node');
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    $url = $this->getLayoutUrl($entity)->toString();
+    $json = self::decodeResponse($this->parentRequest(Request::create($url)));
+    $styles = [
+      'spacing' => 'large',
+      'heading.text_size' => 'l',
+      'gap' => '=24px',
+      'background' => 'canvas-color:5b7e2a4c-1d3f-4e8a-9b2c-0f1e2d3c4b5a',
+    ];
+    $json['layout'][0]['components'][0]['styles'] = $styles;
+    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html'], $json['exposedSlots'], $json['previewSlotOverrides']);
+    $json += $this->getPostContentsDefaults($entity);
+    $response = $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+    $this->assertResponseAutoSaves($response, [$entity]);
+
+    $json = self::decodeResponse($this->parentRequest(Request::create($url)));
+    self::assertEquals($styles, $json['layout'][0]['components'][0]['styles']);
+  }
+
+  /**
    * Tests editing a page variant's component tree through the layout API.
    *
    * A page variant serves the generic layout endpoint like other entities, but

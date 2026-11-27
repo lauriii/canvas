@@ -71,6 +71,7 @@ function setupHappyPath(overrides?: {
     contentTemplatesDir: '',
     pageTemplatesDir: '',
     globalCssPath: '',
+    stylesDir: 'styles',
     aliasBaseDir: '',
     userAgent: '',
     fonts: undefined,

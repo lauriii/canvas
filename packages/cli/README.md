@@ -79,6 +79,7 @@ properties:
 | `sync.contentTemplates` | `true`                | Include content templates in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude content templates by default. |
 | `pageTemplatesDir`      | `"page-templates"`    | Directory where page templates (page variants) are stored in the filesystem.                                                |
 | `sync.pageTemplates`    | `true`                | Include page templates in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude page templates by default.       |
+| `stylesDir`             | `"styles"`            | Directory where Canvas-managed style libraries (`{id}.utilities.yml`) are stored. Experimental.                             |
 
 If `canvas.config.json` is not present, the CLI will use the default values
 shown above. For existing projects, if `globalCssPath` is not set and
@@ -385,6 +386,29 @@ say so and suggest asking a site administrator. Note that a variant converted
 from theme regions contains the theme page template component, which is not a
 code component: such variants are reported and skipped by `canvas pull`, and
 stay managed in the Canvas editor instead of the authored codebase.
+
+---
+
+## Component styles (experimental)
+
+When component styles are active on the site, the CLI syncs styles from the core
+Style API:
+
+- `canvas pull` writes `.canvas/styles.json` (a snapshot of the styles the site
+  offers), `.canvas/styles.d.ts` (types for `useStyleOptions()`, generated from
+  each `component.yml`), and `.canvas/styles.css` (an `@source inline()` list of
+  every option class for Tailwind builds). Commit `.canvas/` and add it to
+  `tsconfig.json` `include`.
+- With the brand kit option, `canvas pull` and `canvas push` also sync
+  Canvas-managed style libraries as `styles/{id}.utilities.yml` in core's
+  utilities format. The first line is a `yaml-language-server` schema comment.
+  The library label is kept in the `# label:` comment below it, because every
+  top-level key is a style ID. Push validates libraries locally, pushes them
+  before components, and never deletes a library that is missing locally.
+- A component opts in with `styles` in `component.yml`: a list of style IDs, or
+  `'*'` for every style that sets a class or inline style. It then applies the
+  `className` and `style` props on its root element.
+- `canvas validate` checks libraries and style usage. Hints never block.
 
 ---
 

@@ -169,6 +169,63 @@ export function discoverCanvasBoundaries(
     .map(({ order: _order, ...boundary }) => boundary);
 }
 
+/** A matched pair of `<!-- canvas-prop-… -->` comments around a prop's output. */
+export interface CanvasPropBoundary {
+  /** The `{componentUuid}/{propName}` identity the markers carry. */
+  id: string;
+  componentUuid: string;
+  propName: string;
+  start: Comment;
+  end: Comment;
+}
+
+const PROP_MARKER_PATTERN = /^canvas-prop-(start|end)-(.+)$/;
+
+/**
+ * Discovers the prop boundaries Drupal emits around Twig prop prints.
+ *
+ * Prop markers are kept apart from component, slot and region boundaries
+ * because they are not measured: they only map a prop to its DOM range.
+ * The markers carry the Twig variable name, so a boundary is not guaranteed
+ * to belong to a prop; callers must check the name against the component.
+ */
+export function discoverCanvasPropBoundaries(
+  root: CanvasGeometryRoot,
+): CanvasPropBoundary[] {
+  const walker = getOwnerDocument(root).createTreeWalker(
+    root,
+    NodeFilter.SHOW_COMMENT,
+  );
+  const open = new Map<string, Comment[]>();
+  const boundaries: CanvasPropBoundary[] = [];
+  let node = walker.nextNode() as Comment | null;
+  while (node) {
+    const match = PROP_MARKER_PATTERN.exec((node.nodeValue ?? '').trim());
+    const identity = match ? parseCanvasSlotIdentity(match[2].trim()) : null;
+    if (match && identity) {
+      const id = `${identity.componentUuid}/${identity.slotName}`;
+      const starts = open.get(id) ?? [];
+      if (match[1] === 'start') {
+        starts.push(node);
+        open.set(id, starts);
+      } else {
+        const start = starts.pop();
+        if (start) {
+          boundaries.push({
+            id,
+            componentUuid: identity.componentUuid,
+            propName: identity.slotName,
+            start,
+            end: node,
+          });
+        }
+      }
+    }
+    node = walker.nextNode() as Comment | null;
+  }
+  return boundaries;
+}
+
 function getOwnerDocument(root: CanvasGeometryRoot): Document {
   if (root.nodeType === Node.DOCUMENT_NODE) {
     return root as Document;

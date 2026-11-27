@@ -24,6 +24,8 @@ enum HealthCheck: string {
   case AutoSave = 'auto_save';
   // @see \Drupal\canvas\ComponentSource\ComponentInstanceUpdaterInterface
   case ComponentSourceSchemaEvolution = 'component_source_supports_schema_evolution';
+  // @see \Drupal\canvas\Style\ComponentStyles
+  case ComponentStyles = 'component_styles';
 
   /**
    * Whether this is a system check or a data check.
@@ -36,7 +38,8 @@ enum HealthCheck: string {
       self::CodeTaggedReleases,
       self::UpdatesExecuted,
       self::UpdatesEscapedConfig,
-      self::ComponentSourceSchemaEvolution => TRUE,
+      self::ComponentSourceSchemaEvolution,
+      self::ComponentStyles => TRUE,
       self::Config,
       self::Content,
       self::ContentPastRevisions,
@@ -57,7 +60,8 @@ enum HealthCheck: string {
     return match ($this) {
       self::CodeTaggedReleases,
       self::AutoSave,
-      self::ComponentSourceSchemaEvolution => TRUE,
+      self::ComponentSourceSchemaEvolution,
+      self::ComponentStyles => TRUE,
       self::UpdatesExecuted,
       self::UpdatesEscapedConfig,
       self::Config,
@@ -76,6 +80,7 @@ enum HealthCheck: string {
       self::UpdatesExecuted => 'Canvas schema version and applied vs. pending post-updates. Pending updates make all results untrustworthy.',
       self::UpdatesEscapedConfig => 'Config entities with a pending data-model migration detectable via CanvasConfigUpdater::needs*().',
       self::ComponentSourceSchemaEvolution => 'Whether each ComponentSource plugin can auto-update existing instances to a new component version — a risk, not a failure. See https://www.drupal.org/node/3521221.',
+      self::ComponentStyles => 'Component styles that do not render: stored selections with styles that are unavailable, no longer accepted, or not offered on this site without a fallback; site style library entries shadowed by an extension; brand kit style entries naming styles or options no extension provides; style IDs defined by more than one extension; and SDCs that accept styles but never print `attributes`. A risk, not a failure: styles degrade by design.',
       self::Config => 'Validates every Canvas config entity, and its translations transitively (via CanvasConfigEntityTranslationsAreValidConstraint).',
       self::Content => 'Validates the default revision of every content entity holding a component_tree field, and each translation.',
       self::ContentPastRevisions => 'Validates past (superseded) revisions. Failures are often unresolvable (the content was deliberately changed); a separate check so they cannot drown out the default-revision report.',
@@ -100,6 +105,7 @@ enum HealthCheck: string {
       self::Content,
       self::ContentForwardRevisions => 'Fix the value at the reported property path (run with <info>--details</info>) via the editor UI, config import, or a targeted update, then re-run.',
       self::ComponentSourceSchemaEvolution => 'Avoid schema changes to the flagged component sources, or implement ComponentInstanceUpdaterInterface. (For blocks: blocked on Drupal core issue: https://www.drupal.org/project/drupal/issues/3521221.)',
+      self::ComponentStyles => 'Replace or remove degraded entries in the Style tab, or add a fallback in the brand kit; rename shadowed library styles and styles defined twice; remove brand kit entries for styles and options that no longer exist; and print `{{ attributes }}` on the root of the flagged SDCs (or remove them from `thirdPartySettings.canvas.styles`).',
       self::ContentPastRevisions,
       self::AutoSave => NULL,
     };

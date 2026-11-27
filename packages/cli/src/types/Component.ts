@@ -86,6 +86,16 @@ export interface BrandKit {
   fonts?: BrandKitFontEntryWithUrl[] | null;
   /** Derived from the site's color entities; only present when colors exist. */
   colors?: BrandKitColorEntry[];
+  /** Experimental: offered style options; only present when set. */
+  styles?: Record<
+    string,
+    {
+      label?: string;
+      options?: string[];
+      labels?: Record<string, string>;
+      fallbacks?: Record<string, string>;
+    }
+  >;
 }
 
 /** Color folder config entity as returned by the HTTP API (matches backend Folder). */

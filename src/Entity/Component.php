@@ -18,6 +18,7 @@ use Drupal\canvas\Form\ComponentListBuilder;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
+use Drupal\canvas\Style\ComponentStyles;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Schema\Mapping;
@@ -379,6 +380,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
       $info = ['broken' => TRUE];
     }
 
+    $component_styles = \Drupal::service(ComponentStyles::class);
     return ClientSideRepresentation::create(
       values: $info + [
         'id' => $this->id(),
@@ -386,9 +388,18 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
         'library' => $this->computeUiLibrary()->value,
         'source' => (string) $this->getComponentSource()->getPluginDefinition()['label'],
         'version' => $this->getActiveVersion(),
+        // The styles the active version accepts, only when styles are active.
+        // @see \Drupal\canvas\Style\ComponentStyles::forComponent()
+        ...($component_styles->isActive() ? ['styles' => $component_styles->forComponent($this)] : []),
+        // Per-style limits on the choices, such as color folders.
+        // @see \Drupal\canvas\Style\ComponentStyles::limitsFor()
+        ...($component_styles->isActive() && ComponentStyles::limitsFor($this) !== [] ? ['styleLimits' => ComponentStyles::limitsFor($this)] : []),
+        // @see \Drupal\canvas\Style\ComponentStyles::partsFor()
+        ...($component_styles->isActive() && $component_styles->partsFor($this) !== [] ? ['styleParts' => $component_styles->partsFor($this)] : []),
       ],
       preview: $build,
-    )->addCacheableDependency($this);
+    )->addCacheableDependency($this)
+      ->addCacheTags($component_styles->definitionsCacheability()['tags']);
   }
 
   /**

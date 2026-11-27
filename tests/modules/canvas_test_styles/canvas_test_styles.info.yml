@@ -1,0 +1,6 @@
+name: 'Canvas test styles'
+type: module
+description: 'Provides core Style API utilities and SDCs for testing component styles.'
+dependencies:
+  - canvas:canvas
+package: Testing

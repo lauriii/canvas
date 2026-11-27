@@ -13,6 +13,7 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypeBasedPropExpressionInt
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\canvas\Style\StyleDeclaration;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 final class JsonSchemaPropsComponentInstanceUpdater implements ComponentInstanceUpdaterInterface {
@@ -227,6 +228,17 @@ final class JsonSchemaPropsComponentInstanceUpdater implements ComponentInstance
 
     if ($needs_input_update) {
       $component_instance->setInput($inputs);
+    }
+
+    // Stored styles follow a style that moved between the component and one
+    // of its named parts.
+    // @see \Drupal\canvas\Style\StyleDeclaration::migrateSelection()
+    $styles = $component_instance->getStyles();
+    if ($styles !== []) {
+      $migrated = StyleDeclaration::migrateSelection($styles, $component->getSettings($from_version), $component->getSettings($to_version));
+      if ($migrated !== $styles) {
+        $component_instance->setStyles($migrated);
+      }
     }
 
     $from_slots = $component->getSlotDefinitions($from_version);

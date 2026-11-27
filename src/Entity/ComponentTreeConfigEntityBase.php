@@ -97,6 +97,21 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
         if (\is_string($component_instance['inputs'])) {
           $component_instance['inputs'] = Json::decode($component_instance['inputs']);
         }
+        // Styles are a mapping in config, and omitted when empty, so exports
+        // do not change for unstyled instances.
+        // @see `type: canvas.component_tree_node`
+        if (\array_key_exists('styles', $component_instance)) {
+          $styles = \is_string($component_instance['styles']) ? Json::decode($component_instance['styles']) : $component_instance['styles'];
+          if (empty($styles)) {
+            unset($component_instance['styles']);
+          }
+          else {
+            if (\is_array($styles) && !array_is_list($styles)) {
+              ksort($styles);
+            }
+            $component_instance['styles'] = $styles;
+          }
+        }
         return $component_instance;
       },
       $component_tree_sequence,

@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for canvas_test_styles.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function canvas_test_styles_install(): void {
+  // Turn on the experimental feature these fixtures exist for.
+  \Drupal::configFactory()->getEditable('canvas.settings')
+    ->set('experimental.styles', TRUE)
+    ->save();
+}

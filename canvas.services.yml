@@ -2,6 +2,8 @@ services:
   _defaults:
     autoconfigure: true
     autowire: true
+  Drupal\canvas\Style\ComponentStyles:
+    arguments: ['@config.factory', '@theme_handler', '@extension.list.module', '@module_handler', '@entity_type.manager', '@Drupal\canvas\AutoSave\AutoSaveManager', '@?Drupal\canvas\Style\StyleSourceInterface']
   Drupal\canvas\Audit\ComponentAudit:
     public: true
   Drupal\canvas\Audit\ColorAudit:
@@ -224,6 +226,8 @@ services:
   # Controllers.
   Drupal\canvas\Controller\ApiCodeComponentMetadataController: ~
   Drupal\canvas\Controller\ApiConfigControllers: ~
+  Drupal\canvas\Controller\ApiStylesController: ~
+  Drupal\canvas\Controller\ApiStyleUsageController: ~
   Drupal\canvas\Controller\ApiConfigAutoSaveControllers: ~
   Drupal\canvas\Controller\ApiContentAutoSaveControllers: ~
   Drupal\canvas\Controller\ApiExtensionControllers: ~

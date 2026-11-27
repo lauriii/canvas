@@ -45,6 +45,22 @@ interface BaseComponent {
   version: string;
   broken: boolean;
   metadata?: { [key: string]: any };
+  /**
+   * The styles the active version accepts. Present only when component
+   * styles are active.
+   *
+   * @see \Drupal\canvas\Style\ComponentStyles::forComponent()
+   */
+  styles?: string[];
+  /** Per-style limits on the choices, such as brand kit color folders. */
+  styleLimits?: Record<string, import('@/types/Styles').StyleLimit>;
+  /**
+   * Named parts inside the component that take styles of their own, keyed
+   * by part ID. Their selection keys are `part.style_id`.
+   *
+   * @see \Drupal\canvas\Style\ComponentStyles::partsFor()
+   */
+  styleParts?: Record<string, import('@/types/Styles').StylePart>;
 }
 
 export type libraryTypes =

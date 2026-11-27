@@ -18,11 +18,18 @@
           "type": "object",
           "description": "Defaults applied to provider-based families that do not set their own weights, styles, or subsets.",
           "properties": {
-            "weights": { "$ref": "#/$defs/fontWeights" },
-            "styles": { "$ref": "#/$defs/fontStyles" },
+            "weights": {
+              "$ref": "#/$defs/fontWeights"
+            },
+            "styles": {
+              "$ref": "#/$defs/fontStyles"
+            },
             "subsets": {
               "type": "array",
-              "items": { "type": "string", "minLength": 1 }
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           },
           "additionalProperties": false
@@ -30,7 +37,9 @@
         "families": {
           "type": "array",
           "description": "Font families, each either a local font file (src) or a provider-resolved family.",
-          "items": { "$ref": "#/$defs/fontFamily" }
+          "items": {
+            "$ref": "#/$defs/fontFamily"
+          }
         },
         "providers": {
           "type": "object",
@@ -43,7 +52,10 @@
                 "id": {
                   "type": "array",
                   "description": "Adobe Fonts kit ids.",
-                  "items": { "type": "string", "minLength": 1 }
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               },
               "additionalProperties": false
@@ -63,6 +75,53 @@
         }
       },
       "additionalProperties": false
+    },
+    "styles": {
+      "description": "Experimental. Which component style options this site offers, keyed by style ID. Omit to offer every option as defined. Requires component styles (core Style API).",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9_]+$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Renames the style for editors."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/styleOptionId"
+            },
+            "uniqueItems": true,
+            "description": "The offered option IDs. An empty list means the style is not offered."
+          },
+          "labels": {
+            "type": "object",
+            "propertyNames": {
+              "$ref": "#/$defs/styleOptionId"
+            },
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Option names for editors, keyed by option ID."
+          },
+          "fallbacks": {
+            "type": "object",
+            "propertyNames": {
+              "$ref": "#/$defs/styleOptionId"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/styleOptionId"
+            },
+            "description": "For content using an option this site does not offer: the offered option to show instead."
+          }
+        }
+      }
     }
   },
   "additionalProperties": false,
@@ -78,22 +137,47 @@
       "required": ["colorSpace", "components"],
       "allOf": [
         {
-          "if": { "properties": { "colorSpace": { "const": "srgb" } } },
+          "if": {
+            "properties": {
+              "colorSpace": {
+                "const": "srgb"
+              }
+            }
+          },
           "then": {
             "properties": {
-              "components": { "items": { "minimum": 0, "maximum": 1 } }
+              "components": {
+                "items": {
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
             }
           }
         },
         {
-          "if": { "properties": { "colorSpace": { "const": "hsl" } } },
+          "if": {
+            "properties": {
+              "colorSpace": {
+                "const": "hsl"
+              }
+            }
+          },
           "then": {
             "properties": {
               "components": {
                 "prefixItems": [
-                  { "type": "number" },
-                  { "minimum": 0, "maximum": 100 },
-                  { "minimum": 0, "maximum": 100 }
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  {
+                    "minimum": 0,
+                    "maximum": 100
+                  }
                 ]
               }
             }
@@ -101,11 +185,15 @@
         }
       ],
       "properties": {
-        "colorSpace": { "enum": ["srgb", "hsl"] },
+        "colorSpace": {
+          "enum": ["srgb", "hsl"]
+        },
         "components": {
           "type": "array",
           "description": "Three components: sRGB channels 0-1, or HSL hue plus saturation and lightness percentages.",
-          "items": { "type": "number" },
+          "items": {
+            "type": "number"
+          },
           "minItems": 3,
           "maxItems": 3
         },
@@ -125,8 +213,12 @@
     },
     "colorEntry": {
       "oneOf": [
-        { "$ref": "#/$defs/cssColorString" },
-        { "$ref": "#/$defs/colorTokenValue" },
+        {
+          "$ref": "#/$defs/cssColorString"
+        },
+        {
+          "$ref": "#/$defs/colorTokenValue"
+        },
         {
           "type": "object",
           "description": "Wrapper form for an entry that needs more than its value: a display name differing from the one derived from the key, or an explicit editor display format.",
@@ -134,8 +226,12 @@
           "properties": {
             "value": {
               "oneOf": [
-                { "$ref": "#/$defs/cssColorString" },
-                { "$ref": "#/$defs/colorTokenValue" }
+                {
+                  "$ref": "#/$defs/cssColorString"
+                },
+                {
+                  "$ref": "#/$defs/colorTokenValue"
+                }
               ]
             },
             "name": {
@@ -155,16 +251,24 @@
     "fontWeights": {
       "type": "array",
       "description": "Weights as strings, such as \"400\", \"700\", or a variable range \"100 900\".",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "fontStyles": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "fontAxisDefaults": {
       "type": "object",
       "description": "Default value overrides per variable font axis tag, clamped to the axis range.",
-      "additionalProperties": { "type": "number" }
+      "additionalProperties": {
+        "type": "number"
+      }
     },
     "fontFamily": {
       "oneOf": [
@@ -173,7 +277,10 @@
           "description": "A local font file.",
           "required": ["name", "src"],
           "properties": {
-            "name": { "type": "string", "minLength": 1 },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
             "src": {
               "type": "string",
               "minLength": 1,
@@ -181,14 +288,24 @@
             },
             "weights": {
               "description": "A local file is one variant; only the first weight is used.",
-              "allOf": [{ "$ref": "#/$defs/fontWeights" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/fontWeights"
+                }
+              ],
               "maxItems": 1
             },
             "styles": {
-              "allOf": [{ "$ref": "#/$defs/fontStyles" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/fontStyles"
+                }
+              ],
               "maxItems": 1
             },
-            "axisDefaults": { "$ref": "#/$defs/fontAxisDefaults" },
+            "axisDefaults": {
+              "$ref": "#/$defs/fontAxisDefaults"
+            },
             "provider": false,
             "subsets": false
           },
@@ -199,7 +316,10 @@
           "description": "A provider-resolved family.",
           "required": ["name"],
           "properties": {
-            "name": { "type": "string", "minLength": 1 },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
             "provider": {
               "enum": [
                 "google",
@@ -212,16 +332,29 @@
             },
             "subsets": {
               "type": "array",
-              "items": { "type": "string", "minLength": 1 }
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
             },
-            "weights": { "$ref": "#/$defs/fontWeights" },
-            "styles": { "$ref": "#/$defs/fontStyles" },
-            "axisDefaults": { "$ref": "#/$defs/fontAxisDefaults" },
+            "weights": {
+              "$ref": "#/$defs/fontWeights"
+            },
+            "styles": {
+              "$ref": "#/$defs/fontStyles"
+            },
+            "axisDefaults": {
+              "$ref": "#/$defs/fontAxisDefaults"
+            },
             "src": false
           },
           "additionalProperties": false
         }
       ]
+    },
+    "styleOptionId": {
+      "type": "string",
+      "pattern": "^(?!0$)[a-zA-Z0-9_ -]+$"
     }
   }
 }

@@ -7,6 +7,7 @@ namespace Drupal\canvas\Entity;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\BrandKitAccessControlHandler;
 use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
+use Drupal\canvas\Style\ComponentStyles;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -83,6 +84,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     'id',
     'label',
     'fonts',
+    'styles',
   ],
 )]
 final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
@@ -113,6 +115,15 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
   protected ?array $fonts = NULL;
 
   /**
+   * Which style options this site offers, keyed by style ID.
+   *
+   * @var array<string, array{label?: string, options?: list<string>, labels?: array<string, string>, fallbacks?: array<string, string>}>|null
+   *
+   * @see \Drupal\canvas\Style\ComponentStyles::definitions()
+   */
+  protected ?array $styles = NULL;
+
+  /**
    * {@inheritdoc}
    *
    * This corresponds to `BrandKit` in openapi.yml.
@@ -126,6 +137,7 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
     $values = [
       'id' => $this->id,
       'label' => $this->label,
+      ...($this->styles ? ['styles' => $this->styles] : []),
       'fonts' => $this->fonts === NULL
         ? NULL
         : (static function (array $fonts) use ($file_url_generator): array {
@@ -247,6 +259,8 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       (string) $this->id(),
     );
     Cache::invalidateTags(['library_info']);
+    // Style definitions in this request follow the new style options.
+    \Drupal::service(ComponentStyles::class)->reset();
   }
 
   /**
@@ -261,6 +275,74 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
           self::FILE_USAGE_TYPE,
           (string) $entity->id(),
         );
+      }
+    }
+  }
+
+  /**
+   * Gets which style options this site offers, keyed by style ID.
+   *
+   * @return array<string, array{label?: string, options?: list<string>, labels?: array<string, string>, fallbacks?: array<string, string>}>
+   */
+  public function getStyleOptions(): array {
+    return $this->styles ?? [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function set($property_name, $value) {
+    // An empty `styles` mapping is omitted, so exports do not change for sites
+    // that offer every option.
+    if ($property_name === 'styles' && empty($value)) {
+      $value = NULL;
+    }
+    return parent::set($property_name, $value);
+  }
+
+  /**
+   * Validates brand kit `styles`: ID shapes and fallback targets.
+   *
+   * Entries naming styles or options that no extension provides are kept, so
+   * a theme change never blocks saving; data health reports them.
+   *
+   * @param array<string, mixed>|null $styles
+   *   The `styles` value.
+   * @param \Symfony\Component\Validator\Context\ExecutionContextInterface $context
+   *   The validation context.
+   */
+  public static function validateStyles(?array $styles, ExecutionContextInterface $context): void {
+    foreach ($styles ?? [] as $style_id => $entry) {
+      if (!preg_match(ComponentStyles::STYLE_ID_PATTERN, (string) $style_id)) {
+        $context->buildViolation('"@id" is not a valid style ID.', ['@id' => $style_id])
+          ->atPath((string) $style_id)
+          ->addViolation();
+        continue;
+      }
+      if (!\is_array($entry)) {
+        continue;
+      }
+      $ids = [
+        ...($entry['options'] ?? []),
+        ...\array_keys($entry['labels'] ?? []),
+        ...\array_keys($entry['fallbacks'] ?? []),
+        ...\array_values($entry['fallbacks'] ?? []),
+      ];
+      foreach ($ids as $option_id) {
+        if (!\is_string($option_id) || !preg_match(ComponentStyles::OPTION_ID_PATTERN, $option_id)) {
+          $context->buildViolation('"@id" is not a valid option ID.', ['@id' => (string) $option_id])
+            ->atPath((string) $style_id)
+            ->addViolation();
+        }
+      }
+      if (isset($entry['options'])) {
+        foreach ($entry['fallbacks'] ?? [] as $from => $to) {
+          if (!\in_array($to, $entry['options'], TRUE)) {
+            $context->buildViolation('The fallback for "@from" must be an option this site offers.', ['@from' => $from])
+              ->atPath($style_id . '.fallbacks.' . $from)
+              ->addViolation();
+          }
+        }
       }
     }
   }
@@ -616,6 +698,10 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
     // If there are no entries, the key should be omitted entirely.
     if ($properties['fonts'] === NULL) {
       unset($properties['fonts']);
+    }
+    // Same for style options: omitted when the site offers every option.
+    if (empty($properties['styles'])) {
+      unset($properties['styles']);
     }
     return $properties;
   }

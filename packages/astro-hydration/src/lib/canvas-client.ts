@@ -23,6 +23,7 @@ import {
   drupalSettingsToCanvasContext,
   drupalSettingsToJsonApiRuntimeConfig,
   readCanvasDataV0,
+  StyleOptionsProvider,
 } from 'drupal-canvas';
 import {
   CanvasContextProvider,
@@ -43,6 +44,18 @@ const ContextProvider = CanvasContextProvider as unknown as ComponentType<{
 const ClientProvider = JsonApiClientProvider as unknown as ComponentType<{
   client: CanvasJsonApiClient;
 }>;
+const StylesProvider = StyleOptionsProvider as unknown as ComponentType<{
+  styles: Record<string, string> | undefined;
+}>;
+
+/**
+ * The internal prop carrying the instance's style selection. It is removed
+ * before the component receives its props, so a props spread cannot leak it.
+ *
+ * @see drupal-canvas STYLE_OPTIONS_ISLAND_PROP
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::applyStyles()
+ */
+const STYLE_OPTIONS_PROP = '__canvasStyleOptions';
 
 type ClientRenderer = (
   element: HTMLElement,
@@ -425,9 +438,14 @@ export function wrapIslandComponent(
     useEffect(() => subscribeToSettings(() => rerender(undefined)), []);
     const context = drupalSettingsToCanvasContext(readCanvasDataV0());
     const client = getClient(element.hasAttribute(PREVIEW_ATTRIBUTE));
+    const { [STYLE_OPTIONS_PROP]: styleOptions, ...componentProps } = props;
     const component = (hydrationWrappers.get(element) ?? []).reduce(
       (wrapped, wrap) => wrap(wrapped),
-      h(Component, props) as VNode<unknown>,
+      h(
+        StylesProvider,
+        { styles: styleOptions as Record<string, string> | undefined },
+        h(Component, componentProps),
+      ) as VNode<unknown>,
     );
     return h(
       ContextProvider,

@@ -755,6 +755,56 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
   }
 
   /**
+   * The internal island prop carrying the selection for useStyleOptions().
+   *
+   * The island renderer removes it before the component receives its props.
+   *
+   * @see packages/astro-hydration/src/lib/canvas-client.ts
+   */
+  public const string STYLE_OPTIONS_PROP = '__canvasStyleOptions';
+
+  /**
+   * {@inheritdoc}
+   *
+   * Code components receive React's standard `className` and `style` props,
+   * `styleParts` with the same for each named part, and read the selection
+   * with `useStyleOptions()`. `#styles` and
+   * `#attributes` are never used: they would style `<canvas-island>`.
+   */
+  public function applyStyles(array &$build, array $filtered, array $resolved): void {
+    foreach ($resolved['libraries'] as $library) {
+      $build['#attached']['library'][] = $library;
+    }
+    // External components: expose the selection to serializers.
+    // @see \Drupal\canvas_headless\RenderConverter\CanvasRenderConverter
+    if (isset($build[self::EXTERNAL_RENDER_METADATA])) {
+      $build[self::EXTERNAL_RENDER_METADATA]['styles'] = $filtered;
+      $build[self::EXTERNAL_RENDER_METADATA]['attributes'] = \array_filter([
+        'class' => $resolved['className'],
+        'style' => $resolved['style'],
+      ]);
+      return;
+    }
+    if (!isset($build['#props'])) {
+      return;
+    }
+    if ($resolved['className'] !== NULL) {
+      $build['#props']['className'] = $resolved['className'];
+    }
+    if ($resolved['style'] !== NULL) {
+      $build['#props']['style'] = $resolved['style'];
+    }
+    $parts = \array_filter(\array_map(
+      static fn (array $part): array => \array_filter(['className' => $part['className'], 'style' => $part['style']]),
+      $resolved['parts'] ?? [],
+    ));
+    if ($parts !== []) {
+      $build['#props']['styleParts'] = $parts;
+    }
+    $build['#props'][self::STYLE_OPTIONS_PROP] = $filtered;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function setSlots(array &$build, array $slots): void {

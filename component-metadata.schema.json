@@ -46,6 +46,22 @@
         "$ref": "#/definitions/slotDefinition"
       }
     },
+    "styles": {
+      "description": "The core Style API styles the component accepts: '*' for every style it can receive as className and style, or a list of style IDs. Omitted or empty accepts none.",
+      "oneOf": [
+        {
+          "const": "*"
+        },
+        {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        }
+      ]
+    },
     "dataDependencies": {
       "type": "object",
       "additionalProperties": false,

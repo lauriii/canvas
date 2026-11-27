@@ -123,6 +123,7 @@ export default defineConfig({
               slug: 'code-components/responsive-images',
             },
             { label: 'Brand Kit', slug: 'code-components/brand-kit' },
+            { label: 'Styles', slug: 'code-components/styles' },
             {
               label: 'Component metadata',
               slug: 'code-components/component-metadata',
@@ -188,6 +189,7 @@ export default defineConfig({
             { label: 'Introduction', slug: 'guides' },
             { label: 'Translations', slug: 'guides/translations' },
             { label: 'Exposed slots', slug: 'guides/exposed-slots' },
+            { label: 'Styling components', slug: 'guides/styles' },
           ],
         },
         {

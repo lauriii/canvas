@@ -30,6 +30,16 @@ import {
   getCanvasRuntime,
   isLegacyRuntimeSupported,
 } from './runtime.js';
+import {
+  extendCn,
+  parseCustomStyleValue,
+  parseInlineStyle,
+  resolveStyles,
+  STYLE_OPTIONS_ISLAND_PROP,
+  styleOptionsFromSelection,
+  StyleOptionsProvider,
+  useStyleOptions,
+} from './styles.js';
 import { cn } from './utils.js';
 
 export type {
@@ -54,6 +64,18 @@ export type {
 } from './jsonapi-client.js';
 export type { CanvasDataV0 } from './drupal-settings.js';
 export type { CanvasRuntimeEnvironment } from './runtime.js';
+export type {
+  CanvasStyleRegistry,
+  ResolvedStyles,
+  StyleDefinition,
+  StyleOptionDefinition,
+  StyleOptions,
+  StyleOptionsProviderProps,
+  StyleParts,
+  StyleCustomDefinition,
+  StyleSelection,
+  StyleValue,
+} from './styles.js';
 
 export {
   FormattedText,
@@ -63,6 +85,16 @@ export {
 
   // utils
   cn,
+  extendCn,
+
+  // styles (experimental)
+  useStyleOptions,
+  StyleOptionsProvider,
+  resolveStyles,
+  parseInlineStyle,
+  parseCustomStyleValue,
+  styleOptionsFromSelection,
+  STYLE_OPTIONS_ISLAND_PROP,
 
   // Runtime integration (Drupal and Workbench integrations only)
   declareCanvasRuntime,

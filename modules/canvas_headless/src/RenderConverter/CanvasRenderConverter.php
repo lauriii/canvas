@@ -137,10 +137,21 @@ final class CanvasRenderConverter implements RenderConverterInterface {
           $slots[$name] = $this->renderConverter->convert($slot_build);
         }
       }
-      return CanvasCustomElement::createWithCanvasMetadata([
+      $element = CanvasCustomElement::createWithCanvasMetadata([
         'componentId' => $component['component_id'],
         'componentUuid' => $component['component_uuid'],
       ], $component['props'], $slots);
+      // Experimental: styles are emitted only when the client advertises the
+      // `styles` capability, so SDKs from before styles never see the keys.
+      // @see \Drupal\canvas\Style\ComponentStyles
+      // The response varies on this capability through the headless content
+      // format cache context.
+      // @see \Drupal\canvas_headless\Cache\HeadlessContentFormatCacheContext
+      $request = $this->getContentApiRequest();
+      if ($request !== NULL && $component['styles'] !== [] && CanvasClientCapabilities::has($request, 'styles')) {
+        $element->setStyles($component['styles'], $component['attributes']);
+      }
+      return $element;
     }
 
     $marker = $build[Marker::RENDER_METADATA] ?? NULL;
@@ -255,22 +266,45 @@ final class CanvasRenderConverter implements RenderConverterInterface {
   /**
    * Gets component data from external metadata or a standard Astro island.
    *
-   * @return array{component_id: string, component_uuid: string, props: array<string, mixed>}|null
+   * @return array{component_id: string, component_uuid: string, props: array<string, mixed>, styles: array<string, string>, attributes: array<string, mixed>}|null
    */
   private static function componentMetadata(array $build): ?array {
     $metadata = $build[JsComponent::EXTERNAL_RENDER_METADATA] ?? NULL;
     if (\is_array($metadata)) {
-      return \is_string($metadata['component_id'] ?? NULL) && \is_string($metadata['component_uuid'] ?? NULL) && \is_array($metadata['props'] ?? NULL)
-        ? $metadata
-        : NULL;
+      if (!\is_string($metadata['component_id'] ?? NULL) || !\is_string($metadata['component_uuid'] ?? NULL) || !\is_array($metadata['props'] ?? NULL)) {
+        return NULL;
+      }
+      return [
+        'component_id' => $metadata['component_id'],
+        'component_uuid' => $metadata['component_uuid'],
+        'props' => $metadata['props'],
+        'styles' => \is_array($metadata['styles'] ?? NULL) ? $metadata['styles'] : [],
+        'attributes' => \is_array($metadata['attributes'] ?? NULL) ? $metadata['attributes'] : [],
+      ];
     }
     if (($build['#type'] ?? NULL) !== 'astro_island' || !\is_string($build['#machine_name'] ?? NULL) || !\is_string($build['#uuid'] ?? NULL) || !\is_array($build['#props'] ?? NULL)) {
       return NULL;
     }
+    $props = \array_diff_key($build['#props'], \array_flip(self::ASTRO_ISLAND_RUNTIME_PROPS));
+    $styles = [];
+    $attributes = [];
+    // Styles reach Drupal-rendered islands as props; headless output carries
+    // them as separate keys instead.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::applyStyles()
+    if (\is_array($props[JsComponent::STYLE_OPTIONS_PROP] ?? NULL)) {
+      $styles = $props[JsComponent::STYLE_OPTIONS_PROP];
+      $attributes = \array_filter([
+        'class' => $props['className'] ?? NULL,
+        'style' => $props['style'] ?? NULL,
+      ]);
+      unset($props[JsComponent::STYLE_OPTIONS_PROP], $props['className'], $props['style'], $props['styleParts']);
+    }
     return [
       'component_id' => JsComponent::componentIdFromJavascriptComponentId($build['#machine_name']),
       'component_uuid' => $build['#uuid'],
-      'props' => \array_diff_key($build['#props'], \array_flip(self::ASTRO_ISLAND_RUNTIME_PROPS)),
+      'props' => $props,
+      'styles' => $styles,
+      'attributes' => $attributes,
     ];
   }
 

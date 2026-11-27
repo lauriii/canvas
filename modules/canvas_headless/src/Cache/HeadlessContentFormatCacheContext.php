@@ -31,9 +31,12 @@ final class HeadlessContentFormatCacheContext extends RequestStackCacheContextBa
    */
   public function getContext(): string {
     $request = $this->requestStack->getCurrentRequest();
-    return $request !== NULL && CanvasClientCapabilities::has($request, 'json-render')
-      ? 'json-render'
-      : 'legacy';
+    if ($request === NULL || !CanvasClientCapabilities::has($request, 'json-render')) {
+      return 'legacy';
+    }
+    // Experimental: SDKs that understand component styles opt in to them.
+    // @see \Drupal\canvas_headless\RenderConverter\CanvasRenderConverter::requestsStyles()
+    return CanvasClientCapabilities::has($request, 'styles') ? 'json-render+styles' : 'json-render';
   }
 
   /**

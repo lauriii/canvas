@@ -1,0 +1,54 @@
+langcode: en
+status: true
+dependencies: {  }
+machineName: canvas_test_styles_hero
+name: 'Styled hero'
+required:
+  - heading
+props:
+  heading:
+    title: Heading
+    type: string
+    examples:
+      - 'Hello styles'
+slots: {  }
+styles:
+  - background_color
+  - spacing
+  - tone
+  - gap
+  - theme_mode
+js:
+  original: |-
+    import { cn, useStyleOptions } from 'drupal-canvas';
+
+    const Hero = ({ heading, className, style, ...rest }) => {
+      const { tone, theme_mode } = useStyleOptions();
+      return (
+        <section className={cn('hero', className)} style={style} data-theme={theme_mode} data-tone={tone ?? 'none'} {...rest}>
+          <h2>{heading}</h2>
+        </section>
+      );
+    };
+    export default Hero;
+  compiled: |
+    import { jsx as _jsx } from "react/jsx-runtime";
+    import { cn, useStyleOptions } from 'drupal-canvas';
+    const Hero = ({ heading, className, style, ...rest })=>{
+        const { tone, theme_mode } = useStyleOptions();
+        return /*#__PURE__*/ _jsx("section", {
+            className: cn('hero', className),
+            style: style,
+            "data-theme": theme_mode,
+            "data-tone": tone !== null && tone !== void 0 ? tone : 'none',
+            ...rest,
+            children: /*#__PURE__*/ _jsx("h2", {
+                children: heading
+            })
+        });
+    };
+    export default Hero;
+css:
+  original: ''
+  compiled: ''
+dataDependencies: {  }

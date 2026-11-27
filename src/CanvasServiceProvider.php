@@ -11,6 +11,8 @@ use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSyn
 use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
 use Drupal\canvas\CoreBugFix\TypedConfigManagerWithCachePollutionFix;
 use Drupal\canvas\Plugin\ComponentPluginManager;
+use Drupal\canvas\Style\CoreStyleSource;
+use Drupal\canvas\Style\StyleSourceInterface;
 use Drupal\canvas\Validation\EmptyOptionalPropsComponentValidator;
 use Drupal\canvas\Validation\JitSafeRegexValidator;
 use Drupal\canvas\Validation\JsonSchema\CanvasColorStringConstraint;
@@ -68,6 +70,14 @@ class CanvasServiceProvider extends ServiceProviderBase {
    * {@inheritdoc}
    */
   public function alter(ContainerBuilder $container): void {
+    // Style definitions come from core's Style API when core has it. Without
+    // it, the canvas_style_polyfill module registers its own source.
+    // @see \Drupal\canvas\Style\ComponentStyles
+    if ($container->hasDefinition('plugin.manager.style')) {
+      $container->register(StyleSourceInterface::class, CoreStyleSource::class)
+        ->addArgument(new Reference('plugin.manager.style'));
+    }
+
     $validator = $container->getDefinition(ComponentValidator::class);
     $factory = $container->setDefinition(Factory::class, new Definition(Factory::class));
     // Align the PHP validator with the Ajv default in the UI: both use JSON

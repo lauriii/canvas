@@ -145,7 +145,7 @@ canvas.api.config.delete:
     _entity_access: 'canvas_config_entity.delete'
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color|style_library)'
   options:
     parameters:
       canvas_config_entity:
@@ -164,7 +164,7 @@ canvas.api.config.get:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color|style_library)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -188,7 +188,7 @@ canvas.api.config.list: &config_list_route
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
     # 403.
     # @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testNonCanvasConfigEntity()
-    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|page_variant|color)'
+    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|page_variant|color|style_library)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -244,7 +244,7 @@ canvas.api.config.patch:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color|style_library)'
   options:
     parameters:
       canvas_config_entity:
@@ -264,7 +264,7 @@ canvas.api.config.post:
     # @todo: Use _entity_create_access once dynamic entity types are supported. See https://www.drupal.org/project/drupal/issues/3516775
     _canvas_entity_create_access: 'canvas_config_entity_type_id'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color|style_library)'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
@@ -872,6 +872,29 @@ canvas.api.staged-update.auto-save.post:
     _canvas_authentication_required: TRUE
     _canvas_entity_create_access: 'staged_config_update'
   methods: [POST]
+
+canvas.api.styles.usage:
+  path: '/canvas/api/v0/styles/usage'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiStyleUsageController'
+  requirements:
+    _permission: 'administer brand kit'
+  methods: [GET]
+  options:
+    _format: 'json'
+
+canvas.api.styles:
+  path: '/canvas/api/v0/styles'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiStylesController'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [GET]
+  options:
+    _format: 'json'
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    canvas_external_api: true
 
 canvas.api.ui.content_entity_reference.content_entity_types:
   path: '/canvas/api/v0/ui/content-entity-reference'

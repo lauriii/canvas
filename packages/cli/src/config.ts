@@ -12,6 +12,7 @@ import type {
   BrandKitColorsFileMap,
   CanvasConfigWarning,
 } from '@drupal-canvas/discovery';
+import type { BrandKitStyles } from './lib/styles/brand-kit-styles.js';
 
 // Load environment variables.
 export function loadEnvFiles() {
@@ -99,8 +100,11 @@ export interface Config {
   contentTemplatesDir: string;
   pageTemplatesDir: string;
   globalCssPath: string;
+  /** Directory holding Canvas-managed `*.utilities.yml` style libraries. */
+  stylesDir: string;
   fonts?: FontsConfig;
   colors?: BrandKitColorsFileMap;
+  brandKitStyles?: BrandKitStyles;
 }
 
 export { BRAND_KIT_CONFIG_FILENAME };
@@ -112,6 +116,8 @@ export const BRAND_KIT_GLOBAL_ID = 'global';
 export interface BrandKitConfigFile {
   fonts?: FontsConfig;
   colors?: BrandKitColorsFileMap;
+  /** Experimental: which component style options the site offers. */
+  styles?: BrandKitStyles;
 }
 
 /** Parse error for canvas.brand-kit.json, reported by the commands that
@@ -161,6 +167,10 @@ function loadBrandKitFile(hostRoot: string): BrandKitConfigFile {
   if (parsed && typeof parsed === 'object' && 'colors' in parsed) {
     result.colors = parsed.colors as BrandKitConfigFile['colors'];
   }
+  // Like colors: absent means not managed from this file.
+  if (parsed && typeof parsed === 'object' && 'styles' in parsed) {
+    result.styles = parsed.styles as BrandKitConfigFile['styles'];
+  }
   return result;
 }
 
@@ -187,7 +197,10 @@ const DEFAULT_SCOPES =
 const PAGE_SCOPES = 'canvas:page:create canvas:page:read canvas:page:edit';
 const CONTENT_TEMPLATE_SCOPES = 'canvas:content_template';
 const PAGE_TEMPLATE_SCOPES = 'canvas:page_variant';
-const BRAND_KIT_SCOPES = 'canvas:brand_kit';
+// Style libraries follow the brand kit option.
+const STYLE_LIBRARY_SCOPE = 'canvas:style_library';
+const BRAND_KIT_SCOPES = `canvas:brand_kit ${STYLE_LIBRARY_SCOPE}`;
+export { STYLE_LIBRARY_SCOPE };
 
 export function getDefaultScope(
   includePages: boolean,
@@ -271,6 +284,16 @@ const includeBrandKit = getEnvBoolean(
 
 const brandKitFile = loadBrandKitFile(process.cwd());
 
+export const DEFAULT_STYLES_DIR = 'styles';
+
+function readConfiguredStylesDir(): string {
+  const { parsedConfig } = readCanvasConfigFile();
+  const stylesDir = parsedConfig?.stylesDir;
+  return typeof stylesDir === 'string' && stylesDir.trim().length > 0
+    ? stylesDir
+    : DEFAULT_STYLES_DIR;
+}
+
 let config: Config = {
   siteUrl: process.env.CANVAS_SITE_URL || '',
   clientId: process.env.CANVAS_CLIENT_ID || '',
@@ -295,8 +318,10 @@ let config: Config = {
   contentTemplatesDir: contentTemplatesDir,
   pageTemplatesDir: pageTemplatesDir,
   globalCssPath: globalCssPath,
+  stylesDir: readConfiguredStylesDir(),
   fonts: brandKitFile.fonts,
   colors: brandKitFile.colors,
+  brandKitStyles: brandKitFile.styles,
 };
 
 export function getConfig(): Config {

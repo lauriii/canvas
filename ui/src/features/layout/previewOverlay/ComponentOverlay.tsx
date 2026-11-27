@@ -14,6 +14,7 @@ import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
 import SlotOverlay from '@/features/layout/previewOverlay/SlotOverlay';
+import { focusStylePart, partAtPoint } from '@/features/styles/stylePartFocus';
 import {
   selectComponentIsSelected,
   selectDragging,
@@ -113,6 +114,19 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
+    if (isSelected && !event.metaKey && !event.shiftKey && event.detail > 0) {
+      // Clicking a named part opens its group in the Style tab, as drilling
+      // into a layer in Figma.
+      const part = partAtPoint(
+        componentsMap?.[component.uuid]?.elements ?? [],
+        event.clientX,
+        event.clientY,
+      );
+      if (part) {
+        focusStylePart(component.uuid, part);
+        return;
+      }
+    }
     handleComponentSelection(component.uuid, event.metaKey);
   }
 

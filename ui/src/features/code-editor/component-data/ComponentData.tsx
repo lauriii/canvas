@@ -14,6 +14,7 @@ import { addDataFetch } from '@/features/code-editor/codeEditorSlice';
 import DataFetch from '@/features/code-editor/component-data/DataFetch';
 import Props from '@/features/code-editor/component-data/Props';
 import Slots from '@/features/code-editor/component-data/Slots';
+import Styles from '@/features/code-editor/component-data/Styles';
 
 import styles from './ComponentData.module.css';
 
@@ -68,6 +69,7 @@ export default function ComponentData({
             <Tabs.List size="1">
               <Tabs.Trigger value="props">Props</Tabs.Trigger>
               <Tabs.Trigger value="slots">Slots</Tabs.Trigger>
+              <Tabs.Trigger value="styles">Styles</Tabs.Trigger>
               <Tabs.Trigger value="data-fetch">Data Fetch</Tabs.Trigger>
             </Tabs.List>
           </Box>
@@ -82,6 +84,11 @@ export default function ComponentData({
                 <Tabs.Content value="slots">
                   <ErrorBoundary title="An unexpected error has occurred while displaying slots.">
                     <Slots />
+                  </ErrorBoundary>
+                </Tabs.Content>
+                <Tabs.Content value="styles">
+                  <ErrorBoundary title="An unexpected error has occurred while displaying styles.">
+                    <Styles />
                   </ErrorBoundary>
                 </Tabs.Content>
                 <Tabs.Content value="data-fetch">

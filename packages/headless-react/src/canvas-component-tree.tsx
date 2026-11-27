@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { createJsonApiClient } from 'drupal-canvas';
+import { createJsonApiClient, StyleOptionsProvider } from 'drupal-canvas';
 import {
   CanvasContextProvider,
   JsonApiClientProvider,
@@ -12,7 +12,10 @@ import { useJsonApiRuntimeConfig } from './jsonapi-runtime';
 
 import type { ReactNode } from 'react';
 import type { CanvasComponentTree as CanvasComponentTreeDocument } from '@drupal-canvas/headless';
-import type { CanvasComponentRegistry } from '@drupal-canvas/json-render-react';
+import type {
+  CanvasComponentRegistry,
+  CanvasRenderElement,
+} from '@drupal-canvas/json-render-react';
 import type { CanvasContext, JsonApiRuntimeConfig } from 'drupal-canvas';
 
 export type { CanvasComponentRegistry } from '@drupal-canvas/json-render-react';
@@ -57,6 +60,19 @@ const serverRenderingDraftFetch: typeof fetch = async () => {
   throw new ServerRenderingDraftFetchError();
 };
 
+/**
+ * Provides an instance's style selection to `useStyleOptions()`, as the
+ * Drupal island renderer does.
+ */
+const provideStyleOptions: CanvasRenderElement = (rendered, element) =>
+  element.styles ? (
+    <StyleOptionsProvider styles={element.styles}>
+      {rendered}
+    </StyleOptionsProvider>
+  ) : (
+    rendered
+  );
+
 /** Renders Canvas content with context and JSON:API providers. */
 export function CanvasComponentTree({
   tree,
@@ -74,6 +90,7 @@ export function CanvasComponentTree({
       tree={renderTree}
       components={components}
       preview={preview}
+      renderElement={provideStyleOptions}
     />
   );
   const withClient = (

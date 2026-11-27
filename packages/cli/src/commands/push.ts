@@ -24,6 +24,12 @@ import {
   buildFontPushPlannedResults,
   pushFonts,
 } from '../lib/fonts/font-push.js';
+import { readLocalStyleLibraries } from '../lib/styles/style-library';
+import {
+  collectStyleLibraryErrors,
+  planStyleLibraryPush,
+  pushStyleLibraries,
+} from '../lib/styles/style-library-push';
 import {
   createApiService,
   ensureAuthConfig,
@@ -78,6 +84,7 @@ import { validatePageTemplates } from '../utils/validate-page-variant';
 import type { DiscoveryWarning } from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
 import type { ColorPushOutcome } from '../lib/colors/color-push.js';
+import type { StyleLibraryPushPlanEntry } from '../lib/styles/style-library-push';
 import type { ApiService } from '../services/api.js';
 import type {
   AssetLibrary,
@@ -114,7 +121,8 @@ type PlannedPushResourceKey =
   | 'content-templates'
   | 'page-templates'
   | 'brand-kit'
-  | 'brand-kit-colors';
+  | 'brand-kit-colors'
+  | 'style-libraries';
 
 interface NotStartedPushResource {
   key: PlannedPushResourceKey;
@@ -196,6 +204,11 @@ function buildNotStartedResources(
       key: 'brand-kit-colors',
       label: 'brand kit colors',
       itemType: 'Color',
+    },
+    {
+      key: 'style-libraries',
+      label: 'Style libraries',
+      itemType: 'Style library',
     },
   ];
 
@@ -762,6 +775,11 @@ export function pushCommand(program: Command): void {
 
         // Validate the brand kit file upfront. Doing this before authentication
         // and discovery ensures a malformed file won't cause a partial push.
+        // Style libraries follow the brand kit option. A missing styles
+        // directory leaves the site's libraries unmanaged.
+        let localStyleLibraries: Awaited<
+          ReturnType<typeof readLocalStyleLibraries>
+        > = null;
         {
           const earlyConfig = getConfig();
           if (earlyConfig.includeBrandKit) {
@@ -769,8 +787,22 @@ export function pushCommand(program: Command): void {
             if (earlyConfig.colors !== undefined) {
               validateColorsConfig(earlyConfig.colors);
             }
+            localStyleLibraries = await readLocalStyleLibraries(
+              path.resolve(process.cwd(), earlyConfig.stylesDir),
+            );
+            const libraryErrors = collectStyleLibraryErrors(
+              localStyleLibraries ?? [],
+            );
+            if (libraryErrors.length > 0) {
+              throw new PushPhaseError(
+                'Style library validation failed',
+                'Style library validation failed. Nothing was pushed.',
+                libraryErrors,
+              );
+            }
           }
         }
+        const hasStyleLibraries = (localStyleLibraries?.length ?? 0) > 0;
 
         await ensureAuthConfig();
         await ensureConfig(['componentDir']);
@@ -785,8 +817,11 @@ export function pushCommand(program: Command): void {
         const includesBrandKit = config.includeBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
         const hasBrandKitColorsConfig = config.colors !== undefined;
+        const hasBrandKitStylesConfig = config.brandKitStyles !== undefined;
         const hasBrandKitConfig =
-          hasBrandKitFontsConfig || hasBrandKitColorsConfig;
+          hasBrandKitFontsConfig ||
+          hasBrandKitColorsConfig ||
+          hasBrandKitStylesConfig;
         // When the Canvas Headless SDK is installed, components are pushed as
         // external components (metadata only): the headless app renders them.
         // The app's entries may be framework single-file components (.vue,
@@ -886,7 +921,8 @@ export function pushCommand(program: Command): void {
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
           discoveredPageTemplates.length === 0 &&
-          !(includesBrandKit && hasBrandKitConfig)
+          !(includesBrandKit && hasBrandKitConfig) &&
+          !hasStyleLibraries
         ) {
           logIgnoredLocalResources();
           p.log.warn(
@@ -923,6 +959,34 @@ export function pushCommand(program: Command): void {
           components.length > 0 ? await apiService.listComponents() : {};
         const remoteNames = new Set(Object.keys(existingComponents));
         const localNames = new Set(components.map((c) => c.name));
+
+        // Style libraries are pushed only where component styles are active,
+        // and never deleted: removing a style would orphan instances using it.
+        let styleLibraryPlan: StyleLibraryPushPlanEntry[] = [];
+        if (localStyleLibraries && hasStyleLibraries) {
+          const styles = await apiService.getStyles();
+          if (!styles?.active) {
+            p.log.warn(
+              `Component styles are not active on ${config.siteUrl}. Skipped ${localStyleLibraries.length} style ${pluralize(localStyleLibraries.length, 'library', 'libraries')} in ${config.stylesDir}/.`,
+            );
+          } else {
+            const collisionErrors = collectStyleLibraryErrors(
+              localStyleLibraries,
+              styles.styles,
+            );
+            if (collisionErrors.length > 0) {
+              throw new PushPhaseError(
+                'Style library validation failed',
+                'Style library validation failed. Nothing was pushed.',
+                collisionErrors,
+              );
+            }
+            styleLibraryPlan = planStyleLibraryPush(
+              localStyleLibraries,
+              await apiService.listStyleLibraries(),
+            );
+          }
+        }
 
         let remoteBrandKitFonts: BrandKitFontEntry[] = [];
         let remoteBrandKitColors: BrandKitColorEntry[] = [];
@@ -1034,6 +1098,12 @@ export function pushCommand(program: Command): void {
           delete: 'delete',
         };
         const plannedResults: Result[] = [
+          ...styleLibraryPlan.map((entry) => ({
+            itemName: path.basename(entry.local.filePath),
+            itemType: 'Style library',
+            success: true,
+            details: [{ content: operationLabels[entry.operation] }],
+          })),
           ...components.map((c) => ({
             itemName: c.name,
             itemType: 'Component',
@@ -1186,6 +1256,44 @@ export function pushCommand(program: Command): void {
         let globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined;
         let fontCount = 0;
         let colorPruneFailures: ColorPushOutcome[] = [];
+
+        // Step 1b: Push style libraries before components, so components can
+        // be built and previewed with the styles they accept.
+        if (styleLibraryPlan.length > 0) {
+          removeNotStartedResource(notStartedResources, 'style-libraries');
+          const styleSpinner = p.spinner();
+          styleSpinner.start('Pushing style libraries');
+          const styleResults = await pushStyleLibraries(
+            styleLibraryPlan,
+            apiService,
+          );
+          const styleFailed = styleResults.some((result) => !result.success);
+          styleSpinner.stop(
+            styleFailed
+              ? 'Style library push failed'
+              : 'Pushed style libraries',
+            styleFailed ? 2 : 0,
+          );
+          reportResults(
+            styleResults,
+            'Pushed style libraries',
+            'Style library',
+            PUSH_REPORT_OPTIONS,
+          );
+          if (styleFailed) {
+            throw new ReportedPushError(
+              'Style library push failed',
+              'Style library push failed. Nothing else was pushed.',
+            );
+          }
+          completedResources.push({
+            label: 'Style libraries',
+            count: styleResults.length,
+            unit: 'library',
+            unitPlural: 'libraries',
+            action: 'pushed',
+          });
+        }
 
         if (components.length > 0) {
           removeNotStartedResource(notStartedResources, 'components');
@@ -1416,6 +1524,37 @@ export function pushCommand(program: Command): void {
               'Brand kit push failed',
               formatErrorMessage(err),
             );
+          }
+        }
+
+        // Step 4b2: Push style options from canvas.brand-kit.json (when the
+        // file has a styles key; an absent key leaves them unmanaged).
+        if (includesBrandKit && config.brandKitStyles !== undefined) {
+          const stylesSpinner = p.spinner();
+          stylesSpinner.start('Pushing brand kit style options');
+          try {
+            const remote = (await apiService.getBrandKit()).styles ?? null;
+            const local =
+              config.brandKitStyles &&
+              Object.keys(config.brandKitStyles).length > 0
+                ? config.brandKitStyles
+                : null;
+            if (JSON.stringify(remote) === JSON.stringify(local)) {
+              stylesSpinner.stop(
+                chalk.dim('Brand kit style options unchanged'),
+              );
+            } else {
+              await apiService.updateBrandKitStyles(local);
+              stylesSpinner.stop(chalk.cyan('Updated brand kit style options'));
+            }
+          } catch (error) {
+            stylesSpinner.stop(
+              chalk.red(
+                `Brand kit style options were not pushed: ${error instanceof Error ? error.message : String(error)}`,
+              ),
+              1,
+            );
+            throw error;
           }
         }
 

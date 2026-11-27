@@ -6,6 +6,12 @@ import { UNLAYERED_DISPLAY_UTILITIES } from '@drupal-canvas/ui/features/code-edi
 import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { getConfig } from '../config';
+import { readLocalStyleLibraries } from '../lib/styles/style-library';
+import {
+  collectOptionClasses,
+  definitionsFromStyleLibrary,
+  readStylesSnapshot,
+} from '../lib/styles/style-outputs';
 import { transformCss } from '../lib/transform-css';
 import { fileExists, formatFilePathForOutput } from './utils';
 
@@ -66,6 +72,26 @@ async function upsertClassNameCandidatesForComponent(
     component.name,
     classNameCandidates,
   );
+}
+
+/**
+ * Option classes from local style libraries and the `.canvas/styles.json`
+ * snapshot, so styles editors pick are built even when no component source
+ * mentions them. Unreadable libraries are skipped: `canvas validate` reports
+ * them.
+ */
+export async function getStyleOptionClassCandidates(
+  projectRoot: string,
+  stylesDir: string,
+): Promise<string[]> {
+  const libraries =
+    (stylesDir
+      ? await readLocalStyleLibraries(path.resolve(projectRoot, stylesDir))
+      : null) ?? [];
+  return collectOptionClasses([
+    ...libraries.flatMap((local) => definitionsFromStyleLibrary(local.library)),
+    ...(await readStylesSnapshot(projectRoot)),
+  ]);
 }
 
 /**
@@ -144,8 +170,12 @@ export async function buildTailwindForComponents(
 
   // Build the final Tailwind CSS.
   try {
+    const styleCandidates = await getStyleOptionClassCandidates(
+      process.cwd(),
+      config.stylesDir,
+    );
     await buildTailwindCss(
-      allClassNameCandidates,
+      [...new Set([...allClassNameCandidates, ...styleCandidates])],
       globalSourceCodeCss,
       distDir,
     );

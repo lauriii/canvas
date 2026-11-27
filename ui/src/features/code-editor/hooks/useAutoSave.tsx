@@ -75,6 +75,7 @@ const useAutoSave = (requestedComponentId: string): void => {
   const dataDependencies = useAppSelector(
     selectCodeComponentProperty('dataDependencies'),
   );
+  const acceptedStyles = useAppSelector(selectCodeComponentProperty('styles'));
 
   const globalSourceCodeCss = useAppSelector(
     selectGlobalAssetLibraryProperty(['css', 'original']),
@@ -147,6 +148,7 @@ const useAutoSave = (requestedComponentId: string): void => {
           required: serializeRequired(props, required),
           importedJsComponents: importedJsComponentsRef.current,
           dataDependencies: serializeDataDependencies(props, dataDependencies),
+          styles: acceptedStyles ?? [],
           // Derived from the `sourceCodeJs` sent with it, never from state
           // that may still describe other source code.
           ...getTranslatableStringsPayload(sourceCodeJs),
@@ -169,6 +171,7 @@ const useAutoSave = (requestedComponentId: string): void => {
     sourceCodeCss,
     sourceCodeJs,
     dataDependencies,
+    acceptedStyles,
     updateCodeComponent,
   ]);
 

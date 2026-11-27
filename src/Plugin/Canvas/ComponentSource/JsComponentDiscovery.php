@@ -101,9 +101,14 @@ final class JsComponentDiscovery extends JsonSchemaPropsComponentDiscoveryBase i
    */
   public function computeComponentSettingsForEntity(JavaScriptComponent $js_component): array {
     $ephemeral_sdc_component = self::buildEphemeralSdcPluginInstance($js_component);
-    // @see `type: canvas.component_source_settings.sdc`
+    // @see `type: canvas.component_source_settings.js`
     return [
       'prop_field_definitions' => $this->getPropsForComponentPlugin($ephemeral_sdc_component),
+      // Omitted when empty, the default for code components, so components
+      // that do not opt in keep their version.
+      // @see \Drupal\canvas\Style\ComponentStyles::defaultSetting()
+      ...($js_component->getStyles() !== [] ? ['styles' => $js_component->getStyles()] : []),
+      ...($js_component->getStyleParts() !== [] ? ['style_parts' => $js_component->getStyleParts()] : []),
     ];
   }
 

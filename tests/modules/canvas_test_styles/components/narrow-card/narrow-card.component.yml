@@ -1,0 +1,16 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: Narrow card
+description: A card that accepts only background color and spacing.
+thirdPartySettings:
+  canvas:
+    styles:
+      - background_color
+      - spacing
+props:
+  type: object
+  properties:
+    heading:
+      type: string
+      title: Heading
+      examples:
+        - 'Narrow card'

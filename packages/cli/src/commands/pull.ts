@@ -23,6 +23,16 @@ import {
   updateBrandKitConfig,
   variantKey,
 } from '../lib/fonts/font-pull.js';
+import { writeBrandKitStylesConfig } from '../lib/styles/brand-kit-styles';
+import {
+  readLocalStyleLibraries,
+  serializeStyleLibrary,
+  STYLE_LIBRARY_FILE_SUFFIX,
+} from '../lib/styles/style-library';
+import {
+  authoredStyleParts,
+  writeCanvasStyleOutputs,
+} from '../lib/styles/style-outputs';
 import { createApiService, ensureAuthConfig } from '../services/api';
 import {
   applySyncOptionAliasesAndWarnings,
@@ -45,7 +55,10 @@ import {
 } from '../utils/merge-package-json';
 import { pageVariantToAuthoredSpec } from '../utils/page-variants';
 import { pageToAuthoredSpec } from '../utils/pages';
-import { stripProjectedContentEntityReferencePropKeys } from '../utils/process-component-files';
+import {
+  readComponentMetadata,
+  stripProjectedContentEntityReferencePropKeys,
+} from '../utils/process-component-files';
 import {
   COMMAND_RESULT_REPORT_OPTIONS,
   reportResults,
@@ -63,9 +76,16 @@ import type {
   AssetLibraryBundledSource,
   AssetLibraryManifestEntry,
 } from '@drupal-canvas/ui/types/CodeComponent';
+import type { StyleDefinition } from '@drupal-canvas/ui/types/Styles';
 import type { Command } from 'commander';
+import type {
+  LocalStyleLibrary,
+  StyleLibraryPayload,
+} from '../lib/styles/style-library';
+import type { ComponentStyleDeclaration } from '../lib/styles/style-outputs';
 import type { ApiService } from '../services/api';
 import type {
+  BrandKit,
   BrandKitColorEntry,
   ColorFolderEntry,
   Component,
@@ -328,6 +348,15 @@ export function createComponentsPullTask(
         'toVarKey',
       ) as Metadata['props'],
       slots: Array.isArray(component.slots) ? {} : component.slots || {},
+      // Written only when the component accepts styles, so pulls do not
+      // change component.yml files for components that accept none.
+      ...(component.styles === '*' ||
+      (Array.isArray(component.styles) && component.styles.length > 0)
+        ? { styles: component.styles }
+        : {}),
+      ...(component.styleParts && Object.keys(component.styleParts).length > 0
+        ? { styleParts: authoredStyleParts(component.styleParts) }
+        : {}),
       dataDependencies: component.dataDependencies?.entityFields
         ? { entityFields: component.dataDependencies.entityFields }
         : {},
@@ -1283,6 +1312,7 @@ export function createBrandKitPullTask(
   let newCount = 0;
   let existingCount = 0;
   let remoteColors: BrandKitColorEntry[] = [];
+  let remoteStyles: BrandKit['styles'] | undefined;
 
   return {
     startLabel: 'Pulling brand kit',
@@ -1297,6 +1327,7 @@ export function createBrandKitPullTask(
 
       // Populate the shared ref so component pull can resolve color examples.
       remoteColors = brandKit.colors ?? [];
+      remoteStyles = brandKit.styles;
       brandKitColorsRef.colors = remoteColors;
 
       // Populate the shared ref so component pull can add folder comments.
@@ -1360,6 +1391,14 @@ export function createBrandKitPullTask(
         // report or tidy — schedule the task so that work happens.
         summaryLines.push(
           `brand kit colors: 0 pull (${colorPlan.localOnly.length + colorPlan.duplicates.length} local-only)`,
+        );
+      }
+      // Style options: scheduled when the site has them, or when the file
+      // has a `styles` key the site no longer has.
+      const styleCount = Object.keys(remoteStyles ?? {}).length;
+      if (styleCount > 0 || getConfig().brandKitStyles !== undefined) {
+        summaryLines.push(
+          `brand kit style options: ${styleCount} ${styleCount === 1 ? 'style' : 'styles'}`,
         );
       }
 
@@ -1432,6 +1471,14 @@ export function createBrandKitPullTask(
       if (colorPlan.changed) {
         await writeBrandKitColorsConfig(projectRoot, colorPlan.colors);
       }
+      // Style options mirror the site: written when set, removed when not.
+      if (await writeBrandKitStylesConfig(projectRoot, remoteStyles)) {
+        results.push({
+          itemName: 'style options',
+          success: true,
+          details: [{ content: remoteStyles ? 'Updated' : 'Removed' }],
+        });
+      }
       if (colorPlan.localOnly.length > 0) {
         notes.push(
           `${colorPlan.localOnly.length} ${pluralizeLabel(colorPlan.localOnly.length, 'color')} in canvas.brand-kit.json ${colorPlan.localOnly.length === 1 ? 'is' : 'are'} not on the site and ${colorPlan.localOnly.length === 1 ? 'was' : 'were'} kept: ${colorPlan.localOnly.join(', ')}. Run \`canvas push\` to create them.`,
@@ -1447,6 +1494,156 @@ export function createBrandKitPullTask(
         results,
         title: 'Pulled brand kit',
         label: 'Item',
+        notes: notes.length > 0 ? notes : undefined,
+      };
+    },
+  };
+}
+
+/**
+ * Pulls Canvas-managed style libraries into `styles/` (with the brand kit
+ * option) and writes the `.canvas/` style outputs. Does nothing when the site
+ * predates component styles or has them switched off.
+ */
+export function createStylesPullTask(
+  apiService: Pick<ApiService, 'getStyles' | 'listStyleLibraries'>,
+  options: {
+    projectRoot: string;
+    stylesDir: string;
+    componentDir: string;
+    includeLibraries: boolean;
+    skipOverwrite?: boolean;
+  },
+): PullTask {
+  const stylesDir = path.resolve(options.projectRoot, options.stylesDir);
+  let snapshot: StyleDefinition[] = [];
+  let remoteLibraries: StyleLibraryPayload[] = [];
+  let localLibraries: LocalStyleLibrary[] = [];
+  let librariesUnavailable: string | null = null;
+
+  return {
+    startLabel: 'Pulling styles',
+    stopLabel: 'Pulled styles',
+
+    async prepare(): Promise<PullTaskPrepareResult> {
+      const styles = await apiService.getStyles();
+      if (!styles?.active) {
+        return { summaryLines: [], localOnlyCount: 0 };
+      }
+      snapshot = styles.styles;
+      const summaryLines = [
+        `Styles: ${snapshot.length} ${pluralizeLabel(snapshot.length, 'style')} (.canvas/ outputs)`,
+      ];
+      if (options.includeLibraries) {
+        try {
+          remoteLibraries = await apiService.listStyleLibraries();
+        } catch (error) {
+          librariesUnavailable = formatErrorMessage(error);
+        }
+        localLibraries = (await readLocalStyleLibraries(stylesDir)) ?? [];
+        if (remoteLibraries.length > 0) {
+          const localIds = new Set(localLibraries.map((l) => l.library.id));
+          const existing = remoteLibraries.filter((l) =>
+            localIds.has(l.id),
+          ).length;
+          summaryLines.push(
+            formatSummaryLine(
+              'Style libraries',
+              remoteLibraries.length,
+              remoteLibraries.length - existing,
+              existing,
+            ),
+          );
+        }
+      }
+      return { summaryLines, localOnlyCount: 0 };
+    },
+
+    async execute(): Promise<PullTaskResult> {
+      const results: Result[] = [];
+      const notes: string[] = [];
+      if (librariesUnavailable !== null) {
+        notes.push(`Style libraries were not pulled: ${librariesUnavailable}`);
+      }
+      const localIds = new Set(localLibraries.map((l) => l.library.id));
+      if (remoteLibraries.length > 0) {
+        await fs.mkdir(stylesDir, { recursive: true });
+      }
+      for (const library of remoteLibraries) {
+        const fileName = `${library.id}${STYLE_LIBRARY_FILE_SUFFIX}`;
+        if (options.skipOverwrite && localIds.has(library.id)) {
+          results.push({
+            itemName: fileName,
+            success: true,
+            details: [{ content: 'Skipped (already exists)' }],
+          });
+          continue;
+        }
+        try {
+          await fs.writeFile(
+            path.join(stylesDir, fileName),
+            serializeStyleLibrary(library),
+            'utf-8',
+          );
+          results.push({ itemName: fileName, success: true });
+        } catch (error) {
+          results.push({
+            itemName: fileName,
+            success: false,
+            details: [{ content: formatErrorMessage(error) }],
+          });
+        }
+      }
+      if (librariesUnavailable === null) {
+        const remoteIds = new Set(remoteLibraries.map((l) => l.id));
+        const localOnly = localLibraries.filter(
+          (l) => !remoteIds.has(l.library.id),
+        );
+        if (localOnly.length > 0) {
+          notes.push(
+            `Style libraries not on the site were kept: ${localOnly.map((l) => path.basename(l.filePath)).join(', ')}. Run \`canvas push\` to create them.`,
+          );
+        }
+      }
+
+      // Read component.yml files after the components task wrote them.
+      const discovery = await discoverCanvasProject({
+        componentRoot: options.componentDir,
+      });
+      const components: ComponentStyleDeclaration[] = [];
+      for (const component of discovery.components) {
+        try {
+          const metadata = await readComponentMetadata(component.metadataPath);
+          components.push({
+            machineName: metadata.machineName || component.name,
+            styles: metadata.styles,
+            styleParts: metadata.styleParts,
+          });
+        } catch {
+          // Invalid metadata is reported by `canvas validate`.
+        }
+      }
+      try {
+        const written = await writeCanvasStyleOutputs(
+          options.projectRoot,
+          snapshot,
+          components,
+        );
+        results.push(
+          ...written.map((itemName) => ({ itemName, success: true })),
+        );
+      } catch (error) {
+        results.push({
+          itemName: '.canvas',
+          success: false,
+          details: [{ content: formatErrorMessage(error) }],
+        });
+      }
+
+      return {
+        results,
+        title: 'Pulled styles',
+        label: 'File',
         notes: notes.length > 0 ? notes : undefined,
       };
     },
@@ -1568,6 +1765,18 @@ export function pullCommand(program: Command): void {
             ),
           );
         }
+
+        // After the components task, so `.canvas/styles.d.ts` reflects the
+        // pulled component.yml files.
+        tasks.push(
+          createStylesPullTask(apiService, {
+            projectRoot,
+            stylesDir: config.stylesDir,
+            componentDir: config.componentDir,
+            includeLibraries: includesBrandKit,
+            skipOverwrite: options.skipOverwrite ?? false,
+          }),
+        );
 
         if (includesPages) {
           tasks.push(

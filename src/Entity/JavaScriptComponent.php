@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\Style\StyleDeclaration;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\CanvasUriDefinitions;
@@ -42,6 +43,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Url;
 use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * @phpstan-import-type JsonSchema from \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType
@@ -73,6 +75,8 @@ use Symfony\Component\Validator\ConstraintViolation;
     'css',
     'translatableStrings',
     'dataDependencies',
+    'styles',
+    'style_parts',
   ],
   constraints: [
     'JsComponentHasValidAndSupportedSdcMetadata' => NULL,
@@ -139,6 +143,39 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
   protected ?array $dataDependencies;
 
   /**
+   * The core Style API styles this component accepts.
+   *
+   * A list of style IDs, `['*']` for every style it can receive as
+   * `className` and `style`, or NULL (the default) for none. The component
+   * applies `className` and `style` on its root.
+   *
+   * @var list<string>|null
+   *
+   * @see \Drupal\canvas\Style\ComponentStyles::forComponent()
+   */
+  protected ?array $styles = NULL;
+
+  /**
+   * Named parts: elements inside the component that take styles of their
+   * own. Each part's choices arrive in the `styleParts` prop, keyed by part.
+   *
+   * @var array<string, array{label: string, styles: list<string>, limits?: array<string, array<string, mixed>>}>|null
+   *
+   * @see \Drupal\canvas\Style\StyleDeclaration
+   */
+  protected ?array $style_parts = NULL;
+
+  /**
+   * Prop names reserved for components that accept styles.
+   */
+  public const array RESERVED_STYLE_PROP_NAMES = ['className', 'style', 'styleParts'];
+
+  /**
+   * Documents how to rename a prop that collides with a reserved name.
+   */
+  public const string RESERVED_STYLE_PROP_GUIDE = 'https://project.pages.drupalcode.org/canvas/code-components/styles#rename-a-reserved-prop';
+
+  /**
    * Shared instance of the ComponentSource plugin manager, for previews.
    *
    * @see ::buildPreview()
@@ -175,6 +212,13 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     }
     if ($this->translatableStrings === NULL) {
       unset($data['translatableStrings']);
+    }
+    // Keep exports unchanged for components that accept no styles.
+    if (empty($this->styles)) {
+      unset($data['styles']);
+    }
+    if (empty($this->style_parts)) {
+      unset($data['style_parts']);
     }
     return $data;
   }
@@ -228,6 +272,8 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       'props' => $this->toSdcDefinition()['props']['properties'] ?? $this->props,
       'required' => $this->required,
       'slots' => $this->slots,
+      'styles' => $this->getStylesForClientSide(),
+      ...(empty($this->style_parts) ? [] : ['styleParts' => $this->style_parts]),
     ];
     if (!$this->isExternal()) {
       \assert(\is_array($this->js));
@@ -256,6 +302,53 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       preview: $this->isExternal() ? NULL : $this->buildPreview(),
     )->addCacheableDependency($this)
       ->addCacheableDependency($linkCollection);
+  }
+
+  /**
+   * The accepted styles as the client and the CLI express them.
+   *
+   * @return '*'|list<string>
+   */
+  public function getStylesForClientSide(): string|array {
+    return $this->styles === ['*'] ? '*' : ($this->styles ?? []);
+  }
+
+  /**
+   * The accepted styles as stored in Component settings.
+   *
+   * @return list<string>
+   */
+  public function getStyles(): array {
+    return $this->styles ?? [];
+  }
+
+  /**
+   * The named parts as stored in Component settings.
+   *
+   * @return array<string, array{label: string, styles: list<string>, limits?: array<string, array<string, mixed>>}>
+   */
+  public function getStyleParts(): array {
+    return $this->style_parts ?? [];
+  }
+
+  /**
+   * Rejects props named `className` or `style` on components with styles.
+   *
+   * Validates `type: canvas.js_component.*` config.
+   */
+  public static function validateStyles(mixed $styles, ExecutionContextInterface $context): void {
+    if (empty($styles)) {
+      return;
+    }
+    $props = $context->getRoot()?->get('props')?->getValue() ?? [];
+    foreach (self::RESERVED_STYLE_PROP_NAMES as $reserved) {
+      if (\is_array($props) && \array_key_exists($reserved, $props)) {
+        $context->buildViolation('The prop "%prop" is reserved for components that accept styles: Canvas passes the selected styles as `%prop`. Rename the prop. See %guide.', [
+          '%prop' => $reserved,
+          '%guide' => self::RESERVED_STYLE_PROP_GUIDE,
+        ])->addViolation();
+      }
+    }
   }
 
   /**
@@ -403,6 +496,20 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
       'dataDependencies',
     ])) as $key => $value) {
       $this->set($key, $value);
+    }
+    // Same shape as SDC metadata: each part's styles are a list, or a map of
+    // style ID to limit.
+    if (\array_key_exists('styleParts', $data)) {
+      $parts = StyleDeclaration::fromAuthored(['style_parts' => $data['styleParts']])['style_parts'] ?? [];
+      $this->set('style_parts', $parts === [] ? NULL : $parts);
+    }
+    if (\array_key_exists('styles', $data)) {
+      $styles = $data['styles'];
+      $this->set('styles', match (TRUE) {
+        $styles === '*' => ['*'],
+        \is_array($styles) && $styles !== [] => \array_values($styles),
+        default => NULL,
+      });
     }
     // Enforce minItems
     if (\is_array($this->props)) {

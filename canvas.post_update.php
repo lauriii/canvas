@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\Entity\StyleLibrary;
 use Drupal\canvas\Hook\PageHooks;
 use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
@@ -876,4 +877,16 @@ function canvas_post_update_0032_install_empty_slot_marker(): void {
   // config/install is only processed at module install time, but exposed
   // slots need the marker component to represent empty overrides.
   Marker::ensureComponent(Marker::EMPTY_SLOT_LOCAL_ID);
+}
+
+/**
+ * Install the style library config entity type.
+ *
+ * @see \Drupal\canvas\Entity\StyleLibrary
+ */
+function canvas_post_update_0033_install_style_library_entity_type(): void {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if ($update_manager->getEntityType(StyleLibrary::ENTITY_TYPE_ID) === NULL) {
+    $update_manager->installEntityType(\Drupal::entityTypeManager()->getDefinition(StyleLibrary::ENTITY_TYPE_ID));
+  }
 }

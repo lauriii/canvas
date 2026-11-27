@@ -6,6 +6,7 @@ namespace Drupal\canvas\ComponentSource;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Style\ComponentStyles;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
@@ -15,6 +16,8 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Template\AttributeHelper;
 
 /**
  * @internal
@@ -60,8 +63,17 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     // Drupal CMS recipes) hit this and few others did. Casting here makes
     // generation and validation agree.
     // @see \Drupal\canvas\Entity\Component::validateActiveVersion()
+    $settings = $this->settingsAffectingVersionHash(TypedDataHelper::castRawPhpTypes($typed_source_specific_settings));
+    // Accepted styles equal to the source's default are not part of a
+    // version's identity, so enabling styles creates no new versions.
+    // @see \Drupal\canvas\Style\ComponentStyles::defaultSetting()
+    if (\is_array($settings) && \array_key_exists('styles', $settings)) {
+      if ($settings['styles'] === NULL || $settings['styles'] === ComponentStyles::defaultSetting()) {
+        unset($settings['styles']);
+      }
+    }
     $normalized_data = [
-      'settings' => $this->settingsAffectingVersionHash(TypedDataHelper::castRawPhpTypes($typed_source_specific_settings)),
+      'settings' => $settings,
       'slot_definitions' => $this instanceof ComponentSourceWithSlotsInterface
         ? self::normalizeSlotDefinitions($this->getSlotDefinitions())
         : [],
@@ -105,6 +117,54 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
    */
   protected function settingsAffectingVersionHash(mixed $settings): mixed {
     return $settings;
+  }
+
+  /**
+   * Applies a filtered style selection to a rendered component instance.
+   *
+   * By default, core applies `#styles` to the root element and attaches each
+   * style's library. Sources whose root is not the element they render (code
+   * components render `<canvas-island>`) override this.
+   *
+   * @param array $build
+   *   The render array returned by ::renderComponent().
+   * @param array<string, string> $filtered
+   *   A selection filtered by ComponentStyles::filter(): never empty.
+   * @param array{className: ?string, style: ?array<string, string>, libraries: list<string>, attributes: list<array{attribute: string, value: string}>} $resolved
+   *   The selection resolved by ComponentStyles::resolve().
+   *
+   *   Applies each option the way core's Style API applies styles that target
+   *   any element: merged into `#attributes` in selection order, with the
+   *   style's library attached. Canvas does this itself rather than setting
+   *   core's `#styles`, so output is identical with core's Style API or the
+   *   polyfill.
+   *
+   * @see \Drupal\Core\Theme\Style\StyleDefinition::applyOrBubbleOnArray()
+   */
+  public function applyStyles(array &$build, array $filtered, array $resolved): void {
+    foreach ($resolved['attributes'] as ['attribute' => $attribute, 'value' => $value]) {
+      // Like core: a class value is one entry, however many classes it has.
+      $build['#attributes'] = AttributeHelper::mergeCollections(
+        $build['#attributes'] ?? [],
+        [$attribute => $attribute === 'class' ? [$value] : $value],
+      );
+    }
+    foreach ($resolved['libraries'] as $library) {
+      $build['#attached']['library'][] = $library;
+    }
+    // Each named part gets `{part}_attributes`, always, so templates can
+    // print it without checking: `<h1{{ heading_attributes.addClass('x') }}>`.
+    // @see \Drupal\canvas\Style\ComponentStyles::partsFor()
+    foreach (\array_keys($this->configuration['style_parts'] ?? []) as $part) {
+      $attributes = [];
+      foreach ($resolved['parts'][$part]['attributes'] ?? [] as ['attribute' => $attribute, 'value' => $value]) {
+        $attributes = AttributeHelper::mergeCollections($attributes, [$attribute => $attribute === 'class' ? [$value] : $value]);
+      }
+      $build['#props'][$part . '_attributes'] = new Attribute($attributes);
+      foreach ($resolved['parts'][$part]['libraries'] ?? [] as $library) {
+        $build['#attached']['library'][] = $library;
+      }
+    }
   }
 
   private static function normalizeSlotDefinitions(array $slot_definitions): array {

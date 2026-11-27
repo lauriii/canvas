@@ -135,7 +135,7 @@ describe('command-helpers', () => {
 
       const config = getConfig();
       expect(config.scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:content_template canvas:page_variant canvas:brand_kit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:content_template canvas:page_variant canvas:brand_kit canvas:style_library',
       );
     });
 
@@ -144,7 +144,7 @@ describe('command-helpers', () => {
 
       const config = getConfig();
       expect(config.scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:brand_kit',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:brand_kit canvas:style_library',
       );
     });
 

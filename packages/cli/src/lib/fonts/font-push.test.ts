@@ -53,6 +53,7 @@ describe('pushFonts', () => {
       contentTemplatesDir: 'content-templates',
       pageTemplatesDir: 'page-templates',
       globalCssPath: 'src/global.css',
+      stylesDir: 'styles',
     };
     api = {
       getBrandKit: vi.fn().mockResolvedValue({ id: 'global', fonts: [] }),

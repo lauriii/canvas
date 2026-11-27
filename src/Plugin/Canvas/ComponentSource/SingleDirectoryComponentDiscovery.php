@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentMetadataRequirementsChecker;
 use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\canvas\Style\StyleDeclaration;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -83,9 +84,18 @@ final class SingleDirectoryComponentDiscovery extends JsonSchemaPropsComponentDi
   public function computeComponentSettings(string $source_specific_id): array {
     \assert(\array_key_exists($source_specific_id, $this->discover()), $source_specific_id);
     $component_plugin = $this->componentPluginManager->createInstance($source_specific_id);
+    // SDC authors opt in with `thirdPartySettings.canvas.styles`, for the
+    // root and for each named part: a list of style IDs, a map of style ID to
+    // limit, or '*' for every style. Omitted or empty means none, the default,
+    // so the version hash does not change for SDCs without it.
+    // @see \Drupal\canvas\Style\ComponentStyles::defaultSetting()
+    // @see \Drupal\canvas\Style\StyleDeclaration
     // @see `type: canvas.component_source_settings.sdc`
+    $definition = $component_plugin->getPluginDefinition();
+    $canvas = \is_array($definition) ? ($definition['thirdPartySettings']['canvas'] ?? []) : [];
     return [
       'prop_field_definitions' => $this->getPropsForComponentPlugin($component_plugin),
+      ...StyleDeclaration::fromAuthored(\is_array($canvas) ? $canvas : []),
     ];
   }
 

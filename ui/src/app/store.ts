@@ -27,6 +27,7 @@ import {
 } from '@/features/pageData/pageDataSlice';
 import { previewSlice } from '@/features/pagePreview/previewSlice';
 import { personalizationSlice } from '@/features/personalization/personalizationSlice';
+import { styleUndoGroup } from '@/features/styles/styleUndo';
 import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice';
 import { dialogSlice } from '@/features/ui/dialogSlice';
 import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
@@ -54,6 +55,7 @@ import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { personalizationApi } from '@/services/personalization';
 import { previewApi } from '@/services/preview';
 import { slotFieldsApi } from '@/services/slotFields';
+import { stylesApi } from '@/services/styles';
 import { rtkQueryErrorHandler } from '@/utils/rtkQuery-error';
 
 import type { Action, Middleware, ThunkAction } from '@reduxjs/toolkit';
@@ -129,6 +131,11 @@ const rootReducer = combineSlices(
             action.type !== setUpdatePreview.type
           );
         },
+        // Rapid changes to the same style merge into one undo step.
+        // @see undoRedoActionIdMiddleware
+        groupBy: (action) =>
+          (action as Action & { meta?: { styleUndoGroup?: string } }).meta
+            ?.styleUndoGroup ?? null,
         // A filtered action still changes the present state. Without syncing,
         // the next action of any slice is stored as a duplicate history entry
         // that the undo/redo stack in the ui slice does not track, so undo
@@ -185,6 +192,7 @@ const rootReducer = combineSlices(
   contentApi,
   contentEntityReferenceApi,
   slotFieldsApi,
+  stylesApi,
   codeEditorSlice,
   previewSlice,
   queryErrorSlice,
@@ -231,6 +239,17 @@ const undoRedoActionIdMiddleware: Middleware<{}, RootState> =
       // Ignore actions that initialize or reset editor state outside user
       // edits. They should not appear in the user-facing undo/redo history.
       return next(action);
+    }
+    // Style changes carry their undo group; merged ones add no undo entry.
+    const styleGroup = styleUndoGroup(action as Action);
+    if (styleGroup) {
+      action = {
+        ...(action as Action),
+        meta: { styleUndoGroup: styleGroup.group },
+      };
+      if (styleGroup.merges) {
+        return next(action);
+      }
     }
     const [slice] = type.split('/');
     if (slice === 'layoutModel' || slice === 'pageData') {
@@ -281,6 +300,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         contentApi.middleware,
         contentEntityReferenceApi.middleware,
         slotFieldsApi.middleware,
+        stylesApi.middleware,
         rtkQueryErrorHandler, // Add the error handling middleware
       );
     },

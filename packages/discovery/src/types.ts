@@ -112,7 +112,13 @@ export interface DiscoveryResult {
 
 export interface ComponentMetadata extends Pick<
   CodeComponentSerialized,
-  'name' | 'machineName' | 'status' | 'required' | 'slots'
+  | 'name'
+  | 'machineName'
+  | 'status'
+  | 'required'
+  | 'slots'
+  | 'styles'
+  | 'styleParts'
 > {
   props: {
     properties: CodeComponentSerialized['props'];

@@ -56,3 +56,17 @@ delete canvas_page:
 publish auto-saves:
   title: 'Publish Drupal Canvas Content'
   description: 'Update entities with auto-saved changes in Drupal Canvas (requires "update" access for those entities).'
+
+# @see \Drupal\canvas\Style\ComponentStyles
+use component styles:
+  title: 'Use component styles'
+  description: 'Change the styles of component instances. Without it, the Style tab is read-only.'
+
+# @see \Drupal\canvas\Entity\StyleLibrary::ADMIN_PERMISSION
+administer style libraries:
+  title: 'Administer style libraries'
+  description: 'Create and change site style libraries, for example by pushing them from the Canvas CLI.'
+
+use custom style values:
+  title: 'Use custom style values'
+  description: 'Enter a value of your own for styles that allow it, instead of choosing one of the design system''s options.'

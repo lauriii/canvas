@@ -1,0 +1,6 @@
+.is-highlighted { outline: 3px solid gold; }
+.bg-primary { background: #1d4ed8; color: #fff; }
+.bg-muted { background: #e5e7eb; }
+.p-2 { padding: .5rem; } .p-4 { padding: 1rem; } .p-8 { padding: 2rem; }
+.rounded-lg { border-radius: .5rem; }
+.text-left { text-align: left; } .text-center { text-align: center; } .text-right { text-align: right; }

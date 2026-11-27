@@ -49,6 +49,33 @@ final class CanvasCustomElement extends CustomElement {
   }
 
   /**
+   * The style selection and its resolved attributes, when requested.
+   *
+   * @var array{styles: array<string, string>, attributes: array{class?: string, style?: array<string, string>}}|null
+   *
+   * @see \Drupal\canvas\Style\ComponentStyles
+   */
+  private ?array $styles = NULL;
+
+  /**
+   * Sets the style selection and resolved attributes for json-render output.
+   *
+   * @param array<string, string> $styles
+   * @param array{class?: string, style?: array<string, string>} $attributes
+   */
+  public function setStyles(array $styles, array $attributes): self {
+    $this->styles = $styles === [] ? NULL : ['styles' => $styles, 'attributes' => $attributes];
+    return $this;
+  }
+
+  /**
+   * @return array{styles: array<string, string>, attributes: array{class?: string, style?: array<string, string>}}|null
+   */
+  public function getStyles(): ?array {
+    return $this->styles;
+  }
+
+  /**
    * Gets Canvas identity metadata.
    *
    * @return array{componentId: string, componentUuid: string}

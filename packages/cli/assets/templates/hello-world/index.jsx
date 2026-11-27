@@ -1,3 +1,5 @@
+import { cn } from 'drupal-canvas';
+
 /**
  * HelloWorld example component
  */
@@ -6,9 +8,12 @@ const HelloWorld = ({
   ctaDisplayText = 'Click me!',
   ctaLink = 'https://example.com',
   content,
+  // Styles editors pick, when component.yml accepts styles.
+  className,
+  style,
 }) => {
   return (
-    <div className="hello-world-component">
+    <div className={cn('hello-world-component', className)} style={style}>
       <h2 className="greeting">{greeting}</h2>
       <div className="content">{content}</div>
       <button type="button" className="cta">

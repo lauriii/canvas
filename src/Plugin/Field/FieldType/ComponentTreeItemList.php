@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
+use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
@@ -13,12 +14,14 @@ use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Exception\SubtreeInjectionException;
 use Drupal\canvas\HydratedTree;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
+use Drupal\canvas\Style\ComponentStyles;
 use Drupal\Component\Graph\Graph;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Template\Attribute;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\FieldItemList;
@@ -326,6 +329,15 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     // We have to allow NULL for the entity argument here for co-variance with
     // the parent interface, but we don't support it.
     \assert(!\is_null($entity));
+    // Previews apply the draft brand kit, so site builders see style option
+    // changes before publishing.
+    // @see \Drupal\canvas\Style\ComponentStyles::runInPreview()
+    if ($isPreview) {
+      $component_styles = \Drupal::service(ComponentStyles::class);
+      if (!$component_styles->isPreview()) {
+        return $component_styles->runInPreview(fn (): array => $this->toRenderable($entity, $isPreview, $suppressAnnotationsFor));
+      }
+    }
     // ⚠️ We *could* convert to a render array directly. But that should not be
     // the source of truth. So we start from a Drupal Render API-agnostic point,
     // and map that into a render array. This guarantees none of this will ever
@@ -378,6 +390,29 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           \assert($component instanceof Component);
           $source = $component->getComponentSource();
           $element = $source->renderComponent($component_instance, $component->getSlotDefinitions(), $component_instance_uuid, $isPreview);
+
+          // Apply the filtered style selection, with the cache tags of the
+          // definitions it used.
+          // @see ::getHydratedValue()
+          if (\array_key_exists('styles', $component_instance)) {
+            $component_styles = \Drupal::service(ComponentStyles::class);
+            // Part attributes without stored styles come from
+            // StylePartHooks.
+            if ($component_instance['styles'] !== [] && $source instanceof ComponentSourceBase) {
+              $source->applyStyles($element, $component_instance['styles'], $component_styles->resolve($component_instance['styles']));
+            }
+            CacheableMetadata::createFromRenderArray($element)
+              ->addCacheTags($component_styles->cacheTags($component_instance['styles']))
+              ->applyTo($element);
+          }
+          // In previews, mark each named part so the editor can find it: to
+          // preview a choice on hover, and to select the part by clicking it.
+          if ($isPreview && $source instanceof ComponentSourceBase) {
+            foreach (\array_keys($component->getSettings()['style_parts'] ?? []) as $part) {
+              $element['#props'][$part . '_attributes'] ??= new Attribute();
+              $element['#props'][$part . '_attributes']->setAttribute('data-canvas-style-part', (string) $part);
+            }
+          }
 
           // A component instance provided by a
           // ComponentSourceWithSwitchCasesInterface is guaranteed to either be
@@ -594,6 +629,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     // Load and bulk set all unique Components used in this tree in a single
     // ::loadMultiple call.
     $components = Component::loadMultiple($this->getComponentIdList());
+    $component_styles = \Drupal::service(ComponentStyles::class);
 
     // Hydrate all component instances, but only considering props. This
     // essentially means getting the values for each component instance, while
@@ -643,6 +679,14 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         $component->getSlotDefinitions(),
         $required_props_with_default_values_in_current_implementation,
       );
+      // Only available styles accepted by this instance's version render.
+      // @see \Drupal\canvas\Style\ComponentStyles::filter()
+      // Present (possibly empty) whenever styles are stored, so the output
+      // varies on what makes them render or not.
+      $stored_styles = $item->getStyles();
+      if ($stored_styles !== []) {
+        $hydrated[$uuid]['styles'] = $component_styles->filter($stored_styles, $component);
+      }
       \assert(!\array_key_exists('slots', $hydrated[$uuid]) || \is_array($hydrated[$uuid]['slots']));
     }
 
