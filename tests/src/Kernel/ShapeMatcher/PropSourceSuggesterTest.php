@@ -253,12 +253,12 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Integer timestamp fields are offered for date-string adapter inputs.
+   * Integer timestamp fields are offered for `format_date`'s `date` input.
    *
    * Datetime string fields match a date-shaped input slot directly; integer
-   * timestamp fields (e.g. created/changed) are offered too, with the
-   * `unix_to_date` conversion attached via the single-input `adapter`
-   * shortcut on EntityFieldPropSource.
+   * timestamp fields (e.g. created/changed) are offered too, unconverted:
+   * `format_date` accepts timestamps as-is, which keeps their time of day.
+   * (The `unix_to_date` adapter outputs a date-only string.)
    *
    * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::getTimestampSlotCandidates()
    */
@@ -286,16 +286,14 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
     // A datetime string field matches directly — no conversion attached.
     self::assertArrayHasKey('field_event_duration', $sources_by_label);
     self::assertArrayNotHasKey('adapter', $sources_by_label['field_event_duration']);
-    // Timestamp fields carry the built-in `unix_to_date` conversion.
+    // Timestamp fields are offered unconverted, to keep their time of day.
     self::assertSame([
       'sourceType' => PropSource::EntityField->value,
       'expression' => 'ℹ︎␜entity:node:foo␝created␞␟value',
-      PropSource::Adapter->value => 'unix_to_date',
     ], $sources_by_label['Authored on']);
     self::assertSame([
       'sourceType' => PropSource::EntityField->value,
       'expression' => 'ℹ︎␜entity:node:foo␝changed␞␟value',
-      PropSource::Adapter->value => 'unix_to_date',
     ], $sources_by_label['Changed']);
     // Plain strings are never date candidates.
     self::assertArrayNotHasKey('Title', $sources_by_label);

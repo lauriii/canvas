@@ -22,7 +22,7 @@ shapes in general.
 | Adapter | ID | Inputs | Output |
 |---|---|---|---|
 | Is set / not set | `is_set` | `value` (any), `negate` (boolean) | boolean: whether the value is non-empty |
-| Date conversion | `format_date` | `date` (datetime string), `format` (string) | text: the formatted date |
+| Date conversion | `format_date` | `date` (datetime string or UNIX timestamp), `format` (string) | text: the formatted date |
 | Fallback | `fallback` | `value`, `default` (mirror the prop shape) | the value, or the default when the value is empty |
 | Equals | `equals` | `value`, `comparison` (any), `then`, `else` (mirror the prop shape), `negate` (boolean) | `then` when the value equals the comparison, `else` otherwise |
 | Contains | `contains` | `text`, `needle` (strings), `position` (`contains`/`starts_with`/`ends_with`), `negate` (boolean), `then`, `else` (mirror the prop shape) | `then` when the text matches, `else` otherwise |
@@ -35,11 +35,11 @@ Notes:
   entity (`short`, `medium`, `long`, or a custom one — localizable site
   configuration) or the special value `relative`, which renders phrases such
   as "2 days ago" or "in 3 hours" with time-bounded cacheability. Integer
-  timestamps (e.g. a node's created/changed fields) are converted first via
-  the pre-existing `unix_to_date` adapter: the suggester offers them as
-  `date`-input candidates with the conversion built in (the single-input
-  `adapter` shortcut on the entity-field source), so the editor treats them
-  like any other date field.
+  timestamps (e.g. a node's created/changed fields) are accepted as-is, which
+  keeps their time of day: the suggester offers them as `date`-input
+  candidates, so the editor treats them like any other date field. (The
+  pre-existing `unix_to_date` adapter outputs a date-only string. It is only
+  used where a `format: date` string is needed.)
 - `equals` compares loosely on purpose: the compared value typically comes
   from a typed field (integer `0`) while the comparison is entered as text
   (`"0"`).

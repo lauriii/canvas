@@ -344,6 +344,7 @@ final readonly class PropSourceSuggester {
         // this input slot: the target prop shape for mirroring inputs, a set
         // of primitive shapes for "any"-shaped inputs, the declared shape
         // otherwise.
+        $accepts_timestamps = FALSE;
         if ($mirrors_output) {
           $slot_shapes = [$prop_shape];
         }
@@ -354,11 +355,12 @@ final readonly class PropSourceSuggester {
           $slot_shapes = [PropShape::normalize($declared_schema)];
           // Datetime strings occur as both `format: date` and
           // `format: date-time`, depending on the field type and its
-          // settings. A slot declared as `date-time` accepts both, so offer
-          // both as candidates.
+          // settings. A slot declared as `date-time` accepts both, as well as
+          // integer UNIX timestamps, so offer all of them as candidates.
           // @see \Drupal\canvas\Plugin\Adapter\FormatDateAdapter::addInput()
           if (PropShape::normalizePropSchema($declared_schema) === ['type' => 'string', 'format' => 'date-time']) {
             $slot_shapes[] = PropShape::normalize(['type' => 'string', 'format' => 'date']);
+            $accepts_timestamps = TRUE;
           }
         }
 
@@ -368,7 +370,7 @@ final readonly class PropSourceSuggester {
         // whose emptiness propagates to the output only offer required
         // fields — exactly like direct field matches.
         $candidates_must_be_required = $is_required && $slot_required && !$adapter->inputToleratesEmpty($input_name);
-        $candidates = $this->getSlotCandidates($slot_shapes, $candidates_must_be_required, $host_entity_type_id, $host_entity_bundle, $slot_memo);
+        $candidates = $this->getSlotCandidates($slot_shapes, $candidates_must_be_required, $host_entity_type_id, $host_entity_bundle, $slot_memo, $accepts_timestamps);
         $static = $this->getStaticSourceTemplate($slot_shapes[0], $slot_memo);
 
         // The primary input — the first (unconditionally) required one — is
@@ -429,10 +431,13 @@ final readonly class PropSourceSuggester {
    *   fields even when the targeted prop is required — bridging that gap is
    *   e.g. the `fallback` adapter's purpose.
    * @param array<string, mixed> $slot_memo
+   * @param bool $accepts_timestamps
+   *   Whether the slot accepts integer UNIX timestamps as-is, next to its
+   *   declared shape(s).
    *
    * @return list<array{id: string, label: string, source: array<string, mixed>}>
    */
-  private function getSlotCandidates(array $slot_shapes, bool $is_required, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
+  private function getSlotCandidates(array $slot_shapes, bool $is_required, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo, bool $accepts_timestamps = FALSE): array {
     $host_entity_type = BetterEntityDataDefinition::create($host_entity_type_id, $host_entity_bundle);
     $candidates = [];
     foreach ($slot_shapes as $shape) {
@@ -453,22 +458,22 @@ final readonly class PropSourceSuggester {
         $slot_memo[$memo_key] = $entries;
       }
       $candidates += $slot_memo[$memo_key];
-      // Integer timestamp fields hold datetime data too: offer them for
-      // date-string slots, converted via the `unix_to_date` adapter.
-      if (\in_array(PropShape::normalizePropSchema($shape->resolvedSchema), self::DATE_STRING_SCHEMAS, TRUE)) {
-        $candidates += $this->getTimestampSlotCandidates($is_required, $host_entity_type_id, $host_entity_bundle, $slot_memo);
+      // Integer timestamp fields hold datetime data too. A slot that only
+      // accepts date strings gets them converted via the `unix_to_date`
+      // adapter. That one outputs a date-only string, so it only fits
+      // `format: date`, not `format: date-time`.
+      $schema = PropShape::normalizePropSchema($shape->resolvedSchema);
+      if (!$accepts_timestamps && $schema === ['type' => 'string', 'format' => 'date']) {
+        $candidates += $this->getTimestampSlotCandidates($is_required, TRUE, $host_entity_type_id, $host_entity_bundle, $slot_memo);
       }
+    }
+    // A slot accepting timestamps as-is gets them unconverted: that keeps the
+    // time of day.
+    if ($accepts_timestamps) {
+      $candidates += $this->getTimestampSlotCandidates($is_required, FALSE, $host_entity_type_id, $host_entity_bundle, $slot_memo);
     }
     return \array_values($candidates);
   }
-
-  /**
-   * The (canonicalized) slot schemas that accept a datetime string.
-   */
-  private const DATE_STRING_SCHEMAS = [
-    ['type' => 'string', 'format' => 'date'],
-    ['type' => 'string', 'format' => 'date-time'],
-  ];
 
   /**
    * Field types whose (integer) main property is a UNIX timestamp.
@@ -476,27 +481,32 @@ final readonly class PropSourceSuggester {
   private const TIMESTAMP_FIELD_TYPES = ['changed', 'created', 'timestamp'];
 
   /**
-   * Computes timestamp-field candidates for date-string adapter input slots.
+   * Computes timestamp-field candidates for date-shaped adapter input slots.
    *
    * Datetime data reaches a date-shaped adapter input in two field forms:
    * datetime string fields match the slot's shape directly, while integer
-   * timestamp fields (e.g. an entity's created/changed) need a conversion
-   * first. These candidates carry it built in, via the single-input `adapter`
-   * shortcut on EntityFieldPropSource — the same mechanism the hard-coded
-   * created/changed suggestions for `format: date` props use.
+   * timestamp fields (e.g. an entity's created/changed) do not. A slot that
+   * accepts timestamps as-is (`format_date`'s `date`) gets them unconverted.
+   * Any other date-string slot needs a conversion first: those candidates
+   * carry it built in, via the single-input `adapter` shortcut on
+   * EntityFieldPropSource — the same mechanism the hard-coded created/changed
+   * suggestions for `format: date` props use.
    *
    * @param bool $is_required
    *   Whether only never-empty fields may populate this slot. The `created`
    *   and `changed` field types are computed on save and always carry a
    *   value; a plain `timestamp` field only qualifies when it is required.
+   * @param bool $convert_to_date_string
+   *   Whether to convert the timestamp to a date-only string, via the
+   *   `unix_to_date` adapter.
    * @param array<string, mixed> $slot_memo
    *
    * @return array<string, array{id: string, label: string, source: array<string, mixed>}>
    *   Candidate entries keyed by expression, ready to merge into a slot's
    *   candidate list.
    */
-  private function getTimestampSlotCandidates(bool $is_required, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
-    $memo_key = 'candidates-timestamp:' . (int) $is_required;
+  private function getTimestampSlotCandidates(bool $is_required, bool $convert_to_date_string, string $host_entity_type_id, string $host_entity_bundle, array &$slot_memo): array {
+    $memo_key = 'candidates-timestamp:' . (int) $is_required . ':' . (int) $convert_to_date_string;
     if (!\array_key_exists($memo_key, $slot_memo)) {
       $host_entity_type = BetterEntityDataDefinition::create($host_entity_type_id, $host_entity_bundle);
       $entries = [];
@@ -507,14 +517,17 @@ final readonly class PropSourceSuggester {
         if ($is_required && $field_definition->getType() === 'timestamp' && !$field_definition->isRequired()) {
           continue;
         }
-        $source = (new EntityFieldPropSource(
+        $source = new EntityFieldPropSource(
           new FieldPropExpression($host_entity_type, $field_name, NULL, 'value'),
-        ))->withAdapter('unix_to_date');
+        );
+        if ($convert_to_date_string) {
+          $source = $source->withAdapter('unix_to_date');
+        }
         if ($this->isConsideredIrrelevant($source->expression)) {
           continue;
         }
         $entries[$source->asChoice()] = [
-          'id' => \hash('xxh64', $source->asChoice() . ':unix_to_date'),
+          'id' => \hash('xxh64', $source->asChoice() . ($convert_to_date_string ? ':unix_to_date' : '')),
           'label' => (string) Labeler::flatten($this->labeler->label($source->expression, $host_entity_type)),
           'source' => $source->toArray(),
         ];

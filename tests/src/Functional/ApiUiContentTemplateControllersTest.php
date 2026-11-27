@@ -293,13 +293,17 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
     // The Date conversion adapter's `date` input offers both `format: date`
     // and `format: date-time` fields — but never plain strings. Integer
-    // timestamp fields are offered too, converted via `unix_to_date`.
+    // timestamp fields are offered too, unconverted: that keeps their time of
+    // day.
     $format_date = \array_values(\array_filter($text_adapters, fn (array $s): bool => $s['adapter']['id'] === 'format_date'))[0];
     $date_input = \array_values(\array_filter($format_date['adapter']['inputs'], fn (array $i): bool => $i['name'] === 'date'))[0];
     self::assertContains('Event date', \array_column($date_input['candidates'], 'label'));
     self::assertNotContains('Title', \array_column($date_input['candidates'], 'label'));
     $authored_on = \array_values(\array_filter($date_input['candidates'], fn (array $c): bool => $c['label'] === 'Authored on'))[0];
-    self::assertSame('unix_to_date', $authored_on['source']['adapter']);
+    self::assertSame([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:article␝created␞␟value',
+    ], $authored_on['source']);
 
     // Even where no datetime fields exist — the `user` bundle — Date
     // conversion is offered: the always-populated created/changed timestamps
@@ -328,7 +332,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     self::assertNotContains('Last access', $user_date_candidate_labels);
     self::assertNotContains('Last login', $user_date_candidate_labels);
     foreach ($user_date_input['candidates'] as $candidate) {
-      self::assertSame('unix_to_date', $candidate['source']['adapter']);
+      self::assertArrayNotHasKey('adapter', $candidate['source']);
     }
   }
 

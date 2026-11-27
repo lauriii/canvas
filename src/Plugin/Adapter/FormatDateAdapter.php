@@ -15,18 +15,19 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Adapts a datetime string to human-readable text.
+ * Adapts a datetime string or a UNIX timestamp to human-readable text.
  *
  * Supports two modes, controlled by the `format` input:
  * - a date format config entity ID (e.g. `medium`): absolute display, using
  *   the site's (localizable) date format configuration
  * - the special value `relative`: relative display, e.g. "2 days ago"
  *
- * Complements the `unix_to_date` adapter, which converts integer timestamps
- * (e.g. an entity's created/changed fields) to date strings that this adapter
- * accepts as input.
+ * Integer UNIX timestamps (e.g. an entity's created/changed fields) are
+ * accepted as-is. They must not be routed through the `unix_to_date` adapter
+ * first: that one outputs a date-only string, which loses the time of day.
  *
  * @see \Drupal\canvas\Plugin\Adapter\UnixTimestampToDateAdapter
+ * @see \Drupal\canvas\ShapeMatcher\PropSourceSuggester::getTimestampSlotCandidates()
  */
 #[Adapter(
   id: self::PLUGIN_ID,
@@ -47,7 +48,7 @@ final class FormatDateAdapter extends AdapterBase implements ContainerFactoryPlu
    */
   public const string FORMAT_RELATIVE = 'relative';
 
-  protected ?string $date = NULL;
+  protected string|int|null $date = NULL;
 
   protected ?string $format = NULL;
 
@@ -81,9 +82,11 @@ final class FormatDateAdapter extends AdapterBase implements ContainerFactoryPlu
     // depending on the field type and its settings. Accept both instead of
     // strictly validating the declared `date-time` format, so that e.g.
     // date-only fields and chained `unix_to_date` output remain adaptable.
+    // Integer UNIX timestamps (created/changed/timestamp fields) are accepted
+    // too, which keeps their time of day.
     if ($input === 'date') {
-      if ($value !== NULL && !\is_string($value)) {
-        throw new \LogicException('The `date` input must be a datetime string.');
+      if ($value !== NULL && !\is_string($value) && !\is_int($value)) {
+        throw new \LogicException('The `date` input must be a datetime string or a UNIX timestamp.');
       }
       $this->date = $value;
       return $this;
@@ -95,19 +98,23 @@ final class FormatDateAdapter extends AdapterBase implements ContainerFactoryPlu
     if (static::isEmptyValue($this->date) || static::isEmptyValue($this->format)) {
       return new EvaluationResult(NULL);
     }
-    \assert(\is_string($this->date) && \is_string($this->format) && $this->format !== '');
+    \assert(\is_string($this->format) && $this->format !== '');
 
-    try {
-      // TRICKY: date-only strings ("Y-m-d") get a midnight UTC time; datetime
-      // field values are stored in UTC, which \DateTimeImmutable defaults to
-      // only if no timezone is embedded in the string.
-      $datetime = new \DateTimeImmutable($this->date, new \DateTimeZone('UTC'));
+    if (\is_int($this->date)) {
+      $timestamp = $this->date;
     }
-    catch (\Exception) {
-      // Unparseable input: adapt to nothing rather than failing the render.
-      return new EvaluationResult(NULL);
+    else {
+      try {
+        // TRICKY: date-only strings ("Y-m-d") get a midnight UTC time;
+        // datetime field values are stored in UTC, which \DateTimeImmutable
+        // defaults to only if no timezone is embedded in the string.
+        $timestamp = (new \DateTimeImmutable($this->date, new \DateTimeZone('UTC')))->getTimestamp();
+      }
+      catch (\Exception) {
+        // Unparseable input: adapt to nothing rather than failing the render.
+        return new EvaluationResult(NULL);
+      }
     }
-    $timestamp = $datetime->getTimestamp();
 
     if ($this->format === self::FORMAT_RELATIVE) {
       $now = $this->time->getRequestTime();
