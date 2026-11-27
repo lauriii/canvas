@@ -805,9 +805,10 @@ playwright-reports:
 
 # Records Playwright tests that failed and then passed on a retry, jobs that
 # failed for a reason other than their script (for example, a terminated
-# runner pod), and merged merge requests. Scans all pipelines of the project,
-# and adds recent data to the CSV files already published under `flaky-tests/`,
-# so the record outlives the artifacts and logs. See
+# runner pod), the speed and timed-out tests of each Playwright job, and merged
+# merge requests. Scans all pipelines of the project, and adds recent data to
+# the CSV files already published under `flaky-tests/`, so the record
+# outlives the artifacts and logs. See
 # docs/testing/playwright.md#flaky-tests.
 flaky tests report:
   stage: report

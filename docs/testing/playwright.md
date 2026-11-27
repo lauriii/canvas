@@ -152,6 +152,19 @@ runner manager that ran the job: its system ID and GitLab Runner version. All
 jobs on drupalcode.org use the same instance runner, so the runner manager
 identifies the host.
 
+The job also reads the log of every `playwright` job attempt, including
+retried jobs and jobs killed by the job timeout before they wrote a report. The
+`list` reporter prints one line per test result there, with its duration. For
+each job attempt, the report records:
+
+- the slowdown: the median, over the tests that passed on their first
+  attempt, of the test's duration divided by its usual duration. The usual
+  duration is the median of the test's last 20 passing durations. At `2.0×`,
+  the job took twice as long as usual.
+- the tests that timed out: an attempt took the full test timeout of 120s.
+  On a slow runner, tests time out that pass on a normal runner.
+- the tests whose last attempt failed.
+
 The job also records the merge requests merged into the default branch.
 
 The job appends new results to the CSV files that are already published, and
@@ -171,13 +184,20 @@ publishes the result to GitLab Pages under `flaky-tests/`:
     recorded pipelines that ran Playwright tests in which the test was flaky.
   - infrastructure failures counted by reason, message, job, and runner
     manager.
+  - Playwright job speed: the median slowdown, slow jobs and jobs with
+    timed-out tests per runner manager; how often each test timed out, and
+    how often in a slow job (`1.5×` or more); and the latest slow jobs.
 - `flaky-tests/flaky-tests.csv`: one row per flaky test per pipeline.
 - `flaky-tests/test-runs.csv`: one row per pipeline with a Playwright report,
   with the number of tests that ran.
 - `flaky-tests/infrastructure-failures.csv`: one row per failed job.
+- `flaky-tests/playwright-jobs.csv`: one row per `playwright` job attempt.
+- `flaky-tests/test-durations.csv`: one row per test, with its last 20
+  passing durations in milliseconds.
 - `flaky-tests/merged-merge-requests.csv`: one row per merged merge request.
 - `flaky-tests/scanned-pipelines.csv`: the pipelines already scanned, and when
   they were last updated. Pipelines that did not change since are skipped.
+  When no `playwright-jobs.csv` is published yet, all pipelines are scanned.
 
 The job can also be run manually from a pipeline on the default branch started
 in the GitLab UI. Variables:
