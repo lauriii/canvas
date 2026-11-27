@@ -123,16 +123,19 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
         const loadedSrcDocument = loadingSrcDocumentRef.current;
         const swap = () => {
-          // A newer document may have started loading since this one did.
-          swappedSrcDocumentRef.current =
-            loadingSrcDocumentRef.current === loadedSrcDocument
-              ? loadedSrcDocument
-              : null;
-          setWhichActive((current) => 1 - current);
+          swappedSrcDocumentRef.current = loadedSrcDocument;
+          // Activate the iframe that loaded rather than toggling, so a second
+          // swap for the same iframe can't bring back the other one.
+          setWhichActive(iFrameRefs.current.indexOf(iframe));
         };
 
         const startTime = Date.now();
         const checkIFrameContent = () => {
+          // A newer document has started loading into this iframe since this
+          // one loaded. Its own load event swaps it in.
+          if (loadingSrcDocumentRef.current !== loadedSrcDocument) {
+            return;
+          }
           // The shown preview has been edited since this one was requested: it
           // is newer, and the render of the edit is on its way.
           if (isPreviewEditedSince(editsAtLoadRef.current)) {
