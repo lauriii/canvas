@@ -66,6 +66,7 @@ Español
 esque
 extralight
 extensionless
+fangsong
 feff
 fffd
 fieldtext
